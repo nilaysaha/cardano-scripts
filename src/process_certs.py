@@ -3,15 +3,10 @@
 import subprocess, sys
 
 
-FILES={'stake': {'verif_key': "./kaddr/stake.vkey", 'addr': './kaddr/stake.addr', 'sign_key': './kaddr/stake.skey', 'cert': './kaddr/stake.cert' },
-       'payment': {'verif_key': './kaddr/payment.vkey', 'addr': './kaddr/payment.addr', 'sign_key': './kaddr/payment.skey'},
+FILES={'stake': {'verify_key': "./kaddr/stake.vkey", 'addr': './kaddr/stake.addr', 'sign_key': './kaddr/stake.skey', 'cert': './kaddr/stake.cert' },
+       'payment': {'verify_key': './kaddr/payment.vkey', 'addr': './kaddr/payment.addr', 'sign_key': './kaddr/payment.skey'},
        'configs': {'protocol': './kaddr/protocol.json'},
-       'transaction': {'raw': './kaddr/tx.raw', 'signed':'./kaddr/tx.signed'},
-       'pool': {'cold': {'verify_key':"./kaddr/cold.vkey", "sign_key":"./kaddr/cold.skey","counter":"./kaddr/cold.counter"},
-                'vrf': {'verify_key': './kaddr/vrf.vkey', 'sign_key': './kaddr/vrf.skey'}
-                'kes': {'verify_key': './kaddr/kes.vkey', 'sign_key': "./kaddr/kes.skey"}},       
-       'node': {'cert': './kaddr/node.cert'},
-       'ff': {'genesis': '../ff-genesis.json', 'config':'../ff-config.json', 'topology': '../ff-topology.json'}
+       'transaction': {'raw': './kaddr/tx.raw', 'signed':'./kaddr/tx.signed'}
        }
 
 TTL_BUFFER=1200
@@ -131,86 +126,6 @@ class RegisterStake:
             print(s)
         except:
             print("Oops!", sys.exc_info()[0], "occurred in submit transaction")
-
-class PoolKeys:
-    def __init__(self):
-        pass
-
-    def generate_cold_kc(self):
-        """
-        cardano-cli shelley node key-gen \
-        --cold-verification-key-file cold.vkey \
-        --cold-signing-key-file cold.skey \
-        --operational-certificate-issue-counter-file cold.counter
-        """
-        try:
-            command = [ CARDANO_CLI, "shelley", "node", "key-gen", "--cold-verification-key-file", FILES['pool']['cold']['verify_key'],
-                        '--cold-signing-key-file', FILES['pool']['cold']['sign_key'], '--operational-certificate-issue-counter-file',
-                        FILES['pool']['cold']['counter']]
-            s=subprocess.check_output(command)
-        except:
-            print("Oops!", sys.exc_info()[0], "occurred in generate cold kc")
-
-    def generate_vrf_keys(self):
-        """
-        cardano-cli shelley node key-gen-VRF \
-        --verification-key-file vrf.vkey \
-        --signing-key-file vrf.skey
-        """
-        try:
-            command = [ CARDANO_CLI, "shelley", "node", "key-gen-VRF", "--verification-key-file", FILES['pool']['vrf']['verify_key'],
-                        '--signing-key-file', FILES['pool']['vrf']['sign_key']]
-            s=subprocess.check_output(command)
-        except:
-            print("Oops!", sys.exc_info()[0], "occurred in generate vrf keys")
-            
-    def generate_kes_keys(self):
-        """
-        cardano-cli shelley node key-gen-KES \
-        --verification-key-file kes.vkey \
-        --signing-key-file kes.skey
-        """
-        try:
-            command=[CARDANO_CLI, "shelley", "node", "key-gen-KES", "--verification-key-file", FILES['pool']['kes']['verify_key'],
-                     '--signing-key-file', FILES['pool']['kes']['sign_key']]
-            s=subprocess.check_output(command)
-        except:
-            print("Oops!", sys.exc_info()[0], "occurred in generate kes keys")
-
-    def _calc_kes_period(self):
-        import json
-        genesis = json.loads(FILES['ff']['genesis'])
-        slotsPerKESPeriod = genesis['slotsPerKESPeriod']
-        qtip = int(current_tip())
-        return qtip/slotsPerKESPeriod
-
-            
-    def generate_node_cert(self):
-        """
-        Ideally kesPeriod should be derived from genesis file. Here we will manually input it.
-        cardano-cli shelley node issue-op-cert \
-        --kes-verification-key-file kes.vkey \
-        --cold-signing-key-file cold.skey \
-        --operational-certificate-issue-counter cold.counter \
-        --kes-period 120 \
-        --out-file node.cert
-        """
-        try:
-            kesPeriod = self._calc_kes_period()
-            command = [ CARDANO_CLI, "shelly", "node", "issue-op-cert", "--kes-verification-key-file", FILES['pool']['kes']['verify_key'],
-                        '--cold-signing-key-file', FILES['pool']['cold']['sign_key'], '--operational-certificate-issue-counter', FILES['pool']['cold']['counter'],
-                        '--kes-period', kesPeriod, '--out-file', FILES['node']['cert']]
-            s = subprocess.check_output(command)
-            print(s)
-        except:
-            print("Oops!", sys.exc_info()[0], "occurred in generate node cert")
-                    
-
-    def backup_pool_keys(self):
-        """
-        We need to backup and then delete the pool keys. TO DO
-        """
-        pass
             
 def main():
     try:
