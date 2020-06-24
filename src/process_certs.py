@@ -1,7 +1,6 @@
-#!/bin/python3
+\#!/bin/python3
 
 import subprocess, sys
-
 
 FILES={'stake': {'verify_key': "./kaddr/stake.vkey", 'addr': './kaddr/stake.addr', 'sign_key': './kaddr/stake.skey', 'cert': './kaddr/stake.cert' },
        'payment': {'verify_key': './kaddr/payment.vkey', 'addr': './kaddr/payment.addr', 'sign_key': './kaddr/payment.skey'},
@@ -36,7 +35,8 @@ def get_ttl():
     print("ttl:{v}".format(v=ttl))
     return str(ttl)
 
-        
+
+    
 def calculate_min_fees(ttl):
     try:
         command = [CARDANO_CLI, 'shelley',  'transaction', 'calculate-min-fee',  '--tx-in-count',  str(1),  '--tx-out-count', str(1) , '--ttl',  str(ttl),  '--testnet-magic', str(42), 
@@ -64,6 +64,24 @@ def get_deposit_fee():
     #for now hacking. Ideally should be read from the protocol.json (which should be generated and then read) "keyDeposit": 400000,
     return 400000
 
+
+def get_git_tag():
+    pass
+
+def get_funds_via_faucet():
+    """
+    implement:
+    curl -v -XPOST "https://faucet.shelley-testnet.dev.cardano.org/send-money/$(cat payment.addr)"  Ideally for 1.14 git tag.
+    """
+    try:
+        import requests
+        paddr = content(FILES['payment']['addr'])
+        URL="https://faucet.shelley-testnet.dev.cardano.org/send-money/%s"%(paddr)
+        r = requests.post(url = URL)
+        return r.text #response text.
+    except e:
+        print(e)
+    
 
 class RegisterStake:
     def __init__(self):

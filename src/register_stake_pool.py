@@ -301,32 +301,54 @@ class SubmitStakePool:
             print("Oops!", sys.exc_info()[0], "occurred in submit transaction")
 
         
-def main():
+def main(options):
+    """
+    options: {
+    'generate': true, 'register': true, 'submit':true
+    }
+    """
     #generate the pool keys & cert
-    p = PoolKeys()
-    p.generate_cold_kc()
-    p.generate_vrf_keys()
-    p.generate_kes_keys()
-    p.generate_node_cert()
 
-    print('--------------------Finished generating pool keys & certs ---------------------------------\n')
+    if (options.generate):
+        try:
+            p = PoolKeys()
+            p.generate_cold_kc()
+            p.generate_vrf_keys()
+            p.generate_kes_keys()
+            p.generate_node_cert()
+            print('--------------------Finished generating pool keys & certs ---------------------------------\n')
+        except Exception as e:
+            print("Failed to generate pool keys and certs")
+            print(e)
 
     
     #register stake pool certs
-    sp = RegisterStakePool()
-    pledgeAmount = 90000000000
-    poolCost = 50000
-    poolMargin = 0.05
-    sp.generate_cert_stakepool(pledgeAmount, poolCost, poolMargin)
-    sp.generate_delegation_cert()
+    if (options.register):
+        try:
+            sp = RegisterStakePool()
+            pledgeAmount = 90000000000
+            poolCost = 50000
+            poolMargin = 0.05
+            sp.generate_cert_stakepool(pledgeAmount, poolCost, poolMargin)
+            sp.generate_delegation_cert()
+            print('--------------------Finished register stake pool certs ---------------------------------\n')
+        except Exception as e:
+            print("Failed to register stake pool certs")
+            print(e)
 
-    print('--------------------Finished register stake pool certs ---------------------------------\n')
         
     #submit the transaction
-    tr = SubmitStakePool()
-    tr.build_transaction()
-    tr.sign_transaction()
-    tr.submit_transaction()
-    
+    if(options.submit):
+        try:
+            tr = SubmitStakePool()
+            tr.build_transaction()
+            tr.sign_transaction()
+            tr.submit_transaction()
+        except Exception as e:
+            print("Failed to submit the pool registration transaction")
+            print(e)
+
+
+            
 if __name__ == "__main__": 
     main()                       
