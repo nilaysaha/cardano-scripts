@@ -180,7 +180,10 @@ class PoolKeys:
 class RegisterStakePool:
     def __init__(self):
         pass
-
+    
+    def _fetch_pool_metadata(self):
+        
+    
     def generate_cert_stakepool(self, pledgeAmount, poolCost, poolMargin):
         """
         cardano-cli shelley stake-pool registration-certificate \
