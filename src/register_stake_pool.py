@@ -25,7 +25,7 @@ CARDANO_CLI="/home/nsaha/.cabal/bin/cardano-cli"
 def get_relay_params():
     return ("116.203.215.60", "2a01:4f8:c0c:f2e2::/64", "3001")
     
-def _get_pooldeposit():
+def get_pooldeposit():
     try:
         import json
         print("inside get pooldeposit")
@@ -36,7 +36,7 @@ def _get_pooldeposit():
     except Exception as e:
         print(e)
 
-def _calc_min_fee():
+def calc_min_fee():
     """
         cardano-cli shelley transaction calculate-min-fee \
         --tx-in-count 1 \
@@ -53,17 +53,26 @@ def _calc_min_fee():
     try:
         PFILES = pc.FILES
         TTL = pc.get_ttl()
-        command = [CARDANO_CLI, "shelley", "transaction", "calculate-min-fee", "--tx-in-count", "1", "--tx-out-count", "1", "--ttl", TTL, "--testnet-magic", "42",
-                   "--signing-key-file", PFILES['payment']['sign_key'], '--signing-key-file', PFILES['stake']['sign_key'], '--signing-key-file', FILES['pool']['cold']['sign_key'],
-                   '--certificate-file', FILES['pool']['cert']['registration'], '--certificate-file', FILES['pool']['cert']['delegation'], '--protocol-params-file',
-                   PROTOCOL_CONFIG['protocol']]
+        command = [CARDANO_CLI, "shelley", "transaction", "calculate-min-fee",
+                   "--tx-in-count", str(1),
+                   "--tx-out-count", str(1),
+                   "--ttl", str(TTL),
+                   "--testnet-magic", str(42),
+                   "--signing-key-file", PFILES['payment']['sign_key'],
+                   '--signing-key-file', PFILES['stake']['sign_key'],
+                   '--signing-key-file', FILES['pool']['cold']['sign_key'],
+                   '--certificate-file', FILES['pool']['cert']['registration'],
+                   '--certificate-file', FILES['pool']['cert']['delegation'],
+                   '--protocol-params-file', PROTOCOL_CONFIG]
+        
         print(command)
-        s = subprocess.check_output(command)
+        s = subprocess.check_output(command, stderr=True)
+        print(s)
         min_fee = s.decode('UTF-8').split(" ")[1].split("\n")[0]
         print(min_fee)
         return min_fee
     except:
-        print("Oops!", sys.exc_info()[0], "occurred calc min fee")
+        print("Oops!", sys.exc_info()[0], "erro occurred calc min fee")
         
         
 def calc_transaction_amount():
@@ -72,22 +81,20 @@ def calc_transaction_amount():
     """
     try:
         print("calculate transaction amount")
-        cmin =  _calc_min_fee()
-        poolDeposit = _get_pooldeposit()
+        cmin =  calc_min_fee()
+        poolDeposit = get_pooldeposit()
 
-        print(cmin)
-        print(poolDeposit)
+        print(f"minimum fee calc: {cmin}")
+        print(f"pooldeposit:{poolDeposit}")
         
         (txHash, txtx, lovelace) = pc.get_payment_utx0()
-        print(txHash)
-        print(txtx)
-        print(lovelace)
+        print(f"txhash:{txHash} txtx:{txtx} lovelace:{lovelace}")
         
         fund_available = int(lovelace)
         fund_required  = int(cmin) + int(poolDeposit)
 
-        print(fund_required)
-        print(fund_available)
+        print(f"fund required:{fund_required}")
+        print(f"fund available:{fund_available}")
         
         if (fund_available > fund_required):
             return  fund_available - fund_required        
@@ -297,7 +304,7 @@ class SubmitStakePool:
             TTL = pc.get_ttl()
             (txHash, txtx, lovelace) = pc.get_payment_utx0()
             remaining_fund = calc_transaction_amount()
-            fee = _calc_min_fee()
+            fee = calc_min_fee()
             payment_addr = pc.content(PFILES['payment']['addr'])
             tx_in  = "{txHash}#{txtx}".format(txHash=txHash, txtx=txtx)
             tx_out = "{paddr}+{rfund}".format(paddr=payment_addr, rfund=remaining_fund)
