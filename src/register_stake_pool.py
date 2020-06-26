@@ -1,14 +1,16 @@
 #!/bin/python3
 
-import subprocess, sys
+import subprocess, sys, requests
 import process_certs
+
 
 FILES={
     'pool': {'cold': {'verify_key':"./kaddr_node/cold.vkey", "sign_key":"./kaddr_node/cold.skey","counter":"./kaddr_node/cold.counter"},
              'vrf': {'verify_key': './kaddr_node/vrf.vkey', 'sign_key': './kaddr_node/vrf.skey'},
              'kes': {'verify_key': './kaddr_node/kes.vkey', 'sign_key': "./kaddr_node/kes.skey"},
              'cert': {'registration':'./kaddr_node/pool_registration.cert', 'delegation':'./kaddr_node/pool_delegation.cert'},
-             'transaction': {'raw': './kaddr_node/pool_trans.raw', 'signed': './kaddr_node/pool_trans.signed'}
+             'transaction': {'raw': './kaddr_node/pool_trans.raw', 'signed': './kaddr_node/pool_trans.signed'},
+             'metadata': './kaddr_node/pool_metadata.json'
     },       
     'node': {'cert': './kaddr/node.cert'},
     'ff': {'genesis': '../ff-genesis.json', 'config':'../ff-config.json', 'topology': '../ff-topology.json', 'protocol':'./kaddr/protocol.json'}
@@ -179,12 +181,39 @@ class PoolKeys:
 
 class RegisterStakePool:
     def __init__(self):
-        pass
+        self.POOL_META_URL="https://github.com/nilaysaha/cardano-scripts/blob/master/src/config/pool_metadata.json"
     
     def _fetch_pool_metadata(self):
-        
+        import create_keys_addr as cka;
+        try:
+            r1 = requests.get(url = self.POOL_META_URL)
+            r1.raise_for_status()
+            cka.create_file(r1.text, FILES['pool']['metadata'])
+            return r1.text
+        except HTTPError as http_err:
+            print(f'HTTP error occurred: {http_err}')  # Python 3.6
+        except Exception as err:
+            print(f'Other error occurred: {err}')  # Python 3.6
+        else:
+            print('Success!')
+            
+    def generate_hash_of_pool_metadata(self):
+        """
+        execute: cardano-cli shelley stake-pool metadata-hash --pool-metadata-file testPool.json
+        """
+        try:
+            #first fetch pool metadata and store in file.(artifact of cardano cli command line)
+            self._fetch_pool_metadata()
+
+            #next hash content of file created
+            command=["cardano-cli" ,"shelley", "stake-pool", "metadata-hash", "--pool-metadata-file", FILES['pool']['metadata']]
+            s = subprocess.check_output(command)
+            hashed_val = s.decode('UTF-8')
+            return hashed_val
+        except Exception as e:
+            print(e)
     
-    def generate_cert_stakepool(self, pledgeAmount, poolCost, poolMargin):
+    def generate_cert_stakepool(self, pledgeAmount, poolCost, poolMargin, poolRelay_ipv4, poolRelay_port):
         """
         cardano-cli shelley stake-pool registration-certificate \
         --cold-verification-key-file cold.vkey \
@@ -195,13 +224,23 @@ class RegisterStakePool:
         --pool-reward-account-verification-key-file stake.vkey \
         --pool-owner-stake-verification-key-file stake.vkey \
         --testnet-magic 42 \
+        --pool-relay-ipv4 123.123.123.123 \
+        --pool-relay-port 3001 \
+        --metadata-url https://gist.githubusercontent.com/testPool/.../testPool.json \
+        --metadata-hash 6bf124f217d0e5a0a8adb1dbd8540e1334280d49ab861127868339f43b3948af \
         --out-file pool.cert
         """
+        pool_metadata_hash = self.generate_hash_of_pool_metadata()
         PFILES = process_certs.FILES
         command = [CARDANO_CLI, "shelley", "stake-pool", "registration-certificate", "--cold-verification-key-file", FILES['pool']['cold']['verify_key'],
                    '--vrf-verification-key-file', FILES['pool']['vrf']['verify_key'], "--pool-pledge", str(pledgeAmount), "--pool-cost", str(poolCost), "--pool-margin", str(poolMargin),
                    "--pool-reward-account-verification-key-file", PFILES['stake']['verify_key'], "--pool-owner-stake-verification-key-file", PFILES['stake']['verify_key'],
-                   "--testnet-magic", "42", "--out-file", FILES['pool']['cert']['registration']]
+                   "--testnet-magic", "42",
+                   "--pool-relay-ipv4", poolRelay_ipv4,
+                   "--pool-relay-port", poolRelay_port,
+                   "--metadata-url", self.POOL_META_URL,
+                   "--metadata-hash", pool_metadata_hash,
+                   "--out-file", FILES['pool']['cert']['registration']]
 
         print(command)
         s = subprocess.check_output(command)

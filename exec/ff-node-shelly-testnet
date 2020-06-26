@@ -1,0 +1,37 @@
+#!/bin/bash
+
+SCRIPTDIR=`dirname "$BASH_SOURCE"`
+
+NODE_DIR="${SCRIPTDIR}/state-node-shelly-testnet"
+mkdir -p ${NODE_DIR}
+
+choice() { i=$1; shift; eval "echo \${$((i + 1))}"; }
+
+
+echo ${SCRIPTDIR}
+
+BASE_CONFG="${SCRIPTDIR}/../src/tconfig/shelley_testnet-config.json"
+TOPOLOGY_CONFIG="${SCRIPTDIR}/../src/tconfig/shelley_testnet-topology.json"
+GENESIS_CONFIG="${SCRIPTDIR}/../src/tconfig/shelley_testnet-genesis.json"
+
+CARDANO_NODE="/home/nsaha/.cabal/bin/cardano-node"
+#CARDANO_NODE="/nix/store/0hg7ls106w4j1r0gwkybddsbpkaiv50d-cardano-node-exe-cardano-node-1.13.0/bin/cardano-node"
+HOST_IP="$(wget http://ipecho.net/plain -O - -q ; echo)"
+PORT=3001
+DB_DIR="${NODE_DIR}/db-ff"
+SOCKET="${NODE_DIR}/node.socket"
+
+
+COMMAND= ${CARDANO_NODE} run \
+       --config ${BASE_CONFG} \
+       --database-path ${DB_DIR} \
+       --topology ${TOPOLOGY_CONFIG} \
+       --socket-path ${SOCKET} \
+       --host-addr ${HOST_IP} \
+       --port ${PORT}
+
+
+echo "Starting cardano-node run: ${COMMAND}"
+exec ${COMMAND}
+
+export CARDANO_NODE_SOCKET_PATH=$PWD/${SOCKET}
