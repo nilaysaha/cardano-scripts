@@ -7,7 +7,7 @@ In this we thread together the different steps to setup the node pool
 import sys
 import create_keys_addr as cka
 import process_certs as pc
-# import register_stake_pool as rsp
+import register_stake_pool as rsp
 
 class Setup:
     def __init__(self):
@@ -61,18 +61,16 @@ class Setup:
         pass
 
     def _step_8(self):
-        # try:
-        #     rsp.main({'generate':False, 'register':True, 'submit': False})
-        # except Exception as e:
-        #     print(e)
-        pass
+        try:
+            rsp.main({'generate':False, 'register':True, 'submit': False})
+        except Exception as e:
+            print(e)
         
     def _step_9(self):
-        # try:
-        #     rsp.main({'generate':False, 'register':False, 'submit': True})
-        # except Exception as e:
-        #     print(e)
-        pass
+        try:
+            rsp.main({'generate':False, 'register':False, 'submit': True})
+        except Exception as e:
+            print(e)
         
     def test_func(self):
         print('this is test function')

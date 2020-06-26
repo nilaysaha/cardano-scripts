@@ -131,3 +131,4 @@ dmypy.json
 
 #custom stuff
 ./src/kaddr/
+./src/kaddr_node/

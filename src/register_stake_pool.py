@@ -1,8 +1,8 @@
 #!/bin/python3
 
 import subprocess, sys, requests
-import process_certs
-
+import process_certs as pc
+import create_keys_addr as cka
 
 FILES={
     'pool': {'cold': {'verify_key':"./kaddr_node/cold.vkey", "sign_key":"./kaddr_node/cold.skey","counter":"./kaddr_node/cold.counter"},
@@ -12,20 +12,24 @@ FILES={
              'transaction': {'raw': './kaddr_node/pool_trans.raw', 'signed': './kaddr_node/pool_trans.signed'},
              'metadata': './kaddr_node/pool_metadata.json'
     },       
-    'node': {'cert': './kaddr/node.cert'},
-    'ff': {'genesis': '../ff-genesis.json', 'config':'../ff-config.json', 'topology': '../ff-topology.json', 'protocol':'./kaddr/protocol.json'}
+    'node': {'cert': './kaddr/node.cert'}
 }
 
+SETUP_CONFIGS = cka.FILES['configurations']
+PROTOCOL_CONFIG = pc.FILES['configs']['protocol']
 TTL_BUFFER=1200
 
 #replace this will the location of the cardabo binaries compiled using cabal
 CARDANO_CLI="/home/nsaha/.cabal/bin/cardano-cli"
 
+def get_relay_params():
+    return ("116.203.215.60", "2a01:4f8:c0c:f2e2::/64", "3001")
+    
 def _get_pooldeposit():
     try:
         import json
         print("inside get pooldeposit")
-        fcontent = process_certs.content(FILES['ff']['genesis'])
+        fcontent = pc.content(SETUP_CONFIGS['genesis'])
         p=json.loads(fcontent)
         t = p["protocolParams"]["poolDeposit"]
         return t
@@ -47,12 +51,12 @@ def _calc_min_fee():
         --protocol-params-file protocol.json
     """
     try:
-        PFILES = process_certs.FILES
-        TTL = process_certs.get_ttl()
+        PFILES = pc.FILES
+        TTL = pc.get_ttl()
         command = [CARDANO_CLI, "shelley", "transaction", "calculate-min-fee", "--tx-in-count", "1", "--tx-out-count", "1", "--ttl", TTL, "--testnet-magic", "42",
                    "--signing-key-file", PFILES['payment']['sign_key'], '--signing-key-file', PFILES['stake']['sign_key'], '--signing-key-file', FILES['pool']['cold']['sign_key'],
                    '--certificate-file', FILES['pool']['cert']['registration'], '--certificate-file', FILES['pool']['cert']['delegation'], '--protocol-params-file',
-                   FILES['ff']['protocol']]
+                   PROTOCOL_CONFIG['protocol']]
         print(command)
         s = subprocess.check_output(command)
         min_fee = s.decode('UTF-8').split(" ")[1].split("\n")[0]
@@ -74,7 +78,7 @@ def calc_transaction_amount():
         print(cmin)
         print(poolDeposit)
         
-        (txHash, txtx, lovelace) = process_certs.get_payment_utx0()
+        (txHash, txtx, lovelace) = pc.get_payment_utx0()
         print(txHash)
         print(txtx)
         print(lovelace)
@@ -95,6 +99,7 @@ def calc_transaction_amount():
 
 class PoolKeys:
     def __init__(self):
+        #create the directory to hold the keys and certs for the nodes
         pass
 
     def generate_cold_kc(self):
@@ -141,10 +146,10 @@ class PoolKeys:
     def _calc_kes_period(self):
         try:
             import json
-            fcontent = process_certs.content(FILES['ff']['genesis'])
+            fcontent = pc.content(SETUP_CONFIGS['genesis'])
             genesis = json.loads(fcontent)
             slotsPerKESPeriod = genesis['slotsPerKESPeriod']
-            qtip = int(process_certs.get_tip())
+            qtip = int(pc.get_tip())
             return int(qtip/slotsPerKESPeriod)
         except Exception:
             print ("error in level argument",Exception)
@@ -162,7 +167,7 @@ class PoolKeys:
         """
         try:
             kesPeriod = str(self._calc_kes_period())
-            command = [ CARDANO_CLI, "shelley", "node", "issue-op-cert", "--kes-verification-key-file", FILES['pool']['kes']['verify_key'],
+            command = [CARDANO_CLI, "shelley", "node", "issue-op-cert", "--kes-verification-key-file", FILES['pool']['kes']['verify_key'],
                         '--cold-signing-key-file', FILES['pool']['cold']['sign_key'], '--operational-certificate-issue-counter', FILES['pool']['cold']['counter'],
                         '--kes-period', kesPeriod, '--out-file', FILES['node']['cert']]
             print(command)
@@ -181,7 +186,8 @@ class PoolKeys:
 
 class RegisterStakePool:
     def __init__(self):
-        self.POOL_META_URL="https://github.com/nilaysaha/cardano-scripts/blob/master/src/config/pool_metadata.json"
+        self.POOL_META_URL="https://raw.githubusercontent.com/nilaysaha/cardano-scripts/master/src/config/pool_metadata.json"
+        self.SHORT_POOL_META_URL = "https://shorturl.at/adhlW"
     
     def _fetch_pool_metadata(self):
         import create_keys_addr as cka;
@@ -206,14 +212,14 @@ class RegisterStakePool:
             self._fetch_pool_metadata()
 
             #next hash content of file created
-            command=["cardano-cli" ,"shelley", "stake-pool", "metadata-hash", "--pool-metadata-file", FILES['pool']['metadata']]
+            command=[CARDANO_CLI ,"shelley", "stake-pool", "metadata-hash", "--pool-metadata-file", FILES['pool']['metadata']]
             s = subprocess.check_output(command)
-            hashed_val = s.decode('UTF-8')
+            hashed_val = s.decode('UTF-8').split("\n")[0]
             return hashed_val
         except Exception as e:
             print(e)
     
-    def generate_cert_stakepool(self, pledgeAmount, poolCost, poolMargin, poolRelay_ipv4, poolRelay_port):
+    def generate_cert_stakepool(self, pledgeAmount, poolCost, poolMargin, poolRelay_ipv4, poolRelay_ipv6, poolRelay_port):
         """
         cardano-cli shelley stake-pool registration-certificate \
         --cold-verification-key-file cold.vkey \
@@ -225,26 +231,32 @@ class RegisterStakePool:
         --pool-owner-stake-verification-key-file stake.vkey \
         --testnet-magic 42 \
         --pool-relay-ipv4 123.123.123.123 \
+        --pool-relay-ipv6 ... \
         --pool-relay-port 3001 \
         --metadata-url https://gist.githubusercontent.com/testPool/.../testPool.json \
         --metadata-hash 6bf124f217d0e5a0a8adb1dbd8540e1334280d49ab861127868339f43b3948af \
         --out-file pool.cert
         """
-        pool_metadata_hash = self.generate_hash_of_pool_metadata()
-        PFILES = process_certs.FILES
-        command = [CARDANO_CLI, "shelley", "stake-pool", "registration-certificate", "--cold-verification-key-file", FILES['pool']['cold']['verify_key'],
-                   '--vrf-verification-key-file', FILES['pool']['vrf']['verify_key'], "--pool-pledge", str(pledgeAmount), "--pool-cost", str(poolCost), "--pool-margin", str(poolMargin),
-                   "--pool-reward-account-verification-key-file", PFILES['stake']['verify_key'], "--pool-owner-stake-verification-key-file", PFILES['stake']['verify_key'],
-                   "--testnet-magic", "42",
-                   "--pool-relay-ipv4", poolRelay_ipv4,
-                   "--pool-relay-port", poolRelay_port,
-                   "--metadata-url", self.POOL_META_URL,
-                   "--metadata-hash", pool_metadata_hash,
-                   "--out-file", FILES['pool']['cert']['registration']]
-
-        print(command)
-        s = subprocess.check_output(command)
-        print(s)
+        try:
+            pool_metadata_hash = self.generate_hash_of_pool_metadata()
+            PFILES = pc.FILES
+            
+            command = [CARDANO_CLI, "shelley" ,"stake-pool", "registration-certificate", "--cold-verification-key-file", FILES['pool']['cold']['verify_key'],
+                       '--vrf-verification-key-file', FILES['pool']['vrf']['verify_key'], "--pool-pledge", str(pledgeAmount), "--pool-cost", str(poolCost),
+                       "--pool-margin", str(poolMargin),
+                       "--pool-reward-account-verification-key-file", PFILES['stake']['verify_key'],
+                       "--pool-owner-stake-verification-key-file", PFILES['stake']['verify_key'],
+                       "--testnet-magic", str(42),
+                       "--pool-relay-ipv4", str(poolRelay_ipv4),
+                       "--pool-relay-port", str(poolRelay_port),
+                       "--metadata-url", self.SHORT_POOL_META_URL,
+                       "--metadata-hash", str(pool_metadata_hash),
+                       "--out-file", FILES['pool']['cert']['registration']]
+            
+            s = subprocess.check_output(command, stderr=True, universal_newlines=True)
+            print(s)
+        except Exception as e:
+            print(e)
 
     def generate_delegation_cert(self):
         """
@@ -254,7 +266,7 @@ class RegisterStakePool:
         --out-file delegation.cert
         """
 
-        PFILES = process_certs.FILES
+        PFILES = pc.FILES
         command = [CARDANO_CLI, "shelley", "stake-address", "delegation-certificate", "--stake-verification-key-file", PFILES['stake']['verify_key'],
                    "--cold-verification-key-file", FILES['pool']['cold']['verify_key'], '--out-file', FILES['pool']['cert']['delegation'] ]
         s = subprocess.check_output(command)
@@ -281,12 +293,12 @@ class SubmitStakePool:
         --certificate-file delegation.cert
         """
         try:
-            PFILES = process_certs.FILES
-            TTL = process_certs.get_ttl()
-            (txHash, txtx, lovelace) = process_certs.get_payment_utx0()
+            PFILES = pc.FILES
+            TTL = pc.get_ttl()
+            (txHash, txtx, lovelace) = pc.get_payment_utx0()
             remaining_fund = calc_transaction_amount()
             fee = _calc_min_fee()
-            payment_addr = process_certs.content(PFILES['payment']['addr'])
+            payment_addr = pc.content(PFILES['payment']['addr'])
             tx_in  = "{txHash}#{txtx}".format(txHash=txHash, txtx=txtx)
             tx_out = "{paddr}+{rfund}".format(paddr=payment_addr, rfund=remaining_fund)
             print("tx_in:%s"%(tx_in))
@@ -313,7 +325,7 @@ class SubmitStakePool:
         --testnet-magic 42 \
         --out-file tx.signed
         """
-        PFILES=process_certs.FILES
+        PFILES=pc.FILES
         try:
             command = [CARDANO_CLI, "shelley", "transaction", "sign",
                        "--tx-body-file", FILES['pool']['transaction']['raw'],
@@ -350,8 +362,7 @@ def main(options):
     }
     """
     #generate the pool keys & cert
-
-    if (options.generate):
+    if (options['generate']):
         try:
             p = PoolKeys()
             p.generate_cold_kc()
@@ -365,13 +376,14 @@ def main(options):
 
     
     #register stake pool certs
-    if (options.register):
+    if (options["register"]):
         try:
             sp = RegisterStakePool()
             pledgeAmount = 90000000000
             poolCost = 50000
             poolMargin = 0.05
-            sp.generate_cert_stakepool(pledgeAmount, poolCost, poolMargin)
+            pool_relay_ipv4, pool_relay_ipv6, pool_relay_port = get_relay_params()
+            sp.generate_cert_stakepool(pledgeAmount, poolCost, poolMargin, pool_relay_ipv4, pool_relay_ipv6, pool_relay_port)
             sp.generate_delegation_cert()
             print('--------------------Finished register stake pool certs ---------------------------------\n')
         except Exception as e:
@@ -380,7 +392,7 @@ def main(options):
 
         
     #submit the transaction
-    if(options.submit):
+    if(options["submit"]):
         try:
             tr = SubmitStakePool()
             tr.build_transaction()
