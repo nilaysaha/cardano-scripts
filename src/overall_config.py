@@ -45,18 +45,17 @@ class Setup:
 
         
     def _step_5(self):
-        # try:
-        #     pc.main()
-        # except Exception as e:
-        #     print(e)
-        pass
+        print('step 5')
+        try:
+            pc.main()
+        except Exception as e:
+            print(e)
         
     def _step_6(self):
-        # try:
-        #     rsp.main({'generate':True, 'register':False, 'submit': False})
-        # except Exception as e:
-        #     print(e)
-        pass
+        try:
+            rsp.main({'generate':True, 'register':False, 'submit': False})
+        except Exception as e:
+            print(e)
         
     def _step_7(self):
         pass

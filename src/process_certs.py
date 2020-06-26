@@ -9,6 +9,7 @@ FILES={'stake': {'verify_key': "./kaddr/stake.vkey", 'addr': './kaddr/stake.addr
        }
 
 TTL_BUFFER=1200
+TESTNET_MAGIC=42
 
 #replace this will the location of the cardabo binaries compiled using cabal
 CARDANO_CLI="/home/nsaha/.cabal/bin/cardano-cli"
@@ -34,6 +35,18 @@ def get_ttl():
     ttl = int(current_tip)+TTL_BUFFER
     print("ttl:{v}".format(v=ttl))
     return str(ttl)
+
+def create_protocol():
+    """
+        cardano-cli shelley query protocol-parameters \
+        --testnet-magic ${NETWORK_MAGIC} \
+        --out-file ./kaddr/protocol.json
+    """
+    try:
+        command = [ CARDANO_CLI, "shelley", "query", "protocol-parameters", "--testnet-magic", str(TESTNET_MAGIC), "--out-file", FILES['configs']['protocol']]
+        s = subprocess.check_output(command)
+    except:
+        print(f"Oops! Error occured during create_protocol: {sys.exc_info()[0]}")
 
 
     
@@ -141,22 +154,23 @@ class RegisterStake:
         try:
             command = [CARDANO_CLI, "shelley", "transaction", "submit", "--tx-file", FILES['transaction']['signed'], '--testnet-magic', "42"]
             s = subprocess.check_output(command)
-            print(s)
+            print("Submitted transaction for stake registration on chain usin: {command}. Result is: {s}")
         except:
             print("Oops!", sys.exc_info()[0], "occurred in submit transaction")
             
 def main():
     try:
-        ttl = get_ttl()
-        print(ttl)
-        min_fee = calculate_min_fees(ttl)
-        print(min_fee)
         txHash, txtx, lovelace = get_payment_utx0()
-        print(txHash, txtx, lovelace)
+        print(f"txhash:{txHash}, txtx={txtx}, lovelace={lovelace}")
+        ttl = get_ttl()
+        print(f"ttl calcuated is: {ttl}")
+        create_protocol()        
+        min_fee = calculate_min_fees(ttl)
+        print(f"minimum fees: {min_fee}")
         dfund = get_deposit_fee()
-        print(dfund)
+        print("deposit:{dfund}")
         rfund = int(lovelace) - int(min_fee) - dfund
-        print(rfund)
+        print("remaining fund:{rfund}")
         
         #Now time for transaction to submit the stake
         a = RegisterStake()
