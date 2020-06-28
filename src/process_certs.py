@@ -10,6 +10,7 @@ FILES={'stake': {'verify_key': "./kaddr/stake.vkey", 'addr': './kaddr/stake.addr
 
 TTL_BUFFER=1200
 TESTNET_MAGIC=42
+BASE_ADDRESS_TXHASH="a09ba8bfc4b33961a744e059429b06981bfd689916971803371748917ceecc30"
 
 #replace this will the location of the cardabo binaries compiled using cabal
 CARDANO_CLI="/home/nsaha/.cabal/bin/cardano-cli"
@@ -61,7 +62,10 @@ def calculate_min_fees(ttl):
     except:
         print("Oops!", sys.exc_info()[0], "occurred in calculate min fees")
         
-def get_payment_utx0():
+def get_payment_utx0(base_addr_txhash):
+    """
+    should not automate this as the base address needs to be fixed.
+    """
     try:
         command=[CARDANO_CLI, 'shelley' , 'query', 'utxo', '--address', content(FILES['payment']['addr']), '--testnet-magic', '42']
         s = subprocess.check_output(command)
@@ -75,7 +79,9 @@ def get_payment_utx0():
 
 def get_deposit_fee():
     #for now hacking. Ideally should be read from the protocol.json (which should be generated and then read) "keyDeposit": 400000,
-    return 400000
+    import json
+    s = json.loads(content(FILES['configs']['protocol']))
+    return s['keyDeposit']
 
 
 def get_git_tag():
