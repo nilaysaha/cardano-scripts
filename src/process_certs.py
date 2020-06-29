@@ -51,9 +51,9 @@ def create_protocol():
 
 
     
-def calculate_min_fees(ttl):
+def calculate_min_fees(tx_in_count, ttl):
     try:
-        command = [CARDANO_CLI, 'shelley',  'transaction', 'calculate-min-fee',  '--tx-in-count',  str(1),  '--tx-out-count', str(1) , '--ttl',  str(ttl),  '--testnet-magic', str(42), 
+        command = [CARDANO_CLI, 'shelley',  'transaction', 'calculate-min-fee',  '--tx-in-count',  str(tx_in_count),  '--tx-out-count', str(1) , '--ttl',  str(ttl),  '--testnet-magic', str(42), 
                    '--signing-key-file', FILES['payment']['sign_key'], '--signing-key-file', FILES['stake']['sign_key'], '--certificate-file', FILES['stake']['cert'],
                    '--protocol-params-file', FILES['configs']['protocol'] ]
         s = subprocess.check_output(command)
@@ -62,26 +62,39 @@ def calculate_min_fees(ttl):
     except:
         print("Oops!", sys.exc_info()[0], "occurred in calculate min fees")
         
-def get_payment_utx0(base_addr_txhash):
+def get_payment_utx0():
     """
-    should not automate this as the base address needs to be fixed.
+    should be able to add all the utx0 to the address.
     """
     try:
+        final_array = []
+                
         command=[CARDANO_CLI, 'shelley' , 'query', 'utxo', '--address', content(FILES['payment']['addr']), '--testnet-magic', '42']
         s = subprocess.check_output(command)
-        split_str=s.decode('UTF-8').split(" ")
+        split_str=s.decode('UTF-8').split("\n")
         result = filter(lambda x: x != '', split_str) 
-        result_array = list(result)
-        txHash, txtx, lovelace = result_array[-3].split("\n")[-1], result_array[-2], result_array[-1].split("\n")[0]
-        return (txHash, txtx, lovelace)
+        farray = list(result)[2:]
+        print(farray)        
+        for val in farray:
+            print(val)
+            (txHash, txtx, lovelace) = val.split()
+            final_array.append((txHash, txtx, lovelace))
+        return final_array
     except:
         print("Oops!", sys.exc_info()[0], "occurred in get payment utx0")
 
+def get_total_fund_in_utx0():
+    t = get_payment_utx0()
+    total_fund = 0
+    for val in t:
+        total_fund += int(val[2])
+    return total_fund
+        
 def get_deposit_fee():
     #for now hacking. Ideally should be read from the protocol.json (which should be generated and then read) "keyDeposit": 400000,
     import json
-    s = json.loads(content(FILES['configs']['protocol']))
-    return s['keyDeposit']
+    s = json.loads(content(FILES['configs']['protocol']))    
+    return int(s['keyDeposit'])
 
 
 def get_git_tag():
@@ -106,26 +119,32 @@ class RegisterStake:
     def __init__(self):
         pass
 
-    def build_transaction(self, txHash, txtx, remaining_fund, ttl, fee):
+    def build_transaction(self, txArray, remaining_fund, ttl, min_fee):
         """
         reconstruct: 
            cardano-cli shelley transaction build-raw \
-            --tx-in b64ae44e1195b04663ab863b62337e626c65b0c9855a9fbb9ef4458f81a6f5ee#1 \
+            --tx-in b64ae44e1195b04663ab863b62337e626c65b0c9855a9fbb9ef4458f81a6f5ee#1 \ (multiple values allowed)
             --tx-out $(cat payment.addr)+999428515 \
             --ttl 987654 \
             --fee 171485 \
             --out-file tx.raw \
             --certificate-file stake.cert
         """
-        try:
+        try:            
+            #Build the tx_in strings because there may be multiple values.
+            tx_in_array = []
+            for val in txArray:
+                print(f"inside build_transaction: val:{val}")
+                tx_in  = val[0]+"#"+val[1]
+                print(f"tx_in:{tx_in}")
+                tx_in_array.append('--tx-in')
+                tx_in_array.append(tx_in)
             payment_addr = content(FILES['payment']['addr'])
-            tx_in  = "{txHash}#{txtx}".format(txHash=txHash, txtx=txtx)
             tx_out = "{paddr}+{rfund}".format(paddr=payment_addr, rfund=remaining_fund)
-            command = [CARDANO_CLI, "shelley", "transaction", "build-raw", "--tx-in", tx_in, "--tx-out",tx_out,"--ttl", ttl, "--fee", fee,
-                       "--out-file", FILES['transaction']['raw'], '--certificate-file', FILES['stake']['cert']]
+            command = [CARDANO_CLI, "shelley", "transaction", "build-raw", "--tx-out",tx_out,"--ttl", ttl, "--fee", min_fee,
+                       "--out-file", FILES['transaction']['raw'], '--certificate-file', FILES['stake']['cert']] + tx_in_array
             print(command)
             s = subprocess.check_output(command)
-            print(s)
             split_str=s.decode('UTF-8').split(" ")
         except:
             print("Oops!", sys.exc_info()[0], "occurred in build transaction")
@@ -166,21 +185,23 @@ class RegisterStake:
             
 def main():
     try:
-        txHash, txtx, lovelace = get_payment_utx0()
-        print(f"txhash:{txHash}, txtx={txtx}, lovelace={lovelace}")
+        t = get_payment_utx0()
+        print(f'collection of utx0 is:{t}')
         ttl = get_ttl()
         print(f"ttl calcuated is: {ttl}")
         create_protocol()        
-        min_fee = calculate_min_fees(ttl)
+        min_fee = calculate_min_fees(len(t),ttl)
         print(f"minimum fees: {min_fee}")
         dfund = get_deposit_fee()
-        print("deposit:{dfund}")
-        rfund = int(lovelace) - int(min_fee) - dfund
-        print("remaining fund:{rfund}")
+        print(f"deposit:{dfund}")
+        total_fund=get_total_fund_in_utx0()
+        print(f"total fund:{total_fund}")
+        rfund = total_fund  - int(min_fee) - dfund
+        print(f"remaining fund:{rfund}")
         
         #Now time for transaction to submit the stake
         a = RegisterStake()
-        a.build_transaction(txHash, txtx, rfund, ttl, min_fee)
+        a.build_transaction(t, rfund, ttl, min_fee) #txArray, remaining_fund, ttl, min_fee
         a.sign_transaction()
         a.submit_transaction()       
  
