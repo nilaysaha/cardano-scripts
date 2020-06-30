@@ -13,7 +13,7 @@ FILES={
     }
 }
 
-BASE_URL = 'https://hydra.iohk.io/build/3175192/download/1/'
+BASE_URL = 'https://hydra.iohk.io/build/3245987/download/1/'
 CARDANO_CLI="/home/nsaha/.cabal/bin/cardano-cli"
 
 def create_dir(d):
