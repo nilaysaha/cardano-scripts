@@ -58,7 +58,7 @@ class Setup:
             print(e)
         
     def _step_7(self):
-        pass
+        print(f"Please check the configs of the relay and the producer.")
 
     def _step_8(self):
         try:

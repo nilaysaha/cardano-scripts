@@ -33,9 +33,9 @@ COMMAND= ${CARDANO_NODE} run \
        --socket-path ${SOCKET} \
        --host-addr ${HOST_IP} \
        --port ${PORT} \
-       # --shelley-kes-key ${KES_SKEY} \
-       # --shelley-vrf-key ${VRF_SKEY} \
-       # --shelley-operational-certificate ${NODE_CERT}       
+       --shelley-kes-key ${KES_SKEY} \
+       --shelley-vrf-key ${VRF_SKEY} \
+       --shelley-operational-certificate ${NODE_CERT}       
 
 echo "Starting cardano-node run: ${COMMAND}"
 exec ${COMMAND}

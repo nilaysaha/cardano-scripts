@@ -1,1 +1,0 @@
-#holds all the configs for the blockchain

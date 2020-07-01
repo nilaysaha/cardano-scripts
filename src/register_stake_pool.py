@@ -3,6 +3,7 @@
 import subprocess, sys, requests
 import process_certs as pc
 import create_keys_addr as cka
+import os, json
 
 FILES={
     'pool': {'cold': {'verify_key':"./kaddr_node/cold.vkey", "sign_key":"./kaddr_node/cold.skey","counter":"./kaddr_node/cold.counter"},
@@ -10,9 +11,10 @@ FILES={
              'kes': {'verify_key': './kaddr_node/kes.vkey', 'sign_key': "./kaddr_node/kes.skey"},
              'cert': {'registration':'./kaddr_node/pool_registration.cert', 'delegation':'./kaddr_node/pool_delegation.cert'},
              'transaction': {'raw': './kaddr_node/pool_trans.raw', 'signed': './kaddr_node/pool_trans.signed'},
-             'metadata': './kaddr_node/pool_metadata.json'
+             'metadata': './kaddr_node/pool_metadata.json',
+             'pledge': 'config/pool_stakeData.json'
     },       
-    'node': {'cert': './kaddr/node.cert'}
+    'node': {'cert': './kaddr/node.cert'},    
 }
 
 SETUP_CONFIGS = cka.FILES['configurations']
@@ -23,8 +25,18 @@ TTL_BUFFER=1200
 CARDANO_CLI="/home/nsaha/.cabal/bin/cardano-cli"
 
 def get_relay_params():
-    return ("116.203.215.60", "2a01:4f8:c0c:f2e2::/64", "3001")
-    
+    #fetch it from topology file
+    fname = SETUP_CONFIGS['topology']
+    tp_config = json.loads(pc.content(fname))["Producers"][0]
+    return (tp_config["addr"], tp_config['port'])
+
+def get_pledge_params():
+    pledgeFile = os.path.join(os.getcwd() , FILES['pool']['pledge'] )
+    pcontent = pc.content(pledgeFile)
+    pledgeConfig = json.loads(pcontent)
+    return ( pledgeConfig['amount'], pledgeConfig['cost'], pledgeConfig['margin'])
+
+
 def get_pooldeposit():
     try:
         import json
@@ -78,6 +90,7 @@ def calc_min_fee():
 def calc_transaction_amount():
     """
         calculate the amount: utx0 - minm_fees - pooldeposit
+        At this point we assume that we have registered the stake address in the blockchain.
     """
     try:
         print("calculate transaction amount")
@@ -87,7 +100,7 @@ def calc_transaction_amount():
         print(f"minimum fee calc: {cmin}")
         print(f"pooldeposit:{poolDeposit}")
         
-        (txHash, txtx, lovelace) = pc.get_payment_utx0()
+        (txHash, txtx, lovelace) = pc.get_payment_utx0()[0] #Assumption: We have all different txHash aggregated into single one(during stake address registration)
         print(f"txhash:{txHash} txtx:{txtx} lovelace:{lovelace}")
         
         fund_available = int(lovelace)
@@ -226,7 +239,7 @@ class RegisterStakePool:
         except Exception as e:
             print(e)
     
-    def generate_cert_stakepool(self, pledgeAmount, poolCost, poolMargin, poolRelay_ipv4, poolRelay_ipv6, poolRelay_port):
+    def generate_cert_stakepool(self, pledgeAmount, poolCost, poolMargin, poolRelay_ipv4,  poolRelay_port):
         """
         cardano-cli shelley stake-pool registration-certificate \
         --cold-verification-key-file cold.vkey \
@@ -238,13 +251,13 @@ class RegisterStakePool:
         --pool-owner-stake-verification-key-file stake.vkey \
         --testnet-magic 42 \
         --pool-relay-ipv4 123.123.123.123 \
-        --pool-relay-ipv6 ... \
         --pool-relay-port 3001 \
         --metadata-url https://gist.githubusercontent.com/testPool/.../testPool.json \
         --metadata-hash 6bf124f217d0e5a0a8adb1dbd8540e1334280d49ab861127868339f43b3948af \
         --out-file pool.cert
         """
         try:
+            print('Inside generate_cert_stakepool')
             pool_metadata_hash = self.generate_hash_of_pool_metadata()
             PFILES = pc.FILES
             
@@ -259,7 +272,8 @@ class RegisterStakePool:
                        "--metadata-url", self.SHORT_POOL_META_URL,
                        "--metadata-hash", str(pool_metadata_hash),
                        "--out-file", FILES['pool']['cert']['registration']]
-            
+
+            print(f"executing command: {command}")
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
             print(s)
         except Exception as e:
@@ -302,7 +316,7 @@ class SubmitStakePool:
         try:
             PFILES = pc.FILES
             TTL = pc.get_ttl()
-            (txHash, txtx, lovelace) = pc.get_payment_utx0()
+            (txHash, txtx, lovelace) = pc.get_payment_utx0()[0]
             remaining_fund = calc_transaction_amount()
             fee = calc_min_fee()
             payment_addr = pc.content(PFILES['payment']['addr'])
@@ -370,10 +384,11 @@ def main(options):
     """
     #generate the pool keys & cert
     if (options['generate']):
+        print(f"Step: Generating the pool keys & certs")
         try:
             p = PoolKeys()
-            p.generate_cold_kc()
-            p.generate_vrf_keys()
+            # p.generate_cold_kc()
+            # p.generate_vrf_keys()
             p.generate_kes_keys()
             p.generate_node_cert()
             print('--------------------Finished generating pool keys & certs ---------------------------------\n')
@@ -384,13 +399,14 @@ def main(options):
     
     #register stake pool certs
     if (options["register"]):
+        print(f"Step: Registering the pool certs")
         try:
+            (pool_relay_ipv4, pool_relay_port) = get_relay_params()
+            print(f"relay params are ip:{pool_relay_ipv4} and port:{pool_relay_port}")
+            (pledgeAmount, poolCost, poolMargin) = get_pledge_params()
+            print(f"pledgeAmount:{pledgeAmount}  poolCost: {poolCost}   poolMargin:{poolMargin}")
             sp = RegisterStakePool()
-            pledgeAmount = 90000000000
-            poolCost = 50000
-            poolMargin = 0.05
-            pool_relay_ipv4, pool_relay_ipv6, pool_relay_port = get_relay_params()
-            sp.generate_cert_stakepool(pledgeAmount, poolCost, poolMargin, pool_relay_ipv4, pool_relay_ipv6, pool_relay_port)
+            sp.generate_cert_stakepool(pledgeAmount, poolCost, poolMargin, pool_relay_ipv4,  pool_relay_port)
             sp.generate_delegation_cert()
             print('--------------------Finished register stake pool certs ---------------------------------\n')
         except Exception as e:
