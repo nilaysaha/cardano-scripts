@@ -1,0 +1,8 @@
+#!/bin/bash
+
+SCRIPT_DIR=`dirname "$BASH_SOURCE"`
+WALLET_BINARY="${SCRIPT_DIR}/cardano-wallet-shelley-2020.6.5/cardano-wallet-shelley"
+GENESIS_CONFIG="${SCRIPT_DIR}/../src/tconfig/shelley_testnet-genesis.json"
+
+${WALLET_BINARY} serve --node-socket $CARDANO_NODE_SOCKET_PATH \
+		 --testnet ${GENESIS_CONFIG}

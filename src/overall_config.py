@@ -22,8 +22,6 @@ class Setup:
             print(e)    
 
     def _step_2(self):
-        import subprocess
-        command = ["sudo", "systemctl", "start", "shelly-cardano"]
         print(f"please start the relay chain manually")
         print(f"Here ends the work for the cardano relay node. Next steps only relevant for the producer node")
             
@@ -53,25 +51,38 @@ class Setup:
         
     def _step_6(self):
         try:
-            rsp.main({'generate':True, 'register':False, 'submit': False})
+            rsp.main({'generate':True, 'renewKES':False, 'register':False, 'submit': False})
         except Exception as e:
             print(e)
         
     def _step_7(self):
-        pass
+        print(f"Please check the configs of the relay and the producer.")
 
     def _step_8(self):
         try:
-            rsp.main({'generate':False, 'register':True, 'submit': False})
+            rsp.main({'generate':False, 'renewKES':False, 'register':True, 'submit': False})
         except Exception as e:
             print(e)
         
     def _step_9(self):
         try:
-            rsp.main({'generate':False, 'register':False, 'submit': True})
+            rsp.main({'generate':False, 'renewKES':False, 'register':False, 'submit': True})
         except Exception as e:
             print(e)
-        
+
+    def _step_10(self):
+        try:
+            rsp.main({'generate':False, 'renewKES':True, 'register':False, 'submit': False})
+        except Exception as e:
+            print(e)
+
+    def _step_11(self):
+        try:
+            s = rsp.ChainProcess()
+            s.relaod()            
+        except Exception as e:
+            print(e)
+                
     def test_func(self):
         print('this is test function')
         return 0
@@ -87,7 +98,9 @@ class Setup:
             7: self._step_7,
             8: self._step_8,
             9: self._step_9,
-            10: self.test_func
+            10: self._step_10, #TODO:this is not a nice way. Pls make this as a parameter to existing generate key step.
+            11: self._step_11,
+            12: self.test_func
         }
         f = exec_map[stepId]
         f()
@@ -107,11 +120,13 @@ if __name__=="__main__":
     Step 7: Manually configure relay and producer node configs. 
     Step 8: Register stake pool with metadata
     Step 9: Submit the stake pool with transaction
-    Step 10: test function
+    Step 10: Renew KES function (substitute of step 6)
+    Step 11: Reload the chain via systemctl
+    Step 12: test function
     """
     
     parser = argparse.ArgumentParser(description=descr, formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument("--step", type=int, choices=[1, 2, 3, 4, 5, 6, 7, 8, 9],
+    parser.add_argument("--step", type=int, choices=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
                         help="Please input step to be executed")
     args = parser.parse_args()
     print(args.step)

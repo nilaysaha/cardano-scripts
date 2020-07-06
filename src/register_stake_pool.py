@@ -3,6 +3,7 @@
 import subprocess, sys, requests
 import process_certs as pc
 import create_keys_addr as cka
+import os, json
 
 FILES={
     'pool': {'cold': {'verify_key':"./kaddr_node/cold.vkey", "sign_key":"./kaddr_node/cold.skey","counter":"./kaddr_node/cold.counter"},
@@ -10,21 +11,33 @@ FILES={
              'kes': {'verify_key': './kaddr_node/kes.vkey', 'sign_key': "./kaddr_node/kes.skey"},
              'cert': {'registration':'./kaddr_node/pool_registration.cert', 'delegation':'./kaddr_node/pool_delegation.cert'},
              'transaction': {'raw': './kaddr_node/pool_trans.raw', 'signed': './kaddr_node/pool_trans.signed'},
-             'metadata': './kaddr_node/pool_metadata.json'
+             'metadata': './kaddr_node/pool_metadata.json',
+             'pledge': 'config/pool_stakeData.json'
     },       
-    'node': {'cert': './kaddr/node.cert'}
+    'node': {'cert': './kaddr/node.cert'},    
 }
 
 SETUP_CONFIGS = cka.FILES['configurations']
 PROTOCOL_CONFIG = pc.FILES['configs']['protocol']
 TTL_BUFFER=1200
+KES_PORT=12798
 
 #replace this will the location of the cardabo binaries compiled using cabal
 CARDANO_CLI="/home/nsaha/.cabal/bin/cardano-cli"
 
 def get_relay_params():
-    return ("116.203.215.60", "2a01:4f8:c0c:f2e2::/64", "3001")
-    
+    #fetch it from topology file
+    fname = SETUP_CONFIGS['topology']
+    tp_config = json.loads(pc.content(fname))["Producers"][0]
+    return (tp_config["addr"], tp_config['port'])
+
+def get_pledge_params():
+    pledgeFile = os.path.join(os.getcwd() , FILES['pool']['pledge'] )
+    pcontent = pc.content(pledgeFile)
+    pledgeConfig = json.loads(pcontent)
+    return ( pledgeConfig['amount'], pledgeConfig['cost'], pledgeConfig['margin'])
+
+
 def get_pooldeposit():
     try:
         import json
@@ -66,7 +79,7 @@ def calc_min_fee():
                    '--protocol-params-file', PROTOCOL_CONFIG]
         
         print(command)
-        s = subprocess.check_output(command, stderr=True)
+        s = subprocess.check_output(command, stderr=True, universal_newlines=True)
         print(s)
         min_fee = s.decode('UTF-8').split(" ")[1].split("\n")[0]
         print(min_fee)
@@ -78,6 +91,7 @@ def calc_min_fee():
 def calc_transaction_amount():
     """
         calculate the amount: utx0 - minm_fees - pooldeposit
+        At this point we assume that we have registered the stake address in the blockchain.
     """
     try:
         print("calculate transaction amount")
@@ -87,7 +101,7 @@ def calc_transaction_amount():
         print(f"minimum fee calc: {cmin}")
         print(f"pooldeposit:{poolDeposit}")
         
-        (txHash, txtx, lovelace) = pc.get_payment_utx0()
+        (txHash, txtx, lovelace) = pc.get_payment_utx0()[0] #Assumption: We have all different txHash aggregated into single one(during stake address registration)
         print(f"txhash:{txHash} txtx:{txtx} lovelace:{lovelace}")
         
         fund_available = int(lovelace)
@@ -104,6 +118,31 @@ def calc_transaction_amount():
         print("Oops!", sys.exc_info()[0], "error in calc transaction amount")
 
 
+def remaining_kes_period():
+    """
+    curl localhost:12798/metrics | grep cardano_node_Forge_metrics_remainingKESPeriods_int
+    """
+    import re
+    try:
+        kes_period=0
+        print('calculating remaining KES period')
+        command=["curl", f"localhost:{KES_PORT}/metrics"]
+        s = subprocess.check_output(command, stderr=True)
+        rows = s.decode('UTF-8').split("\n")
+        pattern="cardano_node_Forge_metrics_remainingKESPeriods_int"
+        for i in rows:
+            if re.search(pattern, i):
+                print(f"found match:{pattern} with {i}")
+                kes_period = i.split(' ')[-1]
+                print(f"remaining kes period calculated is:{kes_period}")        
+                break;
+            else:
+                print(f"No match for:{pattern} for {i}")
+    except:
+        print("Oops!", sys.exc_info()[0], "error in remaining_kes_period")
+    finally:
+        return int(kes_period)
+        
 class PoolKeys:
     def __init__(self):
         #create the directory to hold the keys and certs for the nodes
@@ -120,7 +159,7 @@ class PoolKeys:
             command = [ CARDANO_CLI, "shelley", "node", "key-gen", "--cold-verification-key-file", FILES['pool']['cold']['verify_key'],
                         '--cold-signing-key-file', FILES['pool']['cold']['sign_key'], '--operational-certificate-issue-counter-file',
                         FILES['pool']['cold']['counter']]
-            s=subprocess.check_output(command)
+            s=subprocess.check_output(command, stderr=True, universal_newlines=True)
         except:
             print("Oops!", sys.exc_info()[0], "occurred in generate cold kc")
 
@@ -133,7 +172,7 @@ class PoolKeys:
         try:
             command = [ CARDANO_CLI, "shelley", "node", "key-gen-VRF", "--verification-key-file", FILES['pool']['vrf']['verify_key'],
                         '--signing-key-file', FILES['pool']['vrf']['sign_key']]
-            s=subprocess.check_output(command)
+            s=subprocess.check_output(command, stderr=True, universal_newlines=True)
         except:
             print("Oops!", sys.exc_info()[0], "occurred in generate vrf keys")
             
@@ -146,7 +185,7 @@ class PoolKeys:
         try:
             command=[CARDANO_CLI, "shelley", "node", "key-gen-KES", "--verification-key-file", FILES['pool']['kes']['verify_key'],
                      '--signing-key-file', FILES['pool']['kes']['sign_key']]
-            s=subprocess.check_output(command)
+            s=subprocess.check_output(command, stderr=True, universal_newlines=True)
         except:
             print("Oops!", sys.exc_info()[0], "occurred in generate kes keys")
 
@@ -178,7 +217,7 @@ class PoolKeys:
                         '--cold-signing-key-file', FILES['pool']['cold']['sign_key'], '--operational-certificate-issue-counter', FILES['pool']['cold']['counter'],
                         '--kes-period', kesPeriod, '--out-file', FILES['node']['cert']]
             print(command)
-            s = subprocess.check_output(command)
+            s = subprocess.check_output(command, stderr=True, universal_newlines=True)
             print(s)
         except Exception:
             print("Oops!", sys.exc_info()[0], "occurred in generate node cert", Exception)
@@ -220,13 +259,13 @@ class RegisterStakePool:
 
             #next hash content of file created
             command=[CARDANO_CLI ,"shelley", "stake-pool", "metadata-hash", "--pool-metadata-file", FILES['pool']['metadata']]
-            s = subprocess.check_output(command)
+            s = subprocess.check_output(command, stderr=True, universal_newlines=True)
             hashed_val = s.decode('UTF-8').split("\n")[0]
             return hashed_val
         except Exception as e:
             print(e)
     
-    def generate_cert_stakepool(self, pledgeAmount, poolCost, poolMargin, poolRelay_ipv4, poolRelay_ipv6, poolRelay_port):
+    def generate_cert_stakepool(self, pledgeAmount, poolCost, poolMargin, poolRelay_ipv4,  poolRelay_port):
         """
         cardano-cli shelley stake-pool registration-certificate \
         --cold-verification-key-file cold.vkey \
@@ -238,13 +277,13 @@ class RegisterStakePool:
         --pool-owner-stake-verification-key-file stake.vkey \
         --testnet-magic 42 \
         --pool-relay-ipv4 123.123.123.123 \
-        --pool-relay-ipv6 ... \
         --pool-relay-port 3001 \
         --metadata-url https://gist.githubusercontent.com/testPool/.../testPool.json \
         --metadata-hash 6bf124f217d0e5a0a8adb1dbd8540e1334280d49ab861127868339f43b3948af \
         --out-file pool.cert
         """
         try:
+            print('Inside generate_cert_stakepool')
             pool_metadata_hash = self.generate_hash_of_pool_metadata()
             PFILES = pc.FILES
             
@@ -259,7 +298,8 @@ class RegisterStakePool:
                        "--metadata-url", self.SHORT_POOL_META_URL,
                        "--metadata-hash", str(pool_metadata_hash),
                        "--out-file", FILES['pool']['cert']['registration']]
-            
+
+            print(f"executing command: {command}")
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
             print(s)
         except Exception as e:
@@ -276,7 +316,7 @@ class RegisterStakePool:
         PFILES = pc.FILES
         command = [CARDANO_CLI, "shelley", "stake-address", "delegation-certificate", "--stake-verification-key-file", PFILES['stake']['verify_key'],
                    "--cold-verification-key-file", FILES['pool']['cold']['verify_key'], '--out-file', FILES['pool']['cert']['delegation'] ]
-        s = subprocess.check_output(command)
+        s = subprocess.check_output(command, stderr=True, universal_newlines=True)
         print(s)
 
 
@@ -302,7 +342,7 @@ class SubmitStakePool:
         try:
             PFILES = pc.FILES
             TTL = pc.get_ttl()
-            (txHash, txtx, lovelace) = pc.get_payment_utx0()
+            (txHash, txtx, lovelace) = pc.get_payment_utx0()[0]
             remaining_fund = calc_transaction_amount()
             fee = calc_min_fee()
             payment_addr = pc.content(PFILES['payment']['addr'])
@@ -315,7 +355,7 @@ class SubmitStakePool:
                        '--certificate-file', FILES['pool']['cert']['registration'],
                        "--certificate-file", FILES['pool']['cert']['delegation']]
             print(command)
-            s = subprocess.check_output(command)
+            s = subprocess.check_output(command, stderr=True, universal_newlines=True)
             print(s)
             split_str=s.decode('UTF-8').split(" ")
         except:
@@ -341,7 +381,7 @@ class SubmitStakePool:
                        '--signing-key-file', FILES['pool']['cold']['sign_key'],
                        '--testnet-magic', '42',
                        '--out-file', FILES['pool']['transaction']['signed']]
-            s = subprocess.check_output(command)
+            s = subprocess.check_output(command, stderr=True, universal_newlines=True)
             print(s)
         except:
             print("Oops!", sys.exc_info()[0], "occurred in sign transaction")
@@ -356,12 +396,49 @@ class SubmitStakePool:
         """
         try:
             command = [CARDANO_CLI, "shelley", "transaction", "submit", "--tx-file", FILES['pool']['transaction']['signed'], '--testnet-magic', "42"]
-            s = subprocess.check_output(command)
+            s = subprocess.check_output(command, stderr=True, universal_newlines=True)
             print(s)
         except:
             print("Oops!", sys.exc_info()[0], "occurred in submit transaction")
 
-        
+
+
+class ChainProcess:
+    """
+    This presumes that we have a shelly-cardano.service file in /etc/systemd/system 
+    so that systemctl is able to handle the commands below.
+    """
+    def __init__(self):
+        pass
+
+    def reload_chain(self):
+        try:
+            command = ["sudo", "systemctl", "reload", "shelly-cardano"]
+            s = subprocess.check_output(command, stderr=True)
+            print(f"reload chain first")
+        except:
+            print("Oops!", sys.exc_info()[0], "occurred in reload chain")
+
+    def stop_chain(self):
+        try:
+            command = ["sudo", "systemctl", "stop", "shelly-cardano"]
+            s = subprocess.check_output(command, stderr=True)
+            print(f"stop chain first")
+        except:
+            print("Oops!", sys.exc_info()[0], "occurred in stop chain")
+
+
+    def start_chain(self):
+        try:
+            command = ["sudo", "systemctl", "start", "shelly-cardano"]
+            s = subprocess.check_output(command, stderr=True)
+            print(f"start chain ")
+        except:
+            print("Oops!", sys.exc_info()[0], "occurred in start chain")
+
+            
+    
+            
 def main(options):
     """
     options: {
@@ -370,27 +447,42 @@ def main(options):
     """
     #generate the pool keys & cert
     if (options['generate']):
+        print(f"Step: Generating the pool keys & certs")
         try:
             p = PoolKeys()
             p.generate_cold_kc()
             p.generate_vrf_keys()
             p.generate_kes_keys()
             p.generate_node_cert()
-            print('--------------------Finished generating pool keys & certs ---------------------------------\n')
+            print('--------------------Finished generating pool keys & node certs ---------------------------------\n')
+        except Exception as e:
+            print("Failed to generate pool keys and certs")
+            print(e)
+
+    #generate the pool keys & cert
+    if (options['renewKES']):
+        print(f"Step: Renewing the pool kes & certs")
+        try:
+            p = PoolKeys()
+            p.generate_kes_keys()
+            p.generate_node_cert()
+            print('--------------------Finished generating kes keys & node certs ---------------------------------\n')
         except Exception as e:
             print("Failed to generate pool keys and certs")
             print(e)
 
     
+    
     #register stake pool certs
     if (options["register"]):
+        print(f"Step: Registering the pool certs")
         try:
+            (pool_relay_ipv4, pool_relay_port) = get_relay_params()
+            print(f"relay params are ip:{pool_relay_ipv4} and port:{pool_relay_port}")
+            (pledgeAmount, poolCost, poolMargin) = get_pledge_params()
+            print(f"pledgeAmount:{pledgeAmount}  poolCost: {poolCost}   poolMargin:{poolMargin}")
             sp = RegisterStakePool()
-            pledgeAmount = 90000000000
-            poolCost = 50000
-            poolMargin = 0.05
-            pool_relay_ipv4, pool_relay_ipv6, pool_relay_port = get_relay_params()
-            sp.generate_cert_stakepool(pledgeAmount, poolCost, poolMargin, pool_relay_ipv4, pool_relay_ipv6, pool_relay_port)
+            sp.generate_cert_stakepool(pledgeAmount, poolCost, poolMargin, pool_relay_ipv4,  pool_relay_port)
             sp.generate_delegation_cert()
             print('--------------------Finished register stake pool certs ---------------------------------\n')
         except Exception as e:
