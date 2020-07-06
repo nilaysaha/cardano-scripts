@@ -74,8 +74,8 @@ class CreateKAddr:
     """
     from subprocess import STDOUT
     
-    def __init__(self):
-        self.files = process_certs.FILES
+    def __init__(self, files=process_certs.FILES):
+        self.files = files
         self.testnet_magic = 42
         print(f"createKaddr init")
         print(f"files is:{self.files}")
@@ -116,7 +116,9 @@ class CreateKAddr:
             
     def _generate_stake_addr(self):
         try:
-            command = [CARDANO_CLI , 'shelley' , 'stake-address', 'build', '--stake-verification-key-file', self.files['stake']['verify_key'], '--out-file', self.files['stake']['addr'],
+            command = [CARDANO_CLI , 'shelley' , 'stake-address', 'build',
+                       '--stake-verification-key-file', self.files['stake']['verify_key'],
+                       '--out-file', self.files['stake']['addr'],
                        '--testnet-magic', str(self.testnet_magic)]        
             s = subprocess.check_output(command)
             print(f"generated stake address successfully!")
@@ -127,8 +129,9 @@ class CreateKAddr:
             
     def _create_cert(self):                  
         try:
-            command = [CARDANO_CLI,  'shelley' , 'stake-address',  'registration-certificate' ,'--stake-verification-key-file', self.files['stake']['verify_key'], '--out-file',
-                       self.files['stake']['cert']]
+            command = [CARDANO_CLI,  'shelley' , 'stake-address',  'registration-certificate' ,
+                       '--stake-verification-key-file', self.files['stake']['verify_key'],
+                       '--out-file', self.files['stake']['cert']]
             s = subprocess.check_output(command)
             print()
         except:
