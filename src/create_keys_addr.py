@@ -14,7 +14,7 @@ FILES={
 }
 
 BASE_URL = 'https://hydra.iohk.io/build/3245987/download/1/'
-CARDANO_CLI="/home/nsaha/.cabal/bin/cardano-cli"
+CARDANO_CLI="/home/nsaha/.local/bin/cardano-cli"
 
 def create_dir(d):
     try:
@@ -29,6 +29,7 @@ def create_file(content, fpath):
         # dirname = os.path.dirname(fpath)
         # create_dir(dirname)
         f = open(fpath,"w")
+        print(f"Opened file:{fpath} for writing" )
         f.write(content)
         f.close()
     except IOError as e:

@@ -10,9 +10,10 @@ import process_certs as pc
 import register_stake_pool as rsp
 
 class Setup:
-    def __init__(self):
-        pass
-
+    def __init__(self, createPool):
+        self.createPool = createPool
+        self.rsp_options = {'generate':False, 'renewKES':False, 'register':False, 'createPool': createPool, 'submit': False}
+        
     def _step_1(self):
         print("_step_1")
         try:
@@ -51,7 +52,8 @@ class Setup:
         
     def _step_6(self):
         try:
-            rsp.main({'generate':True, 'renewKES':False, 'register':False, 'submit': False})
+            self.rsp_options['generate'] = True
+            rsp.main(self.rsp_options)
         except Exception as e:
             print(e)
         
@@ -60,19 +62,22 @@ class Setup:
 
     def _step_8(self):
         try:
-            rsp.main({'generate':False, 'renewKES':False, 'register':True, 'submit': False})
+            self.rsp_options['register'] = True
+            rsp.main(self.rsp_options)
         except Exception as e:
             print(e)
         
     def _step_9(self):
         try:
-            rsp.main({'generate':False, 'renewKES':False, 'register':False, 'submit': True})
+            self.rsp_options['submit'] = True
+            rsp.main(self.rsp_options)
         except Exception as e:
             print(e)
 
     def _step_10(self):
         try:
-            rsp.main({'generate':False, 'renewKES':True, 'register':False, 'submit': False})
+            self.rsp_options['renewKES'] = True
+            rsp.main(self.rsp_options)
         except Exception as e:
             print(e)
 
@@ -128,8 +133,9 @@ if __name__=="__main__":
     parser = argparse.ArgumentParser(description=descr, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("--step", type=int, choices=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
                         help="Please input step to be executed")
+    parser.add_argument("--createPool", default=False, action="store_true", help="if we are creating a new pool. This affects the transaction fees during pool registration. Extra deposit of 500ADA.")
     args = parser.parse_args()
     print(args.step)
 
-    s = Setup()
+    s = Setup(args.createPool)
     s.exec_step(args.step)
