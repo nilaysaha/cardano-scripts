@@ -47,11 +47,33 @@ def update_KES_params():
         print(f"Error occured in update kes params:{sys.exc_info()[0]}")
             
 
-def main():    
-    let remaining_kes_period = rsp.remaining_kes_period()
-    if (remaining_kes_period < MINM_KES_PERIOD_REMAINING):
+def main(min_KES):        
+    remaining_kes_period = rsp.remaining_kes_period()
+    if (remaining_kes_period < min_KES):
         #first generate new KES params
         update_KES_params()
         #next restart the chain
-        let t = ChainProcess()
-        t.reload_chain()
+        # let t = ChainProcess()
+        # t.reload_chain()
+    else:
+        print(f"remaining KES {remaining_kes_period} is still greated than minimum {min_KES}")
+
+
+        
+if __name__=="__main__":
+    import argparse
+    descr = """
+    We need to rotate after the kes expires.
+    """
+    parser = argparse.ArgumentParser(description=descr, formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument("--minKES", type=int, help="When the remaining kes is less than this we will update the kes keys and node.cert and restart process.")
+
+    args = parser.parse_args()
+    print(args)
+    
+    if(args.minKES == None):
+        min_KES = MINM_KES_PERIOD_REMAINING
+    else:
+        min_KES = args.minKES
+        
+    main(min_KES)
