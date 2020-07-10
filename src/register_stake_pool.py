@@ -189,14 +189,17 @@ class PoolKeys:
         except:
             print("Oops!", sys.exc_info()[0], "occurred in generate kes keys")
 
-    def _calc_kes_period(self):
+    def calc_kes_period(self):
         try:
             import json
             fcontent = pc.content(SETUP_CONFIGS['genesis'])
             genesis = json.loads(fcontent)
-            slotsPerKESPeriod = genesis['slotsPerKESPeriod']
+            slotsPerKESPeriod = genesis['slotsPerKESPeriod']            
             qtip = int(pc.get_tip())
-            return int(qtip/slotsPerKESPeriod)
+            print(f"qtip:{qtip} and slotsperkes:{slotsPerKESPeriod}")
+            kes_period=int(qtip/slotsPerKESPeriod)
+            print(f'kes_period:{kes_period}')
+            return kes_period
         except Exception:
             print ("error in level argument",Exception)
 
@@ -212,7 +215,7 @@ class PoolKeys:
         --out-file node.cert
         """
         try:
-            kesPeriod = str(self._calc_kes_period())
+            kesPeriod = str(self.calc_kes_period())
             command = [CARDANO_CLI, "shelley", "node", "issue-op-cert", "--kes-verification-key-file", FILES['pool']['kes']['verify_key'],
                         '--cold-signing-key-file', FILES['pool']['cold']['sign_key'], '--operational-certificate-issue-counter', FILES['pool']['cold']['counter'],
                         '--kes-period', kesPeriod, '--out-file', FILES['node']['cert']]

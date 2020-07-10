@@ -1,8 +1,9 @@
 #!/usr/bin/python3
 
+import sys, subprocess
 import register_stake_pool as rsp
 
-MINM_KES_PERIOD_REMAINING=2
+MINM_KES_PERIOD_REMAINING=3
 
 class ChainProcess:
     """
@@ -18,7 +19,7 @@ class ChainProcess:
             s = subprocess.check_output(command, stderr=True)
             print(f"reload chain first")
         except:
-            print("Oops!", sys.exc_info()[0], "occurred in reload chain")
+            print("Oops!", sys.exc_info(), "occurred in reload chain")
 
     def stop_chain(self):
         try:
@@ -49,14 +50,17 @@ def update_KES_params():
 
 def main(min_KES):        
     remaining_kes_period = rsp.remaining_kes_period()
+    print(f"remaining kes period:{remaining_kes_period}")
     if (remaining_kes_period < min_KES):
         #first generate new KES params
-        update_KES_params()
+        #update_KES_params()
         #next restart the chain
-        # let t = ChainProcess()
-        # t.reload_chain()
+        # t = ChainProcess()
+        # t.stop_chain()
+        # t.start_chain()
+        pass
     else:
-        print(f"remaining KES {remaining_kes_period} is still greated than minimum {min_KES}")
+        print(f"remaining KES {remaining_kes_period} is still greater than minimum {min_KES}")
 
 
         
@@ -67,7 +71,7 @@ if __name__=="__main__":
     """
     parser = argparse.ArgumentParser(description=descr, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("--minKES", type=int, help="When the remaining kes is less than this we will update the kes keys and node.cert and restart process.")
-
+    
     args = parser.parse_args()
     print(args)
     

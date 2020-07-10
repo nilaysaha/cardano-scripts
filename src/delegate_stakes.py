@@ -29,6 +29,11 @@ class DelegateFunds:
     def load_payment_addr(self):
         payment_addr = pc.content(FILES['payment']['addr'])
         print("Now please load some ada/lovelace into payment address created:{payment_addr}")
-        
+        try:
+            pc.get_funds_via_faucet()
+        except Exception as e:
+            print(e)
+
+    
 
     
