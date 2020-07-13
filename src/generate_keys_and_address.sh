@@ -1,6 +1,6 @@
 #!/bin/sh
 
-BASE_DIR=$PWD/kaddr
+BASE_DIR=$PWD/kaddr_mainnet
 TESTNET_MAGIC=42
 
 if [ ! -d "$BASE_DIR" ]; then

@@ -12,8 +12,7 @@ TTL_BUFFER=1200
 TESTNET_MAGIC=42
 BASE_ADDRESS_TXHASH="a09ba8bfc4b33961a744e059429b06981bfd689916971803371748917ceecc30"
 
-#replace this will the location of the cardabo binaries compiled using cabal
-CARDANO_CLI="/home/nsaha/.cabal/bin/cardano-cli"
+CARDANO_CLI="/home/nsaha/.local/bin/cardano-cli"
 
 def content(fname):
     f = open(fname, "r")

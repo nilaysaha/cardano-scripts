@@ -10,12 +10,8 @@ choice() { i=$1; shift; eval "echo \${$((i + 1))}"; }
 
 echo ${SCRIPTDIR}
 
-BASE_CONFG="${SCRIPTDIR}/../src/tconfig/shelley_testnet-config.json"
-TOPOLOGY_CONFIG="${SCRIPTDIR}/../src/tconfig/shelley_testnet-topology.json"
-GENESIS_CONFIG="${SCRIPTDIR}/../src/tconfig/shelley_testnet-genesis.json"
-KES_SKEY="${SCRIPTDIR}/../src/kaddr_node/kes.skey"
-VRF_SKEY="${SCRIPTDIR}/../src/kaddr_node/vrf.skey"
-NODE_CERT="${SCRIPTDIR}/../src/kaddr/node.cert"
+BASE_CONFG="${SCRIPTDIR}/../src/tconfig/mainnet_candidate-config.json"
+TOPOLOGY_CONFIG="${SCRIPTDIR}/../src/tconfig/mainnet_candidate-topology.json"
 
 
 CARDANO_NODE="/home/nsaha/.local/bin/cardano-node"
@@ -31,10 +27,7 @@ COMMAND= ${CARDANO_NODE} run \
        --topology ${TOPOLOGY_CONFIG} \
        --socket-path ${SOCKET} \
        --host-addr ${HOST_IP} \
-       --port ${PORT} \
-       --shelley-kes-key ${KES_SKEY} \
-       --shelley-vrf-key ${VRF_SKEY} \
-       --shelley-operational-certificate ${NODE_CERT}       
+       --port ${PORT}
 
 echo "Starting cardano-node run: ${COMMAND}"
 exec ${COMMAND}

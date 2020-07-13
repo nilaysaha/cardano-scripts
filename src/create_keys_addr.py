@@ -5,16 +5,18 @@ import requests,shutil
     
 CWD=os.getcwd()
 
+BASE_URL = 'https://hydra.iohk.io/build/3416851/download/1/'
+CARDANO_CLI="/home/nsaha/.cabal/bin/cardano-cli"
+
 FILES={
     'configurations':{
-        'config':os.path.join( CWD, 'tconfig/shelley_testnet-config.json'),
-        'topology':os.path.join( CWD, 'tconfig/shelley_testnet-topology.json'),
-        'genesis':os.path.join( CWD, 'tconfig/shelley_testnet-genesis.json')
+        'config':os.path.join( CWD, 'tconfig/mainnet_candidate-config.json'),
+        'topology':os.path.join( CWD, 'tconfig/mainnet_candidate-topology.json'),
+        'shelley-genesis':os.path.join( CWD, 'tconfig/mainnet_candidate-shelley-genesis.json'),
+        'byron-genesis':os.path.join( CWD, 'tconfig/mainnet_candidate-byron-genesis.json'),
     }
 }
 
-BASE_URL = 'https://hydra.iohk.io/build/3245987/download/1/'
-CARDANO_CLI="/home/nsaha/.cabal/bin/cardano-cli"
 
 def create_dir(d):
     try:
@@ -29,6 +31,7 @@ def create_file(content, fpath):
         # dirname = os.path.dirname(fpath)
         # create_dir(dirname)
         f = open(fpath,"w")
+        print(f"Opened file:{fpath} for writing" )
         f.write(content)
         f.close()
     except IOError as e:
@@ -40,14 +43,21 @@ def fetch_init_files():
         fetch all the configuration files for the chain initialization
     """
     print(f"fetch_init_files")
-    try:        
-        fnames = ['shelley_testnet-config.json', 'shelley_testnet-topology.json', 'shelley_testnet-genesis.json' ]
+    try:
+        fnames = ['mainnet_candidate-config.json', 'mainnet_candidate-topology.json', 'mainnet_candidate-shelley-genesis.json','mainnet_candidate-byron-genesis.json',  ]
         for c in fnames:
             turl = BASE_URL+c
             r1 = requests.get(url = BASE_URL+c)
             print(f"fetched content url:{turl}")
+
             print(f"content is {r1.text}")
-            key = c.split('-')[-1].split('.')[0]
+            t = c.split('candidate')[-1].split('-')
+            t.pop(0)
+            print(f"value of t:{t}")
+            if len(t) > 1:
+                key = "-".join(t).split('.')[0]
+            else:
+                key=t[0].split('.')[0]
             print(f"key is {key}")
             destination =  FILES['configurations'][key]
             print(f"destination is: {destination}")

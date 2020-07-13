@@ -22,8 +22,7 @@ PROTOCOL_CONFIG = pc.FILES['configs']['protocol']
 TTL_BUFFER=1200
 KES_PORT=12798
 
-#replace this will the location of the cardabo binaries compiled using cabal
-CARDANO_CLI="/home/nsaha/.cabal/bin/cardano-cli"
+CARDANO_CLI="/home/nsaha/.local/bin/cardano-cli"
 
 def get_relay_params():
     #fetch it from topology file
@@ -80,29 +79,29 @@ def calc_min_fee():
         
         print(command)
         s = subprocess.check_output(command, stderr=True, universal_newlines=True)
-        print(s)
-        min_fee = s.decode('UTF-8').split(" ")[1].split("\n")[0]
-        print(min_fee)
+        min_fee = s.split(" ")[1].split("\n")[0]
         return min_fee
     except:
         print("Oops!", sys.exc_info()[0], "erro occurred calc min fee")
         
         
-def calc_transaction_amount():
+def calc_transaction_amount(pay_pooldeposit):
     """
-        calculate the amount: utx0 - minm_fees - pooldeposit
-        At this point we assume that we have registered the stake address in the blockchain.
+    calculate the amount: utx0 - minm_fees - pooldeposit
+    At this point we assume that we have registered the stake address in the blockchain. Pooldeposit has to be paid only when we for the first time register the pool. 
+    For all further transaction when we want to tune the pool params this need not be paid
     """
-    try:
+    try:        
         print("calculate transaction amount")
+        poolDeposit = 0
         cmin =  calc_min_fee()
-        poolDeposit = get_pooldeposit()
-
+        if pay_pooldeposit:
+            poolDeposit = get_pooldeposit()            
         print(f"minimum fee calc: {cmin}")
-        print(f"pooldeposit:{poolDeposit}")
+        print(f"pooldeposit:{poolDeposit}. Do we need to pay pooldeposit:{pay_pooldeposit}")
         
-        (txHash, txtx, lovelace) = pc.get_payment_utx0()[0] #Assumption: We have all different txHash aggregated into single one(during stake address registration)
-        print(f"txhash:{txHash} txtx:{txtx} lovelace:{lovelace}")
+        (txHash, txtx, lovelace) = pc.get_payment_utx0()[-1] #Assumption: We have all different txHash aggregated into single one(during stake address registration)
+        print(f"Selected txhash:{txHash} txtx:{txtx} lovelace:{lovelace}")
         
         fund_available = int(lovelace)
         fund_required  = int(cmin) + int(poolDeposit)
@@ -132,12 +131,13 @@ def remaining_kes_period():
         pattern="cardano_node_Forge_metrics_remainingKESPeriods_int"
         for i in rows:
             if re.search(pattern, i):
-                print(f"found match:{pattern} with {i}")
+                #print(f"found match:{pattern} with {i}")
                 kes_period = i.split(' ')[-1]
                 print(f"remaining kes period calculated is:{kes_period}")        
                 break;
             else:
-                print(f"No match for:{pattern} for {i}")
+                #print(f"No match for:{pattern} for {i}")
+                pass
     except:
         print("Oops!", sys.exc_info()[0], "error in remaining_kes_period")
     finally:
@@ -189,14 +189,17 @@ class PoolKeys:
         except:
             print("Oops!", sys.exc_info()[0], "occurred in generate kes keys")
 
-    def _calc_kes_period(self):
+    def calc_kes_period(self):
         try:
             import json
             fcontent = pc.content(SETUP_CONFIGS['genesis'])
             genesis = json.loads(fcontent)
-            slotsPerKESPeriod = genesis['slotsPerKESPeriod']
+            slotsPerKESPeriod = genesis['slotsPerKESPeriod']            
             qtip = int(pc.get_tip())
-            return int(qtip/slotsPerKESPeriod)
+            print(f"qtip:{qtip} and slotsperkes:{slotsPerKESPeriod}")
+            kes_period=int(qtip/slotsPerKESPeriod)
+            print(f'kes_period:{kes_period}')
+            return kes_period
         except Exception:
             print ("error in level argument",Exception)
 
@@ -212,7 +215,7 @@ class PoolKeys:
         --out-file node.cert
         """
         try:
-            kesPeriod = str(self._calc_kes_period())
+            kesPeriod = str(self.calc_kes_period())
             command = [CARDANO_CLI, "shelley", "node", "issue-op-cert", "--kes-verification-key-file", FILES['pool']['kes']['verify_key'],
                         '--cold-signing-key-file', FILES['pool']['cold']['sign_key'], '--operational-certificate-issue-counter', FILES['pool']['cold']['counter'],
                         '--kes-period', kesPeriod, '--out-file', FILES['node']['cert']]
@@ -233,21 +236,17 @@ class PoolKeys:
 class RegisterStakePool:
     def __init__(self):
         self.POOL_META_URL="https://raw.githubusercontent.com/nilaysaha/cardano-scripts/master/src/config/pool_metadata.json"
-        self.SHORT_POOL_META_URL = "https://shorturl.at/adhlW"
+        self.SHORT_POOL_META_URL = "https://api.jsonbin.io/b/5f02da380bab551d2b6ccf6f"
     
-    def _fetch_pool_metadata(self):
-        import create_keys_addr as cka;
+    def _fetch_pool_metadata(self, outfile):
         try:
-            r1 = requests.get(url = self.POOL_META_URL)
-            r1.raise_for_status()
-            cka.create_file(r1.text, FILES['pool']['metadata'])
-            return r1.text
-        except HTTPError as http_err:
-            print(f'HTTP error occurred: {http_err}')  # Python 3.6
-        except Exception as err:
-            print(f'Other error occurred: {err}')  # Python 3.6
-        else:
-            print('Success!')
+            command=["curl","-so", outfile, self.SHORT_POOL_META_URL]
+            print(f"command is:{command}")
+            s=subprocess.check_output(command, stderr=True)
+            print(f"pool metadata:{s}")
+            return s
+        except Exception as e:
+            print(e)
             
     def generate_hash_of_pool_metadata(self):
         """
@@ -255,13 +254,13 @@ class RegisterStakePool:
         """
         try:
             #first fetch pool metadata and store in file.(artifact of cardano cli command line)
-            self._fetch_pool_metadata()
-
+            self._fetch_pool_metadata(FILES['pool']['metadata'])            
             #next hash content of file created
             command=[CARDANO_CLI ,"shelley", "stake-pool", "metadata-hash", "--pool-metadata-file", FILES['pool']['metadata']]
-            s = subprocess.check_output(command, stderr=True, universal_newlines=True)
-            hashed_val = s.decode('UTF-8').split("\n")[0]
-            return hashed_val
+            s=subprocess.check_output(command, stderr=True)
+            print(f"pool metadata:{s}")
+            hash=s.decode('UTF-8').split("\n")[0]
+            return hash
         except Exception as e:
             print(e)
     
@@ -323,8 +322,8 @@ class RegisterStakePool:
 
 
 class SubmitStakePool:
-    def __init__(self):
-        pass
+    def __init__(self, createPool=False):
+        self.createPool = createPool
 
 
     def build_transaction(self):
@@ -342,8 +341,8 @@ class SubmitStakePool:
         try:
             PFILES = pc.FILES
             TTL = pc.get_ttl()
-            (txHash, txtx, lovelace) = pc.get_payment_utx0()[0]
-            remaining_fund = calc_transaction_amount()
+            (txHash, txtx, lovelace) = pc.get_payment_utx0()[-1]
+            remaining_fund = calc_transaction_amount(self.createPool)
             fee = calc_min_fee()
             payment_addr = pc.content(PFILES['payment']['addr'])
             tx_in  = "{txHash}#{txtx}".format(txHash=txHash, txtx=txtx)
@@ -356,8 +355,7 @@ class SubmitStakePool:
                        "--certificate-file", FILES['pool']['cert']['delegation']]
             print(command)
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
-            print(s)
-            split_str=s.decode('UTF-8').split(" ")
+            print(f"output for build transaction:{s}")
         except:
             print("Oops!", sys.exc_info()[0], "occurred in build transaction")
 
@@ -381,6 +379,7 @@ class SubmitStakePool:
                        '--signing-key-file', FILES['pool']['cold']['sign_key'],
                        '--testnet-magic', '42',
                        '--out-file', FILES['pool']['transaction']['signed']]
+            print(command)
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
             print(s)
         except:
@@ -396,6 +395,7 @@ class SubmitStakePool:
         """
         try:
             command = [CARDANO_CLI, "shelley", "transaction", "submit", "--tx-file", FILES['pool']['transaction']['signed'], '--testnet-magic', "42"]
+            print(command)
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
             print(s)
         except:
@@ -441,9 +441,7 @@ class ChainProcess:
             
 def main(options):
     """
-    options: {
-    'generate': true, 'register': true, 'submit':true
-    }
+    options: {'generate': true, 'register': true, 'submit':true, 'createPool':True, 'renewKES':false}
     """
     #generate the pool keys & cert
     if (options['generate']):
@@ -493,8 +491,8 @@ def main(options):
     #submit the transaction
     if(options["submit"]):
         try:
-            tr = SubmitStakePool()
-            tr.build_transaction()
+            tr = SubmitStakePool(options['createPool'])
+            tr.build_transaction() #only for createPool=True we pay 500ADA pool deposit fee.(refunded when pool deregistered)
             tr.sign_transaction()
             tr.submit_transaction()
         except Exception as e:
