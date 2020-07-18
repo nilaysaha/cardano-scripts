@@ -14,7 +14,7 @@ BASE_CONFG="${SCRIPTDIR}/../src/tconfig/mainnet_candidate-config.json"
 TOPOLOGY_CONFIG="${SCRIPTDIR}/../src/tconfig/mainnet_candidate-topology.json"
 
 
-CARDANO_NODE="/home/nsaha/.local/bin/cardano-node"
+CARDANO_NODE="/home/nsaha/.cabal/bin/cardano-node"
 HOST_IP="$(wget http://ipecho.net/plain -O - -q ; echo)"
 PORT=3001
 DB_DIR="${NODE_DIR}/db-ff"
