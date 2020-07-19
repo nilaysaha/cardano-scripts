@@ -3,6 +3,11 @@
 SCRIPTDIR=`dirname "$BASH_SOURCE"`
 
 NODE_DIR="${SCRIPTDIR}/state-node-shelly-testnet"
+if [[ -f ${NODE_DIR} ]]
+then
+    echo "The dir ${NODE_DIR} already exists. Recreating it."
+    rm -rf ${NODE_DIR}
+fi
 mkdir -p ${NODE_DIR}
 
 choice() { i=$1; shift; eval "echo \${$((i + 1))}"; }
