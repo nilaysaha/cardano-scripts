@@ -5,4 +5,3 @@ PAYMENT_ADDR=`cat ./kaddr/payment.addr`
 cardano-cli shelley query utxo \
 	    --address $PAYMENT_ADDR \
 	    --testnet-magic ${TESTNET_MAGIC}
-

@@ -41,7 +41,7 @@ def get_pooldeposit():
     try:
         import json
         print("inside get pooldeposit")
-        fcontent = pc.content(SETUP_CONFIGS['genesis'])
+        fcontent = pc.content(SETUP_CONFIGS['shelley-genesis'])
         p=json.loads(fcontent)
         t = p["protocolParams"]["poolDeposit"]
         return t
@@ -192,7 +192,7 @@ class PoolKeys:
     def calc_kes_period(self):
         try:
             import json
-            fcontent = pc.content(SETUP_CONFIGS['genesis'])
+            fcontent = pc.content(SETUP_CONFIGS['shelley-genesis'])
             genesis = json.loads(fcontent)
             slotsPerKESPeriod = genesis['slotsPerKESPeriod']            
             qtip = int(pc.get_tip())
