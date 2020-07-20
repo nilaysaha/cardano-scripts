@@ -1,6 +1,6 @@
 #!/bin/python3
 
-import subprocess, sys
+import subprocess, sys, json
 
 FILES={'stake': {'verify_key': "./kaddr/stake.vkey", 'addr': './kaddr/stake.addr', 'sign_key': './kaddr/stake.skey', 'cert': './kaddr/stake.cert' },
        'payment': {'verify_key': './kaddr/payment.vkey', 'addr': './kaddr/payment.addr', 'sign_key': './kaddr/payment.skey'},
@@ -12,7 +12,7 @@ TTL_BUFFER=1200
 TESTNET_MAGIC=42
 BASE_ADDRESS_TXHASH="a09ba8bfc4b33961a744e059429b06981bfd689916971803371748917ceecc30"
 
-CARDANO_CLI="/home/nsaha/.local/bin/cardano-cli"
+CARDANO_CLI="/home/nsaha/.cabal/bin/cardano-cli"
 
 def content(fname):
     f = open(fname, "r")
@@ -23,10 +23,10 @@ def content(fname):
 def get_tip():
     try:
         command = [CARDANO_CLI , "shelley" , "query" , "tip"  ,"--testnet-magic", "42"]
-        s =  subprocess.check_output(command)
-        split_str = s.decode('UTF-8').split(" ")
-        current_tip= split_str[4].split("}")[0]
-        return current_tip
+        s =  subprocess.check_output(command, stderr=True, universal_newlines=True)
+        print(s)
+        s_package = json.loads(s)
+        return s_package["slotNo"]
     except:
         print("Oops!", sys.exc_info()[0], "occurred get ttl")
 

@@ -22,7 +22,7 @@ PROTOCOL_CONFIG = pc.FILES['configs']['protocol']
 TTL_BUFFER=1200
 KES_PORT=12798
 
-CARDANO_CLI="/home/nsaha/.local/bin/cardano-cli"
+CARDANO_CLI="/home/nsaha/.cabal/bin/cardano-cli"
 
 def get_relay_params():
     #fetch it from topology file
