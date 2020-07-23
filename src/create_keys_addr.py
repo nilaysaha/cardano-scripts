@@ -115,7 +115,7 @@ class CreateKAddr:
     def _generate_payment_addr(self):
         try:
             command = [CARDANO_CLI, 'shelley', 'address', 'build', '--payment-verification-key-file', self.files['payment']['verify_key'], '--stake-verification-key-file',
-                       self.files['stake']['verify_key'],'--out-file', self.files['payment']['addr'], '--testnet-magic', str(self.testnet_magic)]
+                       self.files['stake']['verify_key'],'--out-file', self.files['payment']['addr'], '--mainnet']# ,'--testnet-magic', str(self.testnet_magic)]
             print(f"command for payment addr : {command}")
             s = subprocess.check_output(command)
             print(f"generated payment addr successfully!")
@@ -127,8 +127,8 @@ class CreateKAddr:
         try:
             command = [CARDANO_CLI , 'shelley' , 'stake-address', 'build',
                        '--stake-verification-key-file', self.files['stake']['verify_key'],
-                       '--out-file', self.files['stake']['addr'],
-                       '--testnet-magic', str(self.testnet_magic)]        
+                       '--out-file', self.files['stake']['addr'],'--mainnet']
+                       # '--testnet-magic', str(self.testnet_magic)]        
             s = subprocess.check_output(command)
             print(f"generated stake address successfully!")
         except:
