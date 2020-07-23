@@ -15,8 +15,8 @@ choice() { i=$1; shift; eval "echo \${$((i + 1))}"; }
 
 echo ${SCRIPTDIR}
 
-BASE_CONFG="${SCRIPTDIR}/../src/tconfig/mainnet_candidate-config.json"
-TOPOLOGY_CONFIG="${SCRIPTDIR}/../src/tconfig/mainnet_candidate-topology.json"
+BASE_CONFG="${SCRIPTDIR}/../src/tconfig/mainnet_candidate_3-config.json"
+TOPOLOGY_CONFIG="${SCRIPTDIR}/../src/tconfig/mainnet_candidate_3-topology.json"
 
 
 CARDANO_NODE="/home/nsaha/.cabal/bin/cardano-node"

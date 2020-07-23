@@ -15,15 +15,15 @@ choice() { i=$1; shift; eval "echo \${$((i + 1))}"; }
 
 echo ${SCRIPTDIR}
 
-BASE_CONFG="${SCRIPTDIR}/../src/tconfig/shelley_testnet-config.json"
-TOPOLOGY_CONFIG="${SCRIPTDIR}/../src/tconfig/shelley_testnet-topology.json"
-GENESIS_CONFIG="${SCRIPTDIR}/../src/tconfig/shelley_testnet-genesis.json"
+BASE_CONFG="${SCRIPTDIR}/../src/tconfig/mainnet_candidate_3-config.json"
+TOPOLOGY_CONFIG="${SCRIPTDIR}/../src/tconfig/mainnet_candidate_3-topology.json"
+GENESIS_CONFIG="${SCRIPTDIR}/../src/tconfig/mainnet_candidate_3-genesis.json"
 KES_SKEY="${SCRIPTDIR}/../src/kaddr_node/kes.skey"
 VRF_SKEY="${SCRIPTDIR}/../src/kaddr_node/vrf.skey"
 NODE_CERT="${SCRIPTDIR}/../src/kaddr/node.cert"
 
 
-CARDANO_NODE="/home/nsaha/.local/bin/cardano-node"
+CARDANO_NODE="/home/nsaha/.cabal/bin/cardano-node"
 HOST_IP="$(wget http://ipecho.net/plain -O - -q ; echo)"
 PORT=3001
 DB_DIR="${NODE_DIR}/db-ff"
