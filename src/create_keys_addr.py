@@ -9,10 +9,10 @@ CARDANO_CLI="/home/nsaha/.cabal/bin/cardano-cli"
 
 FILES={
     'configurations':{
-        'config':os.path.join( CWD, 'tconfig/mainnet_candidate-config.json'),
-        'topology':os.path.join( CWD, 'tconfig/mainnet_candidate-topology.json'),
-        'shelley-genesis':os.path.join( CWD, 'tconfig/mainnet_candidate-shelley-genesis.json'),
-        'byron-genesis':os.path.join( CWD, 'tconfig/mainnet_candidate-byron-genesis.json'),
+        'config':os.path.join( CWD, 'tconfig/mainnet_candidate_3-config.json'),
+        'topology':os.path.join( CWD, 'tconfig/mainnet_candidate_3-topology.json'),
+        'shelley-genesis':os.path.join( CWD, 'tconfig/mainnet_candidate_3-shelley-genesis.json'),
+        'byron-genesis':os.path.join( CWD, 'tconfig/mainnet_candidate_3-byron-genesis.json'),
     }
 }
 
@@ -43,14 +43,14 @@ def fetch_init_files():
     """
     print(f"fetch_init_files")
     try:
-        fnames = ['mainnet_candidate-config.json', 'mainnet_candidate-topology.json', 'mainnet_candidate-shelley-genesis.json','mainnet_candidate-byron-genesis.json',  ]
+        fnames = ['mainnet_candidate_3-config.json', 'mainnet_candidate_3-topology.json', 'mainnet_candidate_3-shelley-genesis.json','mainnet_candidate_3-byron-genesis.json',  ]
         for c in fnames:
             turl = BASE_URL+c
             r1 = requests.get(url = BASE_URL+c)
             print(f"fetched content url:{turl}")
 
             print(f"content is {r1.text}")
-            t = c.split('candidate')[-1].split('-')
+            t = c.split('candidate_3')[-1].split('-')
             t.pop(0)
             print(f"value of t:{t}")
             if len(t) > 1:
