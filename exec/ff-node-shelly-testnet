@@ -15,9 +15,9 @@ choice() { i=$1; shift; eval "echo \${$((i + 1))}"; }
 
 echo ${SCRIPTDIR}
 
-BASE_CONFG="${SCRIPTDIR}/../src/tconfig/mainnet_candidate_3-config.json"
-TOPOLOGY_CONFIG="${SCRIPTDIR}/../src/tconfig/mainnet_candidate_3-topology.json"
-GENESIS_CONFIG="${SCRIPTDIR}/../src/tconfig/mainnet_candidate_3-genesis.json"
+BASE_CONFG="${SCRIPTDIR}/../src/tconfig/mainnet_candidate_4-config.json"
+TOPOLOGY_CONFIG="${SCRIPTDIR}/../src/tconfig/mainnet_candidate_4-topology.json"
+GENESIS_CONFIG="${SCRIPTDIR}/../src/tconfig/mainnet_candidate_4-genesis.json"
 KES_SKEY="${SCRIPTDIR}/../src/kaddr_node/kes.skey"
 VRF_SKEY="${SCRIPTDIR}/../src/kaddr_node/vrf.skey"
 NODE_CERT="${SCRIPTDIR}/../src/kaddr/node.cert"
