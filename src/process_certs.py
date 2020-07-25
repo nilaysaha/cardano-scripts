@@ -102,12 +102,12 @@ def get_git_tag():
 def get_funds_via_faucet():
     """
     implement:
-    curl -v -XPOST "https://faucet.shelley-testnet.dev.cardano.org/send-money/$(cat payment.addr)"  Ideally for 1.14 git tag.
+    curl -v -XPOST "https://faucet.mainnet-candidate-4.dev.cardano.org/send-money/$(cat payment.addr)?apiKey=YOURAPIKEY"  Ideally for 1.18 mainnet-candidate-4
     """
-    try:
-        import requests
+    try:        
+        import requests        
         paddr = content(FILES['payment']['addr'])
-        URL="https://faucet.shelley-testnet.dev.cardano.org/send-money/%s"%(paddr)
+        URL=f"https://faucet.mainnet-candidate-4.dev.cardano.org/send-money/{paddr}"
         r = requests.post(url = URL)
         return r.text #response text.
     except e:
