@@ -9,10 +9,10 @@ CARDANO_CLI="/home/nsaha/.cabal/bin/cardano-cli"
 
 FILES={
     'configurations':{
-        'config':os.path.join( CWD, 'tconfig/mainnet_candidate_4-config.json'),
-        'topology':os.path.join( CWD, 'tconfig/mainnet_candidate_4-topology.json'),
-        'shelley-genesis':os.path.join( CWD, 'tconfig/mainnet_candidate_4-shelley-genesis.json'),
-        'byron-genesis':os.path.join( CWD, 'tconfig/mainnet_candidate_4-byron-genesis.json'),
+        'config':os.path.join( CWD, 'tconfig/mainnet-config.json'),
+        'topology':os.path.join( CWD, 'tconfig/mainnet-topology.json'),
+        'shelley-genesis':os.path.join( CWD, 'tconfig/mainnet-shelley-genesis.json'),
+        'byron-genesis':os.path.join( CWD, 'tconfig/mainnet-byron-genesis.json'),
     }
 }
 
@@ -43,7 +43,7 @@ def fetch_init_files():
     """
     print(f"fetch_init_files")
     try:
-        fnames = ['mainnet_candidate_4-config.json', 'mainnet_candidate_4-topology.json', 'mainnet_candidate_4-shelley-genesis.json','mainnet_candidate_4-byron-genesis.json',  ]
+        fnames = ['mainnet-config.json', 'mainnet-topology.json', 'mainnet-shelley-genesis.json','mainnet-byron-genesis.json',  ]
         for c in fnames:
             turl = BASE_URL+c
             r1 = requests.get(url = BASE_URL+c)
