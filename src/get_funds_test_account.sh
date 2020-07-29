@@ -1,4 +1,5 @@
 #!/bin/sh
 
 PAYMENT_ADDR=`cat ./kaddr/payment.addr`
-curl -v -XPOST "https://faucet.shelley-testnet.dev.cardano.org/send-money/$PAYMENT_ADDR"
+APIKEY=""
+curl -v -XPOST "https://faucet.mainnet-candidate-4.dev.cardano.org/send-money/${PAYMENT_ADDR}?apiKey=${APIKEY}"
