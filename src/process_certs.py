@@ -5,7 +5,7 @@ import subprocess, sys, json
 FILES={'stake': {'verify_key': "./kaddr/stake.vkey", 'addr': './kaddr/stake.addr', 'sign_key': './kaddr/stake.skey', 'cert': './kaddr/stake.cert' },
        'payment': {'verify_key': './kaddr/payment.vkey', 'addr': './kaddr/payment.addr', 'sign_key': './kaddr/payment.skey'},
        'configs': {'protocol': './kaddr/protocol.json'},
-       'transaction': {'raw': './kaddr/tx.raw', 'signed':'./kaddr/tx.signed'}
+       'transaction': {'draft':'./kaddr/tx.draft','raw': './kaddr/tx.raw', 'signed':'./kaddr/tx.signed'}
        }
 
 TTL_BUFFER=1200
@@ -49,14 +49,70 @@ def create_protocol():
         print(f"Oops! Error occured during create_protocol: {sys.exc_info()[0]}")
 
 
-    
-def calculate_min_fees(tx_in_count, ttl):
+def _create_tx_in(tx_in):
+    print(f"Inside _create_tx_in")
+    tx_in_array = []
+    for val in tx_in:
+        print(f"inside build_transaction: val:{val}")
+        tx_in  = val[0]+"#"+val[1]
+        print(f"tx_in:{tx_in}")
+        tx_in_array.append('--tx-in')
+        tx_in_array.append(tx_in)
+    print(f"tx_in_array:{tx_in_array}")
+    return tx_in_array        
+        
+def _draft_transaction(tx_in, tx_out):
+    """
+    cardano-cli shelley transaction build-raw \
+    --tx-in 4e3a6e7fdcb0d0efa17bf79c13aed2b4cb9baf37fb1aa2e39553d5bd720c5c99#4 \
+    --tx-out $(cat payment2.addr)+0 \
+    --tx-out $(cat payment.addr)+0 \
+    --ttl 0 \
+    --fee 0 \
+    --out-file tx.draft
+    """
     try:
-        command = [CARDANO_CLI, 'shelley',  'transaction', 'calculate-min-fee',  '--tx-in-count',  str(tx_in_count),  '--tx-out-count', str(1) , '--ttl',  str(ttl),  '--testnet-magic', str(42), 
-                   '--signing-key-file', FILES['payment']['sign_key'], '--signing-key-file', FILES['stake']['sign_key'], '--certificate-file', FILES['stake']['cert'],
-                   '--protocol-params-file', FILES['configs']['protocol'] ]
+        ttl = get_ttl()
+        print(f"Inside draft transaction")
+        tx_in_array=_create_tx_in(tx_in)
+        command = ["cardano-cli", "shelley", "transaction", "build-raw", "--tx-out",tx_out,  "--ttl", ttl,  "--fee", '0', '--out-file', FILES['transaction']['draft'] ] + tx_in_array
+        print(command)
         s = subprocess.check_output(command)
-        min_fee = s.decode('UTF-8').split(" ")[1].split("\n")[0]
+        print(s)
+    except:
+        print("Oops!", sys.exc_info(), "occurred in draft transaction")
+        
+def calculate_min_fees(tx_in, ttl, options={"raw_transaction":False}):
+    try:
+        # commented out:  '--ttl',  str(ttl),
+        # commented out:  '--signing-key-file', FILES['payment']['sign_key'], '--signing-key-file', FILES['stake']['sign_key']
+        # commented out:  '--certificate-file', FILES['stake']['cert'],
+        # Added: "--tx-body-file", FILES['transaction']['raw']
+        
+        tx_in_count = len(tx_in)
+        tx_out = f"{content(FILES['payment']['addr'])}+{0}"
+
+        if (options["raw_transaction"] == False):
+            fname =  FILES['transaction']['draft']            
+            #generate the tx_raw first, as this is required for 1.18 MC4
+            _draft_transaction(tx_in, tx_out)
+            witness_count = 2
+        else:
+            fname =  FILES['transaction']['raw']
+            witness_count = 2
+            
+        command = [CARDANO_CLI, 'shelley',  'transaction', 'calculate-min-fee',
+                   "--tx-body-file", fname,
+                   "--witness-count", f"{witness_count}",
+                   '--tx-in-count',  str(tx_in_count),
+                   '--tx-out-count', str(1) ,
+                   '--byron-witness-count', str(witness_count) ,
+                   '--testnet-magic', str(42),
+                   '--protocol-params-file', FILES['configs']['protocol'] ]
+        print(f"{command}")
+        s = subprocess.check_output(command,stderr=True, universal_newlines=True)
+        print(f"output of command:{command} output is:{s}")
+        min_fee = s.split(" ")[0]
         return min_fee
     except:
         print("Oops!", sys.exc_info()[0], "occurred in calculate min fees")
@@ -89,11 +145,15 @@ def get_total_fund_in_utx0():
         total_fund += int(val[2])
     return total_fund
         
-def get_deposit_fee():
-    #for now hacking. Ideally should be read from the protocol.json (which should be generated and then read) "keyDeposit": 400000,
+def get_key_deposit_fee():
     import json
     s = json.loads(content(FILES['configs']['protocol']))    
     return int(s['keyDeposit'])
+
+def get_pool_deposit_fee():
+    import json
+    s = json.loads(content(FILES['configs']['protocol']))    
+    return int(s['poolDeposit'])
 
 
 def get_git_tag():
@@ -129,7 +189,8 @@ class RegisterStake:
             --out-file tx.raw \
             --certificate-file stake.cert
         """
-        try:            
+        try:
+            # Commented out "--ttl", ttl
             #Build the tx_in strings because there may be multiple values.
             tx_in_array = []
             for val in txArray:
@@ -140,8 +201,12 @@ class RegisterStake:
                 tx_in_array.append(tx_in)
             payment_addr = content(FILES['payment']['addr'])
             tx_out = "{paddr}+{rfund}".format(paddr=payment_addr, rfund=remaining_fund)
-            command = [CARDANO_CLI, "shelley", "transaction", "build-raw", "--tx-out",tx_out,"--ttl", ttl, "--fee", min_fee,
-                       "--out-file", FILES['transaction']['raw'], '--certificate-file', FILES['stake']['cert']] + tx_in_array
+            command = [CARDANO_CLI, "shelley", "transaction", "build-raw",
+                       "--tx-out",tx_out,
+                       "--ttl", ttl,
+                       "--fee", min_fee,
+                       "--out-file", FILES['transaction']['raw'],
+                       '--certificate-file', FILES['stake']['cert']] + tx_in_array
             print(command)
             s = subprocess.check_output(command)
             split_str=s.decode('UTF-8').split(" ")
@@ -188,10 +253,11 @@ def main():
         print(f'collection of utx0 is:{t}')
         ttl = get_ttl()
         print(f"ttl calcuated is: {ttl}")
+
         create_protocol()        
-        min_fee = calculate_min_fees(len(t),ttl)
+        min_fee = calculate_min_fees(t, ttl)
         print(f"minimum fees: {min_fee}")
-        dfund = get_deposit_fee()
+        dfund = get_key_deposit_fee()
         print(f"deposit:{dfund}")
         total_fund=get_total_fund_in_utx0()
         print(f"total fund:{total_fund}")

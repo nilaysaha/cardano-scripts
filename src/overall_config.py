@@ -8,6 +8,7 @@ import sys
 import create_keys_addr as cka
 import process_certs as pc
 import register_stake_pool as rsp
+import custom_logging as clog
 
 class Setup:
     def __init__(self, createPool):

@@ -48,73 +48,47 @@ def get_pooldeposit():
     except Exception as e:
         print(e)
 
-def calc_min_fee():
-    """
-        cardano-cli shelley transaction calculate-min-fee \
-        --tx-in-count 1 \
-        --tx-out-count 1 \
-        --ttl 200000 \
-        --testnet-magic 42 \
-        --signing-key-file payment.skey \
-        --signing-key-file stake.skey \
-        --signing-key-file cold.skey \
-        --certificate-file pool.cert \
-        --certificate-file delegation.cert \
-        --protocol-params-file protocol.json
-    """
+def _calc_min_fee():
     try:
-        PFILES = pc.FILES
-        TTL = pc.get_ttl()
-        command = [CARDANO_CLI, "shelley", "transaction", "calculate-min-fee",
-                   "--tx-in-count", str(1),
-                   "--tx-out-count", str(1),
-                   "--ttl", str(TTL),
-                   "--testnet-magic", str(42),
-                   "--signing-key-file", PFILES['payment']['sign_key'],
-                   '--signing-key-file', PFILES['stake']['sign_key'],
-                   '--signing-key-file', FILES['pool']['cold']['sign_key'],
-                   '--certificate-file', FILES['pool']['cert']['registration'],
-                   '--certificate-file', FILES['pool']['cert']['delegation'],
-                   '--protocol-params-file', PROTOCOL_CONFIG]
-        
-        print(command)
-        s = subprocess.check_output(command, stderr=True, universal_newlines=True)
-        min_fee = s.split(" ")[1].split("\n")[0]
-        return min_fee
-    except:
-        print("Oops!", sys.exc_info()[0], "erro occurred calc min fee")
-        
-        
+        t = pc.get_payment_utx0()
+        ttl = pc.get_ttl()
+        return pc.calculate_min_fees(t, ttl, {"raw_transaction": True})
+    except Exception as e:
+        print(e)
+    
 def calc_transaction_amount(pay_pooldeposit):
     """
     calculate the amount: utx0 - minm_fees - pooldeposit
     At this point we assume that we have registered the stake address in the blockchain. Pooldeposit has to be paid only when we for the first time register the pool. 
     For all further transaction when we want to tune the pool params this need not be paid
     """
-    try:        
+    try:
+        print(f"Pooldeposit to be paid:{pay_pooldeposit}")
         print("calculate transaction amount")
         poolDeposit = 0
-        cmin =  calc_min_fee()
+        cmin =  _calc_min_fee()
         if pay_pooldeposit:
             poolDeposit = get_pooldeposit()            
         print(f"minimum fee calc: {cmin}")
         print(f"pooldeposit:{poolDeposit}. Do we need to pay pooldeposit:{pay_pooldeposit}")
         
-        (txHash, txtx, lovelace) = pc.get_payment_utx0()[-1] #Assumption: We have all different txHash aggregated into single one(during stake address registration)
-        print(f"Selected txhash:{txHash} txtx:{txtx} lovelace:{lovelace}")
+        # (txHash, txtx, lovelace) = pc.get_payment_utx0()[-1] #Assumption: We have all different txHash aggregated into single one(during stake address registration)
+        # print(f"Selected txhash:{txHash} txtx:{txtx} lovelace:{lovelace}")
         
-        fund_available = int(lovelace)
+        fund_available = pc.get_total_fund_in_utx0()
         fund_required  = int(cmin) + int(poolDeposit)
 
-        print(f"fund required:{fund_required}")
         print(f"fund available:{fund_available}")
+        print(f"fund required:{fund_required}")
         
         if (fund_available > fund_required):
-            return  fund_available - fund_required        
+            diff_fund = fund_available - fund_required
+            print(f"calc transaction amount returned:{diff_fund}")
+            return diff_fund
         else:
             return -1
     except:
-        print("Oops!", sys.exc_info()[0], "error in calc transaction amount")
+        print("Oops!", sys.exc_info(), "error in calc transaction amount")
 
 
 def remaining_kes_period():
@@ -291,7 +265,8 @@ class RegisterStakePool:
                        "--pool-margin", str(poolMargin),
                        "--pool-reward-account-verification-key-file", PFILES['stake']['verify_key'],
                        "--pool-owner-stake-verification-key-file", PFILES['stake']['verify_key'],
-                       "--testnet-magic", str(42),
+                       "--testnet-magic",
+                       str(pc.TESTNET_MAGIC),
                        "--pool-relay-ipv4", str(poolRelay_ipv4),
                        "--pool-relay-port", str(poolRelay_port),
                        "--metadata-url", self.SHORT_POOL_META_URL,
@@ -332,7 +307,7 @@ class SubmitStakePool:
         cardano-cli shelley transaction build-raw \
         --tx-in 9db6cf...#0 \
         --tx-out $(cat payment.addr)+999499083081 \
-        --ttl 200000 \
+        --ttl 200000 \ #discontinued
         --fee 184685 \
         --out-file tx.raw \
         --certificate-file pool.cert \
@@ -343,13 +318,18 @@ class SubmitStakePool:
             TTL = pc.get_ttl()
             (txHash, txtx, lovelace) = pc.get_payment_utx0()[-1]
             remaining_fund = calc_transaction_amount(self.createPool)
-            fee = calc_min_fee()
+            fee = _calc_min_fee()
             payment_addr = pc.content(PFILES['payment']['addr'])
-            tx_in  = "{txHash}#{txtx}".format(txHash=txHash, txtx=txtx)
-            tx_out = "{paddr}+{rfund}".format(paddr=payment_addr, rfund=remaining_fund)
-            print("tx_in:%s"%(tx_in))
-            print("tx_out:%s"%(tx_out))
-            command = [CARDANO_CLI, "shelley", "transaction", "build-raw", "--tx-in", tx_in, "--tx-out",tx_out,"--ttl", TTL, "--fee", fee,
+            tx_in  = f"{txHash}#{txtx}"
+            tx_out = f"{payment_addr}+{remaining_fund}"
+            print(f"tx_in:{tx_in}")
+            print(f"tx_out:{tx_out}")
+            print(f"remaining_fund:{remaining_fund}")
+            command = [CARDANO_CLI, "shelley", "transaction", "build-raw",
+                       "--tx-in", tx_in,
+                       "--tx-out",tx_out,
+                       "--ttl", str(TTL),
+                       "--fee", fee,                       
                        "--out-file", FILES['pool']['transaction']['raw'],
                        '--certificate-file', FILES['pool']['cert']['registration'],
                        "--certificate-file", FILES['pool']['cert']['delegation']]
@@ -377,7 +357,8 @@ class SubmitStakePool:
                        '--signing-key-file', PFILES['payment']['sign_key'],
                        '--signing-key-file', PFILES['stake']['sign_key'],
                        '--signing-key-file', FILES['pool']['cold']['sign_key'],
-                       '--testnet-magic', '42',
+                       "--testnet-magic",
+                       str(pc.TESTNET_MAGIC),
                        '--out-file', FILES['pool']['transaction']['signed']]
             print(command)
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
@@ -394,7 +375,7 @@ class SubmitStakePool:
         --testnet-magic 42
         """
         try:
-            command = [CARDANO_CLI, "shelley", "transaction", "submit", "--tx-file", FILES['pool']['transaction']['signed'], '--testnet-magic', "42"]
+            command = [CARDANO_CLI, "shelley", "transaction", "submit", "--tx-file", FILES['pool']['transaction']['signed'], "--testnet-magic", str(pc.TESTNET_MAGIC)]
             print(command)
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
             print(s)
