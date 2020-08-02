@@ -56,6 +56,7 @@ def _calc_min_fee():
     except Exception as e:
         print(e)
     
+
 def calc_transaction_amount(pay_pooldeposit):
     """
     calculate the amount: utx0 - minm_fees - pooldeposit
@@ -265,8 +266,7 @@ class RegisterStakePool:
                        "--pool-margin", str(poolMargin),
                        "--pool-reward-account-verification-key-file", PFILES['stake']['verify_key'],
                        "--pool-owner-stake-verification-key-file", PFILES['stake']['verify_key'],
-                       "--testnet-magic",
-                       str(pc.TESTNET_MAGIC),
+                       "--mainnet",
                        "--pool-relay-ipv4", str(poolRelay_ipv4),
                        "--pool-relay-port", str(poolRelay_port),
                        "--metadata-url", self.SHORT_POOL_META_URL,
@@ -357,8 +357,7 @@ class SubmitStakePool:
                        '--signing-key-file', PFILES['payment']['sign_key'],
                        '--signing-key-file', PFILES['stake']['sign_key'],
                        '--signing-key-file', FILES['pool']['cold']['sign_key'],
-                       "--testnet-magic",
-                       str(pc.TESTNET_MAGIC),
+                       '--mainnet',
                        '--out-file', FILES['pool']['transaction']['signed']]
             print(command)
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
@@ -375,7 +374,7 @@ class SubmitStakePool:
         --testnet-magic 42
         """
         try:
-            command = [CARDANO_CLI, "shelley", "transaction", "submit", "--tx-file", FILES['pool']['transaction']['signed'], "--testnet-magic", str(pc.TESTNET_MAGIC)]
+            command = [CARDANO_CLI, "shelley", "transaction", "submit", "--tx-file", FILES['pool']['transaction']['signed'], '--mainnet']
             print(command)
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
             print(s)

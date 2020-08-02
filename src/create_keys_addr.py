@@ -4,7 +4,9 @@ import subprocess, process_certs,os
 import requests,shutil
     
 CWD=os.getcwd()
-BASE_URL = 'https://hydra.iohk.io/job/Cardano/cardano-node/cardano-deployment/latest-finished/download/1/'
+
+#BASE_URL = 'https://hydra.iohk.io/job/Cardano/cardano-node/cardano-deployment/latest-finished/download/1/'
+BASE_URL = 'http://hydra.iohk.io/job/Cardano/iohk-nix/cardano-deployment/latest-finished/download/1/'
 CARDANO_CLI="/home/nsaha/.cabal/bin/cardano-cli"
 
 FILES={

@@ -22,7 +22,7 @@ def content(fname):
 
 def get_tip():
     try:
-        command = [CARDANO_CLI , "shelley" , "query" , "tip"  ,"--testnet-magic", "42"]
+        command = [CARDANO_CLI , "shelley" , "query" , "tip"  ,"--mainnet"]
         s =  subprocess.check_output(command, stderr=True, universal_newlines=True)
         print(s)
         s_package = json.loads(s)
@@ -43,7 +43,7 @@ def create_protocol():
         --out-file ./kaddr/protocol.json
     """
     try:
-        command = [ CARDANO_CLI, "shelley", "query", "protocol-parameters", "--testnet-magic", str(TESTNET_MAGIC), "--out-file", FILES['configs']['protocol']]
+        command = [ CARDANO_CLI, "shelley", "query", "protocol-parameters", "--mainnet", "--out-file", FILES['configs']['protocol']]
         s = subprocess.check_output(command)
     except:
         print(f"Oops! Error occured during create_protocol: {sys.exc_info()[0]}")
@@ -124,7 +124,7 @@ def get_payment_utx0():
     try:
         final_array = []
                 
-        command=[CARDANO_CLI, 'shelley' , 'query', 'utxo', '--address', content(FILES['payment']['addr']), '--testnet-magic', '42']
+        command=[CARDANO_CLI, 'shelley' , 'query', 'utxo', '--address', content(FILES['payment']['addr']), '--mainnet']
         s = subprocess.check_output(command)
         split_str=s.decode('UTF-8').split("\n")
         result = filter(lambda x: x != '', split_str) 
@@ -225,7 +225,7 @@ class RegisterStake:
         """
         try:
             command = [CARDANO_CLI, "shelley", "transaction", "sign", "--tx-body-file", FILES['transaction']['raw'], '--signing-key-file',
-                       FILES['payment']['sign_key'], '--signing-key-file', FILES['stake']['sign_key'], '--testnet-magic', '42','--out-file',
+                       FILES['payment']['sign_key'], '--signing-key-file', FILES['stake']['sign_key'], '--mainnet','--out-file',
                        FILES['transaction']['signed']]
             s = subprocess.check_output(command)
             print(s)
