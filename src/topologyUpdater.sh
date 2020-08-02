@@ -20,7 +20,7 @@ export CARDANO_NODE_SOCKET_PATH="${CNODE_HOME}/exec/state-node-shelly-testnet/no
 
 echo ${CARDANO_NODE_SOCKET_PATH}
 
-blockNo=$(cardano-cli shelley query tip --testnet-magic $TESTNET_MAGIC | grep -oP 'unBlockNo = \K\d+')
+blockNo=$(cardano-cli shelley query tip --mainnet | grep -oP 'unBlockNo = \K\d+')
 
 # Note:
 # if you run your node in IPv4/IPv6 dual stack network configuration and want announced the

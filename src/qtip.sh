@@ -1,3 +1,3 @@
 #!/bin/sh
 
-cardano-cli shelley query tip --testnet-magic 42
+cardano-cli shelley query tip --mainnet
