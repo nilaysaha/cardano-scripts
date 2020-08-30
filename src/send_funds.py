@@ -50,7 +50,6 @@ def _get_total_fund_in_utx0(t_address):
 
 
 
-
 class CalcFee:
     def __init__(self):
         pass
@@ -121,9 +120,7 @@ class CalcFee:
         except:
             print("Oops!", sys.exc_info()[0], "occurred in calculate min fees")
 
-
-
-    def calc_transaction_amounts(self, ttl, from_address, transfer_amount):
+    def calc_remaining_funds(self, ttl, from_address, transfer_amount):
         try:
             min_fee = self.calculate_min_fees(tx_array_from_address, ttl)
             print(f"minimum fees: {min_fee}")
@@ -134,12 +131,11 @@ class CalcFee:
             print("Oops!", sys.exc_info()[0], "occurred in calculate min fees")
 
 
-class RegisterTransaction:
+class Transaction:
     def __init__(self):
         pass
-
     
-    def build_transaction(self, txArray, remaining_fund, ttl, min_fee):
+    def build(self, txArray, remaining_fund, ttl, min_fee):
         """
         reconstruct: 
            cardano-cli shelley transaction build-raw \
@@ -174,7 +170,7 @@ class RegisterTransaction:
         except:
             print("Oops!", sys.exc_info()[0], "occurred in build transaction")
 
-    def sign_transaction(self):
+    def sign(self):
         """
         reconstruct:
         cardano-cli shelley transaction sign \
@@ -194,7 +190,7 @@ class RegisterTransaction:
             print("Oops!", sys.exc_info()[0], "occurred in sign transaction")
 
 
-    def submit_transaction(self):
+    def submit(self):
         """
         reconstruct:
         cardano-cli shelley transaction submit \
@@ -216,27 +212,40 @@ class Transfer:
         self.transfer_amount = transfer_amount 
         self.ttl = None
         self.remaining_fund = 0
-        self.transaction = RegisterTransaction()
+        self.transaction = Transaction()
         self.CalcFee = CalcFee()
 
     
     def _step_1(self):
         """                                                                                                                                                                                                 
-        fetch the protocol file from the chain                                                                                                                                                              
+        pre-requisites for transactions
         """
-        pc.create_protocol()
+        try:
+            pc.create_protocol()
+            self.ttl = pc.get_ttl()
+        except:
+            print("Oops!", sys.exc_info()[0], "occurred in pre-req transaction for send funds. Step 1 for ref.")
 
-    def _step_2(self):    
-        """
-        get the TTL for the transaction
-        """
-        self.ttl = pc.get_ttl()
-
-        
     def _step_2(self):
         """                                                                                                                                                                                                 
         Build transaction
         """
-        self.remaining_fund = self.CalcFee.calc_transaction_amounts(self.ttl, self.from_address, self.transfer_amount)
-        
-        
+        try:
+            self.remaining_fund = self.CalcFee.calc_remaining_funds(self.ttl, self.from_address, self.transfer_amount)
+            self.transaction.build()
+            self.transaction.sign()
+            self.transaction.submit()
+        except:
+            print("Oops!", sys.exc_info()[0], "occurred in build/sign/exec transaction for send funds. Step 2 for ref.")
+
+    def main():
+        try:
+            self._step_1()
+            self._step_2()
+        except:
+            print("Oops!", sys.exc_info()[0], "overall function to coordinate transfer")
+            
+if __name__ == "__main__": 
+    t = Transfer()
+    t.main()
+            
