@@ -211,7 +211,7 @@ class PoolKeys:
 class RegisterStakePool:
     def __init__(self):
         self.POOL_META_URL="https://raw.githubusercontent.com/nilaysaha/cardano-scripts/master/src/config/pool_metadata.json"
-        self.SHORT_POOL_META_URL = "https://api.jsonbin.io/b/5f02da380bab551d2b6ccf6f"
+        self.SHORT_POOL_META_URL = "https://lkbh-pool.s3.eu-central-1.amazonaws.com/metadata.json"
     
     def _fetch_pool_metadata(self, outfile):
         try:
@@ -260,9 +260,12 @@ class RegisterStakePool:
             print('Inside generate_cert_stakepool')
             pool_metadata_hash = self.generate_hash_of_pool_metadata()
             PFILES = pc.FILES
-            
-            command = [CARDANO_CLI, "shelley" ,"stake-pool", "registration-certificate", "--cold-verification-key-file", FILES['pool']['cold']['verify_key'],
-                       '--vrf-verification-key-file', FILES['pool']['vrf']['verify_key'], "--pool-pledge", str(pledgeAmount), "--pool-cost", str(poolCost),
+
+            command = [CARDANO_CLI, "shelley" ,"stake-pool", "registration-certificate",
+                       "--cold-verification-key-file", FILES['pool']['cold']['verify_key'],
+                       '--vrf-verification-key-file', FILES['pool']['vrf']['verify_key'],
+                       "--pool-pledge", str(pledgeAmount),
+                       "--pool-cost", str(poolCost),
                        "--pool-margin", str(poolMargin),
                        "--pool-reward-account-verification-key-file", PFILES['stake']['verify_key'],
                        "--pool-owner-stake-verification-key-file", PFILES['stake']['verify_key'],
@@ -288,8 +291,10 @@ class RegisterStakePool:
         """
 
         PFILES = pc.FILES
-        command = [CARDANO_CLI, "shelley", "stake-address", "delegation-certificate", "--stake-verification-key-file", PFILES['stake']['verify_key'],
-                   "--cold-verification-key-file", FILES['pool']['cold']['verify_key'], '--out-file', FILES['pool']['cert']['delegation'] ]
+        command = [CARDANO_CLI, "shelley", "stake-address", "delegation-certificate",
+                   "--stake-verification-key-file", PFILES['stake']['verify_key'],
+                   "--cold-verification-key-file", FILES['pool']['cold']['verify_key'],
+                   '--out-file', FILES['pool']['cert']['delegation'] ]
         s = subprocess.check_output(command, stderr=True, universal_newlines=True)
         print(s)
 
@@ -303,14 +308,14 @@ class SubmitStakePool:
 
     def build_transaction(self):
         """
-        reconstruct: 
+        reconstruct:
         cardano-cli shelley transaction build-raw \
-        --tx-in 9db6cf...#0 \
-        --tx-out $(cat payment.addr)+999499083081 \
-        --ttl 200000 \ #discontinued
-        --fee 184685 \
+        --tx-in <UTXO>#<TxIx> \
+        --tx-out $(cat payment.addr)+<CHANGE IN LOVELACE> \
+        --ttl <TTL> \
+        --fee <FEE> \
         --out-file tx.raw \
-        --certificate-file pool.cert \
+        --certificate-file pool-registration.cert \
         --certificate-file delegation.cert
         """
         try:
@@ -342,12 +347,13 @@ class SubmitStakePool:
     def sign_transaction(self):
         """
         reconstruct:
+
         cardano-cli shelley transaction sign \
         --tx-body-file tx.raw \
         --signing-key-file payment.skey \
         --signing-key-file stake.skey \
         --signing-key-file cold.skey \
-        --testnet-magic 42 \
+        --mainnet \
         --out-file tx.signed
         """
         PFILES=pc.FILES
@@ -371,10 +377,12 @@ class SubmitStakePool:
         reconstruct:
         cardano-cli shelley transaction submit \
         --tx-file tx.signed \
-        --testnet-magic 42
+        --mainnet
         """
         try:
-            command = [CARDANO_CLI, "shelley", "transaction", "submit", "--tx-file", FILES['pool']['transaction']['signed'], '--mainnet']
+            command = [CARDANO_CLI, "shelley", "transaction", "submit",
+                       "--tx-file", FILES['pool']['transaction']['signed'],
+                       '--mainnet']
             print(command)
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
             print(s)

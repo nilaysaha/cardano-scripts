@@ -241,7 +241,7 @@ class RegisterStake:
         --testnet-magic 42
         """
         try:
-            command = [CARDANO_CLI, "shelley", "transaction", "submit", "--tx-file", FILES['transaction']['signed'], '--testnet-magic', "42"]
+            command = [CARDANO_CLI, "shelley", "transaction", "submit", "--tx-file", FILES['transaction']['signed'], '--mainnet']
             s = subprocess.check_output(command)
             print("Submitted transaction for stake registration on chain usin: {command}. Result is: {s}")
         except:
