@@ -1,1 +1,12 @@
+Goal:
+  - to create a query that does the following multi step process:
+     - Maintain a list of pools (identified by their poolids).
+     - Sanitize this list dynamically so as to check if pools are active or not ?
+     - For each pool maintain the following parameters:
+         - pool id
+	 - stake address
+	 - Verify for delegation we need any other address than staking address ?
+	 - List: Number of delegators to that pool, Total delegated amount, epoch id, reward obtained
+
+
 select * from pool_meta_data pm left join pool_update pu on pu.meta_id=pm.id where pm.url='https://lkbh-pool.s3.eu-central-1.amazonaws.com/metadata.json'; (gives all the pool parameters)
