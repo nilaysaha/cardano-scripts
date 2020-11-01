@@ -1,0 +1,1 @@
+select * from pool_meta_data pm left join pool_update pu on pu.meta_id=pm.id where pm.url='https://lkbh-pool.s3.eu-central-1.amazonaws.com/metadata.json'; (gives all the pool parameters)
