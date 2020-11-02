@@ -9,4 +9,16 @@ Goal:
 	 - List: Number of delegators to that pool, Total delegated amount, epoch id, reward obtained
 
 
+--------------------------------------------------------SAMPLE QUERIES TO ACHIEVE THE ABOVE GOAL---------------------------------------------------------------------------------------
+
+Q1: GIVES ALL THE POOL PARAMETERS
 select * from pool_meta_data pm left join pool_update pu on pu.meta_id=pm.id where pm.url='https://lkbh-pool.s3.eu-central-1.amazonaws.com/metadata.json'; (gives all the pool parameters)
+
+
+Q2: GIVES ALL THE STATIC PARAMETERS FOR A PARTICULAR POOL ID (like amount of pledge, fixed cost and margin) 
+select * from (select * from pool_update
+              where registered_tx_id in (select max(registered_tx_id) from pool_update group by reward_addr_id)
+              and not exists (select * from pool_retire where pool_retire.hash_id = pool_update.id))tc_1 
+			  inner join pool_hash 
+			  on tc_1.hash_id = pool_hash.id
+			  where pool_hash.view='pool1pnsk7v8a4eyn9qtqev7k3clazzw2s66cpa850zprqlu5x5eqtuw';
