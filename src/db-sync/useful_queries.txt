@@ -33,3 +33,37 @@ select * from (select * from pool_update
 			  on tc_1.hash_id = pool_hash.id
 			  where pool_hash.view='pool1pnsk7v8a4eyn9qtqev7k3clazzw2s66cpa850zprqlu5x5eqtuw';
 
+
+
+Q4: CALCULATE THE REWARDS PER EPOCH FOR A PARTICULAR POOL:
+
+select tc_1.epoch_no, sum(tc_1.ADA_rewarded) as total_epoch_reward from (select reward.epoch_no, stake_address.view as delegated_pool, reward.amount/1000000 as ADA_rewarded from reward 
+				inner join stake_address on reward.addr_id = stake_address.id
+        		inner join pool_hash on reward.pool_id = pool_hash.id
+				where pool_hash.view ='pool14wk2m2af7y4gk5uzlsmsunn7d9ppldvcxxa5an9r5ywek8330fg' 
+        		order by epoch_no asc) tc_1
+			group by tc_1.epoch_no;
+
+Q5: CALCULATE THE NUMBER OF BLOCKS MINTED BY A PARTICULAR POOL (INCLUDING ALL EPOCHS):
+
+select count(*) from (select block.block_no, block.epoch_no, pool_hash.view as pool_view from block 
+				inner join slot_leader on block.slot_leader_id = slot_leader.id
+        		inner join pool_hash on slot_leader.pool_hash_id = pool_hash.id
+        		where pool_hash.view = 'pool14wk2m2af7y4gk5uzlsmsunn7d9ppldvcxxa5an9r5ywek8330fg')ct_1;
+
+
+(derivation from above to do that for a particular epoch):
+
+select count(*) from (select block.block_no, block.epoch_no, pool_hash.view as pool_view from block 
+				inner join slot_leader on block.slot_leader_id = slot_leader.id
+        		inner join pool_hash on slot_leader.pool_hash_id = pool_hash.id
+        		where pool_hash.view = 'pool14wk2m2af7y4gk5uzlsmsunn7d9ppldvcxxa5an9r5ywek8330fg'  and block.epoch_no=212 )ct_1;
+
+
+[epoch_no  block_id] for all epochs. (CAN BE USED AS FOUNDATION TO CALCULATE THE TOTAL AMOUNT OF REWARD OBTAINED]
+select * from (select block.epoch_no as epoch_no, block.block_no from block 
+				inner join slot_leader on block.slot_leader_id = slot_leader.id
+        		inner join pool_hash on slot_leader.pool_hash_id = pool_hash.id
+        		where pool_hash.view = 'pool14wk2m2af7y4gk5uzlsmsunn7d9ppldvcxxa5an9r5ywek8330fg')ct_1
+				order by ct_1.epoch_no;
+
