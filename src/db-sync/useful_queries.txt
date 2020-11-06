@@ -67,3 +67,34 @@ select * from (select block.epoch_no as epoch_no, block.block_no from block
         		where pool_hash.view = 'pool14wk2m2af7y4gk5uzlsmsunn7d9ppldvcxxa5an9r5ywek8330fg')ct_1
 				order by ct_1.epoch_no;
 
+
+Q5: CALCULATE THE REWARD IN ADA FOR A PARTICULAR EPOCH AND A PARTICULAR POOL (via counting ADA award per stake address)
+
+select st.view, round(r.amount/1000000,2) as ADA_reward from stake_address st 
+			inner join reward r on st.id = r.addr_id
+			inner join pool_hash ph on r.pool_id= ph.id
+			where ph.view='pool14wk2m2af7y4gk5uzlsmsunn7d9ppldvcxxa5an9r5ywek8330fg' and r.epoch_no=217 
+			order by ADA_reward asc;
+
+The above gives a list as follows:
+
+stake_address                                                | ADA_reward   
+-------------------------------------------------------------|--------------------------------------
+stake1ux87uj5d4zl8c78u3k9aam7czq2ht2dsaky837phpz7l0kg4gfzvt  | 0.04
+stake1uyrk9a6hsz4kxuj29edhnzuu62ulxvsv59dz55ct83hee8gv3ak95  | 0.07
+
+....
+
+Q5 A> Calculate the total reward for a pool in an epoch:
+
+
+
+
+
+
+Q5 b> Calculate the total ADA delegated to a pool in an epoch:
+
+
+
+
+Q5 c> Now calculate the ROI for a pool in an epoch (using a>/b>)
