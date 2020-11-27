@@ -87,9 +87,10 @@ stake1uyrk9a6hsz4kxuj29edhnzuu62ulxvsv59dz55ct83hee8gv3ak95  | 0.07
 
 Q5 A> Calculate the total reward for a pool in an epoch:
 
-
-
-
+select round(sum(r.amount/1000000),2) as Total_reward from stake_address st 
+			inner join reward r on st.id = r.addr_id
+			inner join pool_hash ph on r.pool_id= ph.id
+			where ph.view='pool14wk2m2af7y4gk5uzlsmsunn7d9ppldvcxxa5an9r5ywek8330fg' and r.epoch_no=225;
 
 
 Q5 b> Calculate the total ADA delegated to a pool in an epoch:

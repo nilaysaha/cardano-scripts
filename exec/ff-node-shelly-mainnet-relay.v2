@@ -1,0 +1,78 @@
+#!/bin/bash
+
+SCRIPTDIR=`dirname "$BASH_SOURCE"`
+echo ${SCRIPTDIR}
+NODE_DIR="${SCRIPTDIR}/state-node-shelly-mainnet"
+
+reset_node_dir() {
+    if [[ -f ${NODE_DIR} ]]
+    then
+	echo "The dir ${NODE_DIR} already exists. Recreating it."
+	rm -rf ${NODE_DIR}
+    fi
+    mkdir -p ${NODE_DIR}
+}
+
+ensure_node_dir() {
+    if [! -f ${NODE_DIR} ]
+    then
+	echo "The dir ${NODE_DIR} does not exists. Creating it."
+	mkdir -p ${NODE_DIR}
+    else
+	echo "Directory ${NODE_DIR} exists. Hence continuing ..."
+    fi
+}
+
+stop() {
+    pkill -9 cardano-node
+}
+
+choice() { i=$1; shift; eval "echo \${$((i + 1))}"; }
+
+cexec() {
+    BASE_CONFG="${SCRIPTDIR}/../src/tconfig/mainnet-config.json"
+    TOPOLOGY_CONFIG="${SCRIPTDIR}/../src/tconfig/mainnet-topology.json"
+    CARDANO_NODE="/home/nsaha/.cabal/bin/cardano-node"
+    HOST_IP="$(wget http://ipecho.net/plain -O - -q ; echo)"
+    PORT=3001
+    DB_DIR="${NODE_DIR}/db-ff"
+    SOCKET="${NODE_DIR}/node.socket"
+    
+    COMMAND= ${CARDANO_NODE} run \
+	   --config ${BASE_CONFG} \
+	   --database-path ${DB_DIR} \
+	   --topology ${TOPOLOGY_CONFIG} \
+	   --socket-path ${SOCKET} \
+	   --host-addr ${HOST_IP} \
+	   --port ${PORT}
+
+    ensure_node_dir
+    echo "Starting cardano-node run: ${COMMAND}"
+    exec ${COMMAND}
+    export CARDANO_NODE_SOCKET_PATH=$PWD/${SOCKET}
+}
+
+case "$1" in 
+    start)
+       cexec
+       ;;
+    stop)
+       stop
+       ;;
+    restart)
+       stop
+       start
+       ;;
+    reset)
+	stop
+	reset_node_dir
+	start
+	;;
+    status)
+       # code to check status of app comes here 
+       # example: status program_name
+       ;;
+    *)
+       echo "Usage: $0 {start|stop|status|restart}"
+esac
+
