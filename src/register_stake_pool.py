@@ -14,7 +14,7 @@ FILES={
              'metadata': './kaddr_node/pool_metadata.json',
              'pledge': 'config/pool_stakeData.json'
     },       
-    'node': {'cert': './kaddr/node.cert'},    
+    'node': {'cert': './kaddr_node/node.cert'},    
 }
 
 SETUP_CONFIGS = cka.FILES['configurations']
@@ -23,6 +23,22 @@ TTL_BUFFER=1200
 KES_PORT=12798
 
 CARDANO_CLI="/home/nsaha/.cabal/bin/cardano-cli"
+
+
+def setup_run_configs():
+    """
+    Copies the relevant files needed for BP node to run in a proper directory kaddr_run.
+    """
+    try:
+        flist = [FILES['pool']['vrf']['sign_key'], FILES['pool']['kes']['sign_key'], FILES['pool']['node']['cert']]
+        for i in flist:
+            command = [ '\cp', i, './kaddr_run/.']
+            print(command)
+            s=subprocess.check_output(command, stderr=True, universal_newlines=True)
+            print(s)
+    except Exception as e:
+        print(e)
+
 
 def get_relay_params():
     #fetch it from topology file
@@ -160,7 +176,9 @@ class PoolKeys:
         try:
             command=[CARDANO_CLI, "shelley", "node", "key-gen-KES", "--verification-key-file", FILES['pool']['kes']['verify_key'],
                      '--signing-key-file', FILES['pool']['kes']['sign_key']]
+            print(command)
             s=subprocess.check_output(command, stderr=True, universal_newlines=True)
+            print(s)
         except:
             print("Oops!", sys.exc_info()[0], "occurred in generate kes keys")
 

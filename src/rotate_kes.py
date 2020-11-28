@@ -44,6 +44,8 @@ def update_KES_params():
         p = rsp.PoolKeys()
         p.generate_kes_keys()
         p.generate_node_cert()
+        #Now move the relevant files to kaddr_run directory
+        rsp.setup_run_configs()
     except:
         print(f"Error occured in update kes params:{sys.exc_info()[0]}")
             
@@ -53,7 +55,7 @@ def main(min_KES):
     print(f"remaining kes period:{remaining_kes_period}")
     if (remaining_kes_period < min_KES):
         #first generate new KES params
-        #update_KES_params()
+        update_KES_params()
         #next restart the chain
         # t = ChainProcess()
         # t.stop_chain()
