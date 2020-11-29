@@ -20,7 +20,7 @@ TOPOLOGY_CONFIG="${SCRIPTDIR}/../src/tconfig/mainnet-topology.json"
 GENESIS_CONFIG="${SCRIPTDIR}/../src/tconfig/mainnet-genesis.json"
 KES_SKEY="${SCRIPTDIR}/../src/kaddr_node/kes.skey"
 VRF_SKEY="${SCRIPTDIR}/../src/kaddr_node/vrf.skey"
-NODE_CERT="${SCRIPTDIR}/../src/kaddr/node.cert"
+NODE_CERT="${SCRIPTDIR}/../src/kaddr_node/node.cert"
 
 
 CARDANO_NODE="/home/nsaha/.cabal/bin/cardano-node"

@@ -91,7 +91,10 @@ class Setup:
     def test_func(self):
         print('this is test function')
         return 0
-        
+
+    def create_run_config(self):
+        print("This copies relevant config files to kaddr_run directory. Additionally tars directory kaddr & kaddr_node for export")
+    
     def exec_step(self,stepId):
         exec_map = {
             1: self._step_1,
