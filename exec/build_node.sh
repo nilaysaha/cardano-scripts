@@ -86,6 +86,12 @@ startNode() {
     sudo systemctl start shelly-cardano
 }
 
+exportBuild() {
+    cd ${HOME}
+    tar cvfz ${HOME}/temp/cabal-${CARDANO_NODE_VERSION}.tgz ${HOME}/.cabal
+    scp -i ~/.ssh/id_rsa_node_1 ${HOME}/temp/cabal-${CARDANO_NODE_VERSION}.tgz  nsaha@10.0.0.3:.
+}
+
 
 while getopts "v:" opt
 do
@@ -103,7 +109,8 @@ then
 else
     # Now execute the stuff
     pullCode
-    buildNode
+    buildNode   
     linkNode
+    exportBuild
 fi
 
