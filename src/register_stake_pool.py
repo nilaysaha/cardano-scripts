@@ -32,14 +32,31 @@ def setup_run_configs():
     try:
         flist = [FILES['pool']['vrf']['sign_key'], FILES['pool']['kes']['sign_key'], FILES['pool']['node']['cert']]
         for i in flist:
-            command = [ '\cp', i, './kaddr_run/.']
+            command = [ '\cp', i, './kaddr_run/.',";", 'chmod', '700', './kaddr_run/'+i]            
             print(command)
             s=subprocess.check_output(command, stderr=True, universal_newlines=True)
-            print(s)
+            print(s)            
     except Exception as e:
         print(e)
 
+def encrypt_keys_and_addr():
+    """
+    Encrypt using GPG all the kaddr and kaddr_node files created during setup.
+    """
+    try:
+        dirlist = ["./kaddr" , "./kaddr_node"]
+        for i in dirlist:
+            tfile = i+".tgz"
+            command=["tar", "cvfz",tfile, i, ";", "gpg", "-c", tfile]
+            print(command)
+            s=subprocess.check_output(command, stderr=True, universal_newlines=True)
+            print(s)            
+    except Exception as e:
+        print(e)
+        
+            
 
+        
 def get_relay_params():
     #fetch it from topology file
     fname = SETUP_CONFIGS['topology']

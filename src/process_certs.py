@@ -109,7 +109,7 @@ def calculate_min_fees(tx_in, ttl, options={"raw_transaction":False}):
                    '--byron-witness-count', str(witness_count) ,
                    '--testnet-magic', str(42),
                    '--protocol-params-file', FILES['configs']['protocol'] ]
-        print(f"{command}")
+        print(command)
         s = subprocess.check_output(command,stderr=True, universal_newlines=True)
         print(f"output of command:{command} output is:{s}")
         min_fee = s.split(" ")[0]
