@@ -36,7 +36,7 @@ class commonLib:
             print("Oops!", sys.exc_info()[0], "occurred get ttl")
 
     def get_ttl(self):
-        current_tip = get_tip()
+        current_tip = self.get_tip()
         ttl = int(current_tip)+TTL_BUFFER
         print("ttl:{v}".format(v=ttl))
         return str(ttl)
