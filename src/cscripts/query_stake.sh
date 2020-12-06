@@ -1,8 +1,8 @@
 #!/bin/sh
 
-TESTNET_MAGIC=42
-STAKE_ADDR=`cat ./kaddr/stake.addr`
-cardano-cli shelley query utxo --shelley-mode \
-	    --address $STAKE_ADDR \
-	    --testnet-magic ${TESTNET_MAGIC}
-
+TESTNET_MAGIC=mainnet
+STAKE_ADDR=`cat ../backup/kaddr/stake.addr`
+echo "stake address is:${STAKE_ADDR}"
+cardano-cli shelley query stake-address-info \
+	    --mainnet \
+	    --address ${STAKE_ADDR}
