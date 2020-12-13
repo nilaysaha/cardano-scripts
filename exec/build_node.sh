@@ -38,6 +38,11 @@ buildNode() {
 	echo "Directory ${CARDANO_NODE_DIR} exists."
 	echo "Now building new version of cardano-node"
 	cd ${CARDANO_NODE_DIR}
+	BACKUP_DIR="${CARDANO_NODE_DIR}/dist-newstyle_build_${CARDANO_NODE_VERSION}"
+	if [ ! -d ${BACKUP_DIR} ]
+	then
+	    mv dist-newstyle ${BACKUP_DIR}
+	fi
 	cabal update
 	cabal build all
     else
@@ -66,11 +71,12 @@ linkNode() {
 	cd ~/.cabal/bin
 	mv cardano-node cardano-node.old
 	mv cardano-cli cardano-cli.old
-	mv chairman chairman.old
+	mv cardno-node-chairman cardano-node-chairman.old
 	ln -s ../store/ghc-8.6.5/cardano-cli-${CARDANO_NODE_VERSION}/x/cardano-cli/build/cardano-cli/cardano-cli
 	ln -s ../store/ghc-8.6.5/cardano-node-${CARDANO_NODE_VERSION}/x/cardano-node/build/cardano-node/cardano-node
 	ln -s ../store/ghc-8.6.5/cardano-node-chairman-${CARDANO_NODE_VERSION}/x/cardano-node-chairman/build/cardano-node-chairman/cardano-node-chairman
-
+	ln -s ../store/ghc-8.6.5/cardano-node-chairman-1.24.2/x/cardano-node-chairman/build/cardano-node-chairman/cardano-node-chairman
+	
 	echo "---------------------------Starting Node after relinking binaries------------------------------"
 	startNode
     else
@@ -108,9 +114,11 @@ then
    helpFunction
 else
     # Now execute the stuff
-    pullCode
-    buildNode   
-    linkNode
+    # pullCode
+    # buildNode
+    #linkNode
+    stopNode
+    startNode
     exportBuild
 fi
 
