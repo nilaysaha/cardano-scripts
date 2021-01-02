@@ -9,7 +9,21 @@ helpFunction()
    exit 1 # Exit script after printing help
 }
 
-pullCode() {
+
+updateBuildEnv() {
+    echo "--------------Install ghcup if needed--------------------"
+    echo "Reference:https://forum.cardano.org/t/attention-spos-1-24-2-upgrade-guide-upgrade-now-for-the-upcoming-allegra-hard-fork-event/43094"
+    ghcup --version
+    curl --proto ‘=https’ --tlsv1.2 -sSf https://get-ghcup.haskell.org | sh
+
+    echo "-------------Update ghcup-------------------"
+    ghcup upgrade
+    ghcup install ghc 8.10.2
+    ghcup set ghc 8.10.2      
+}
+
+
+Pullcode() {
     CARDANO_NODE_DIR="${HOME}/projects/cardano/cardano-node"
     
     if [ -d ${CARDANO_NODE_DIR} ] 
@@ -17,6 +31,9 @@ pullCode() {
 	echo "Directory ${CARDANO_NODE_DIR} exists."
 	echo "Now fetching locally new version of cardano-node:${CARDANO_NODE_VERSION}"
 	cd ${CARDANO_NODE_DIR}
+	echo "Do clean of earlier builds and update"
+	cabal clean
+	cabal update
 	echo "Current working directory is:`pwd`"
 	echo "-----------Fetching remote tags---------------"
 	git fetch --all --tags
@@ -38,6 +55,11 @@ buildNode() {
 	echo "Directory ${CARDANO_NODE_DIR} exists."
 	echo "Now building new version of cardano-node"
 	cd ${CARDANO_NODE_DIR}
+	BACKUP_DIR="${CARDANO_NODE_DIR}/dist-newstyle_build_${CARDANO_NODE_VERSION}"
+	if [ ! -d ${BACKUP_DIR} ]
+	then
+	    mv dist-newstyle ${BACKUP_DIR}
+	fi
 	cabal update
 	cabal build all
     else
@@ -66,11 +88,12 @@ linkNode() {
 	cd ~/.cabal/bin
 	mv cardano-node cardano-node.old
 	mv cardano-cli cardano-cli.old
-	mv chairman chairman.old
+	mv cardno-node-chairman cardano-node-chairman.old
 	ln -s ../store/ghc-8.6.5/cardano-cli-${CARDANO_NODE_VERSION}/x/cardano-cli/build/cardano-cli/cardano-cli
 	ln -s ../store/ghc-8.6.5/cardano-node-${CARDANO_NODE_VERSION}/x/cardano-node/build/cardano-node/cardano-node
 	ln -s ../store/ghc-8.6.5/cardano-node-chairman-${CARDANO_NODE_VERSION}/x/cardano-node-chairman/build/cardano-node-chairman/cardano-node-chairman
-
+	ln -s ../store/ghc-8.6.5/cardano-node-chairman-1.24.2/x/cardano-node-chairman/build/cardano-node-chairman/cardano-node-chairman
+	
 	echo "---------------------------Starting Node after relinking binaries------------------------------"
 	startNode
     else
@@ -108,9 +131,11 @@ then
    helpFunction
 else
     # Now execute the stuff
-    pullCode
-    buildNode   
-    linkNode
+    # pullCode
+    # buildNode
+    #linkNode
+    stopNode
+    startNode
     exportBuild
 fi
 
