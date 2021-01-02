@@ -1,3 +1,3 @@
 #!/bin/sh
 
-cardano-cli query tip --shelley-mode --mainnet
+cardano-cli query tip --allegra-era  --mainnet

@@ -22,7 +22,7 @@ def content(fname):
 
 def get_tip():
     try:
-        command = [CARDANO_CLI , "query" , "tip"  , "--shelley-mode" ,"--mainnet"]
+        command = [CARDANO_CLI , "query" , "tip" ,"--mainnet"]
         s =  subprocess.check_output(command, stderr=True, universal_newlines=True)
         print(s)
         s_package = json.loads(s)
@@ -38,12 +38,13 @@ def get_ttl():
 
 def create_protocol():
     """
-        cardano-cli shelley query protocol-parameters \
+        cardano-cli query protocol-parameters \
+        --allegra-era
         --testnet-magic ${NETWORK_MAGIC} \
         --out-file ./kaddr/protocol.json
     """
     try:
-        command = [ CARDANO_CLI, "query", "protocol-parameters",  "--shelley-mode" ,"--mainnet", "--out-file",
+        command = [ CARDANO_CLI, "query", "protocol-parameters",  "--allegra-era" ,"--mainnet", "--out-file",
                     FILES['configs']['protocol']]
         s = subprocess.check_output(command)
     except:
@@ -102,10 +103,10 @@ def calculate_min_fees(tx_in, ttl, options={"raw_transaction":False}):
             fname =  FILES['transaction']['draft']            
             #generate the tx_raw first, as this is required for 1.18 MC4
             _draft_transaction(tx_in, tx_out)
-            witness_count = 2
+            witness_count = 0
         else:
             fname =  FILES['transaction']['raw']
-            witness_count = 2
+            witness_count = 0
             
         command = [CARDANO_CLI, 'transaction', 'calculate-min-fee',
                    "--tx-body-file", fname,
@@ -113,7 +114,7 @@ def calculate_min_fees(tx_in, ttl, options={"raw_transaction":False}):
                    '--tx-in-count',  str(tx_in_count),
                    '--tx-out-count', str(1) ,
                    '--byron-witness-count', str(witness_count) ,
-                   '--testnet-magic', str(42),
+                   '--mainnet',
                    '--protocol-params-file', FILES['configs']['protocol'] ]
         print(command)
         s = subprocess.check_output(command,stderr=True, universal_newlines=True)
@@ -226,7 +227,6 @@ class RegisterStake:
         """
         reconstruct:
         cardano-cli transaction sign \
-        --shelley-mode \
         --tx-body-file tx.raw \
         --signing-key-file payment.skey \
         --signing-key-file stake.skey \
@@ -235,7 +235,7 @@ class RegisterStake:
         """
         try:
             command = [CARDANO_CLI, "transaction", "sign",
-                       "--shelley-mode", "--tx-body-file", FILES['transaction']['raw'], '--signing-key-file',
+                       "--tx-body-file", FILES['transaction']['raw'], '--signing-key-file',
                        FILES['payment']['sign_key'], '--signing-key-file', FILES['stake']['sign_key'], '--mainnet','--out-file',
                        FILES['transaction']['signed']]
             s = subprocess.check_output(command)
@@ -247,12 +247,12 @@ class RegisterStake:
     def submit_transaction(self):
         """
         reconstruct:
-        cardano-cli --shelley-mode transaction submit \
+        cardano-cli  transaction submit \
         --tx-file tx.signed \
         --testnet-magic 42
         """
         try:
-            command = [CARDANO_CLI, "transaction", "submit", "--shelley-mode", "--tx-file",
+            command = [CARDANO_CLI, "transaction", "submit", "--tx-file",
                        FILES['transaction']['signed'], '--mainnet']
             s = subprocess.check_output(command)
             print("Submitted transaction for stake registration on chain usin: {command}. Result is: {s}")
