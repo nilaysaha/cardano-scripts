@@ -1,3 +1,3 @@
 #!/bin/sh
 
-cardano-cli shelley query tip --mainnet
+cardano-cli query tip --shelley-mode --mainnet

@@ -5,7 +5,7 @@ Can be used to update the poolpledge. Please note that this uses the last UTX0 f
 Sample usage: python3 update_poolpledge_v2.py --lovelace 497430545
 In order to change pledge follow the following steps:
 
- - ensure enough amount present in payment.addr last utx0
+ - ensure enough amount present in payment.addr (combined utx0. Updating new version of script to take all utx0)
  - change the pledge amount in: config/pool_stakeData.json
  - run this script
   (Note: NO NEED TO RESTART THE CHAIN, as we are not changing any keys that the chain uses. Just updating the certificate in the chain belonging to this pool)
@@ -43,12 +43,12 @@ class UpdatePledge:
             print("-------------------------Now constructing new pool certificate with new Pledge--------------------------")
             print("-----------------We are taking the pledge from the config file: ./config/pool_stakeData.json------------")
 
-            (pool_relay_ipv4, pool_relay_port) = rsp.get_relay_params()
-            print(f"relay params are ip:{pool_relay_ipv4} and port:{pool_relay_port}")
+            relay_params = rsp.get_relay_params()
+            print(f"relay params are {relay_params}")
             (pledgeAmount, poolCost, poolMargin) = rsp.get_pledge_params()
             print(f"pledgeAmount:{pledgeAmount}  poolCost: {poolCost}   poolMargin:{poolMargin}")
             sp = rsp.RegisterStakePool()
-            sp.generate_cert_stakepool(pledgeAmount, poolCost, poolMargin, pool_relay_ipv4,  pool_relay_port)
+            sp.generate_cert_stakepool(pledgeAmount, poolCost, poolMargin, relay_params)
             #Please note we are not generating the delegation cert as this is already there.
 
             print("----------------------------------Completed generation of pool certificate------------------------------")
