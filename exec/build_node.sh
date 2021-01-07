@@ -116,10 +116,21 @@ exportBuild() {
 }
 
 
-while getopts "v:" opt
+installLibSodium() {
+    cd ${HOME}/projects/cardano
+    git clone https://github.com/input-output-hk/libsodium
+    cd libsodium
+    git checkout 66f017f1
+    ./autogen.sh
+    ./configure
+    make
+    sudo make install    
+}
+
+while getopts "v:l" opt
 do
    case "$opt" in
-      v ) CARDANO_NODE_VERSION="$OPTARG" ;;
+       v ) CARDANO_NODE_VERSION="$OPTARG" ;;
       ? ) helpFunction ;; # Print helpFunction in case parameter is non-existent
    esac
 done
@@ -130,12 +141,19 @@ then
    echo "Some or all of the parameters are empty";
    helpFunction
 else
+    installLibSodium
     # Now execute the stuff
     # pullCode
+<<<<<<< HEAD
+    # buildNode   
+    # linkNode
+    # exportBuild
+=======
     # buildNode
     #linkNode
     stopNode
     startNode
     exportBuild
+>>>>>>> 28a76c94b7b8abfbe16e2872982476cd518a8ac3
 fi
 

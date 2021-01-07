@@ -1,3 +1,4 @@
 #!/bin/sh
 
-cardano-cli query tip --mainnet
+blockNo=$(cardano-cli query tip --mainnet | grep 'blockNo' |sed 's/.*://g'|sed 's/,//g')
+echo $blockNo
