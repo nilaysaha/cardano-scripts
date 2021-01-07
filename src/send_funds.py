@@ -110,7 +110,7 @@ class CalcFee:
                        '--tx-in-count',  str(tx_in_count),
                        '--tx-out-count', str(1) ,
                        '--byron-witness-count', str(witness_count) ,
-                       '--testnet-magic', str(42),
+                       '--mainnet',
                        '--protocol-params-file', FILES['configs']['protocol'] ]
             print(f"{command}")
             s = subprocess.check_output(command,stderr=True, universal_newlines=True)
@@ -198,7 +198,7 @@ class Transaction:
         --testnet-magic 42
         """
         try:
-            command = [CARDANO_CLI, "shelley", "transaction", "submit", "--tx-file", FILES['transaction']['signed'], '--testnet-magic', "42"]
+            command = [CARDANO_CLI, "shelley", "transaction", "submit", "--tx-file", FILES['transaction']['signed'], '--mainnet']
             s = subprocess.check_output(command)
             print("Submitted transaction for stake registration on chain usin: {command}. Result is: {s}")
         except:
