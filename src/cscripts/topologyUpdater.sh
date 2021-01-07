@@ -9,11 +9,11 @@ PARENT="$(dirname $0)"
 # User Variables - Change as desired #
 ######################################
 
-CNODE_HOME="${HOME}/projects/cardano/cardano-scripts/src/"
-CNODE_HOSTNAME="relay-2.lkbh-pools.org"                   # (Optional) Must resolve to the IP you are requesting from
+CNODE_HOSTNAME="CHANGE ME"                                # (Optional) Must resolve to the IP you are requesting from
 CNODE_LOG_DIR="${CNODE_HOME}/logs"                        # Folder where your logs will be sent to (must pre-exist)
 CNODE_VALENCY=1                                           # (Optional) for multi-IP hostnames
-CNODE_TOPOLOGY="${CNODE_HOME}/tconfig/mainnet-topology-community.json"  # Destination topology.json file you'd want to write output to
+CNODE_TOPOLOGY="${CNODE_HOME}/files/topology.json"        # Destination topology.json file you'd want to write output to
+
 MAX_PEERS=15                                              # Maximum number of peers to return on successful fetch
 #CUSTOM_PEERS="None"                                      # Additional custom peers to (IP:port[:valency]) to add to your target topology.json, eg: "10.0.0.1:3001|10.0.0.2:3002|relays.mydomain.com:3003:3"
 
