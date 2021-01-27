@@ -9,7 +9,7 @@ FILES={'stake': {'verify_key': "./kaddr/stake.vkey", 'addr': './kaddr/stake.addr
        }
 
 TTL_BUFFER=1200
-TESTNET_MAGIC=42
+WITNESS_COUNT_DEFAULT=3
 BASE_ADDRESS_TXHASH="a09ba8bfc4b33961a744e059429b06981bfd689916971803371748917ceecc30"
 
 CARDANO_CLI="/home/nsaha/.cabal/bin/cardano-cli"
@@ -103,17 +103,19 @@ def calculate_min_fees(tx_in, ttl, options={"raw_transaction":False}):
             fname =  FILES['transaction']['draft']            
             #generate the tx_raw first, as this is required for 1.18 MC4
             _draft_transaction(tx_in, tx_out)
-            witness_count = 0
+            witness_count = WITNESS_COUNT_DEFAULT
+            byron_wc = 0
         else:
             fname =  FILES['transaction']['raw']
-            witness_count = 0
+            witness_count = WITNESS_COUNT_DEFAULT
+            byron_wc = 0
             
         command = [CARDANO_CLI, 'transaction', 'calculate-min-fee',
                    "--tx-body-file", fname,
                    "--witness-count", f"{witness_count}",
                    '--tx-in-count',  str(tx_in_count),
                    '--tx-out-count', str(1) ,
-                   '--byron-witness-count', str(witness_count) ,
+                   '--byron-witness-count', str(byron_wc) ,
                    '--mainnet',
                    '--protocol-params-file', FILES['configs']['protocol'] ]
         print(command)
