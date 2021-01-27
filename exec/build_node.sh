@@ -9,17 +9,49 @@ helpFunction()
    exit 1 # Exit script after printing help
 }
 
+installTools()
+{
+    echo "installing from scratch the toolchains"
+    echo "-----------------------------------------------------------INSTALL THE BUILD ESSENTIALS--------------------------------------------------------------------------"
+    sudo apt-get update -y
+    sudo apt-get install automake build-essential pkg-config libffi-dev libgmp-dev libssl-dev libtinfo-dev libsystemd-dev zlib1g-dev make g++ tmux git jq wget libncursesw5 libtool autoconf -y
 
-updateBuildEnv() {
-    echo "--------------Install ghcup if needed--------------------"
+    echo "-------------------------------------------------UNPACK, INSTALL AND UPDATE CABAL------------------------------------------------------"
+    mkdir tmp
+    cd tmp
+    wget https://downloads.haskell.org/~cabal/cabal-install-3.2.0.0/cabal-install-3.2.0.0-x86_64-unknown-linux.tar.xz
+    tar -xf cabal-install-3.2.0.0-x86_64-unknown-linux.tar.xz
+    rm cabal-install-3.2.0.0-x86_64-unknown-linux.tar.xz cabal.sig
+    mkdir -p ~/.local/bin
+    mv cabal ~/.local/bin/
+    export PATH="~/.local/bin:$PATH"
+
+    echo "-------------------------------------------------UPDATE CABAL---------------------------------------------------------------------------"
+    cabal update
+    cabal --version
+
+
+    echo "------------------------------------------------NOW INSTALL GHCUP-----------------------------------------------------------------------"
+    curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org | sh
+
+
+    echo "-------------------------------------------------UPDATE GHCUP AND INSTALL GHC ----------------------------------------------------------"
     echo "Reference:https://forum.cardano.org/t/attention-spos-1-24-2-upgrade-guide-upgrade-now-for-the-upcoming-allegra-hard-fork-event/43094"
-    ghcup --version
-    curl --proto ‘=https’ --tlsv1.2 -sSf https://get-ghcup.haskell.org | sh
-
-    echo "-------------Update ghcup-------------------"
     ghcup upgrade
     ghcup install ghc 8.10.2
     ghcup set ghc 8.10.2      
+}   
+
+
+installLibSodium() {
+    cd ${HOME}/projects/cardano
+    git clone https://github.com/input-output-hk/libsodium
+    cd libsodium
+    git checkout 66f017f1
+    ./autogen.sh
+    ./configure
+    make
+    sudo make install    
 }
 
 
@@ -60,12 +92,16 @@ buildNode() {
 	then
 	    mv dist-newstyle ${BACKUP_DIR}
 	fi
+
+	echo "---------------------------------------UPDATE CABAL AND BUILD CARDANO-NODE------------------------------------------"
 	cabal update
 	cabal build all
+
+	echo "--------------------------------------INSTALL CARDANO-NODE INTO PROPER DIRECTORY------------------------------------"	
+	cabal install all --bindir ~/.local/bin	
     else
 	echo "Error: Directory ${CARDANO_NODE_DIR} does not exists."
-    fi
-    
+    fi    
 }
 
 
@@ -116,17 +152,6 @@ exportBuild() {
 }
 
 
-installLibSodium() {
-    cd ${HOME}/projects/cardano
-    git clone https://github.com/input-output-hk/libsodium
-    cd libsodium
-    git checkout 66f017f1
-    ./autogen.sh
-    ./configure
-    make
-    sudo make install    
-}
-
 while getopts "v:l" opt
 do
    case "$opt" in
@@ -141,19 +166,12 @@ then
    echo "Some or all of the parameters are empty";
    helpFunction
 else
-    installLibSodium
+    installTools
+    #installLibSodium
     # Now execute the stuff
     # pullCode
-<<<<<<< HEAD
     # buildNode   
     # linkNode
     # exportBuild
-=======
-    # buildNode
-    #linkNode
-    stopNode
-    startNode
-    exportBuild
->>>>>>> 28a76c94b7b8abfbe16e2872982476cd518a8ac3
 fi
 

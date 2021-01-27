@@ -7,7 +7,7 @@ CNODE_HOME="/home/nsaha/projects/cardano/cardano-scripts"
 CNODE_LOG_DIR="${CNODE_HOME}/logs"
 
 CNODE_PORT=3001  # must match your relay node port as set in the startup command
-CNODE_HOSTNAME=""  # optional. must resolve to the IP you are requesting from
+CNODE_HOSTNAME="relay-1.lkbh-pools.org"  # optional. must resolve to the IP you are requesting from
 CNODE_VALENCY=1   # optional for multi-IP hostnames
 
 TESTNET_MAGIC=mainnet
@@ -32,4 +32,4 @@ if ! test -f "$LOGFILE"; then
     touch ${LOGFILE};
 fi
 
-curl -4 -s "https://api.clio.one/htopology/v1/?port=${CNODE_PORT}&blockNo=${blockNo}&valency=${CNODE_VALENCY}&magic=${TESTNET_MAGIC}" | tee -a $CNODE_LOG_DIR/topologyUpdater_lastresult.json
+curl -s "https://api.clio.one/htopology/v1/?port=${CNODE_PORT}&blockNo=${blockNo}&valency=${CNODE_VALENCY}&magic=${TESTNET_MAGIC}${CNODE_HOSTNAME}" | tee -a $CNODE_LOG_DIR/topologyUpdater_lastresult.json

@@ -7,7 +7,7 @@ CNODE_HOME="/home/nsaha/projects/cardano/cardano-scripts"
 CNODE_LOG_DIR="${CNODE_HOME}/logs"
 
 CNODE_PORT=3001  # must match your relay node port as set in the startup command
-CNODE_HOSTNAME="relay-2.lkbh-pools.org"  # optional. must resolve to the IP you are requesting from
+CNODE_HOSTNAME="relay-1.lkbh-pools.org"  # optional. must resolve to the IP you are requesting from
 CNODE_VALENCY=1   # optional for multi-IP hostnames
 
 TESTNET_MAGIC=RequiresNoMagic
