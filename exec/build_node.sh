@@ -14,7 +14,7 @@ installTools()
     echo "installing from scratch the toolchains"
     echo "-----------------------------------------------------------INSTALL THE BUILD ESSENTIALS--------------------------------------------------------------------------"
     sudo apt-get update -y
-    sudo apt-get install automake build-essential pkg-config libffi-dev libgmp-dev libssl-dev libtinfo-dev libsystemd-dev zlib1g-dev make g++ tmux git jq wget libncursesw5 libtool autoconf -y
+    sudo apt-get install automake build-essential pkg-config libffi-dev libncurses-dev  curl libtinfo5 libgmp-dev libssl-dev libtinfo-dev libsystemd-dev zlib1g-dev make g++ tmux git jq wget libncursesw5 libtool autoconf -y
 
     echo "-------------------------------------------------UNPACK, INSTALL AND UPDATE CABAL------------------------------------------------------"
     mkdir tmp
@@ -33,8 +33,8 @@ installTools()
 
     echo "------------------------------------------------NOW INSTALL GHCUP-----------------------------------------------------------------------"
     curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org | sh
-
-
+    export PATH="~/.ghcup/bin:$PATH"
+    
     echo "-------------------------------------------------UPDATE GHCUP AND INSTALL GHC ----------------------------------------------------------"
     echo "Reference:https://forum.cardano.org/t/attention-spos-1-24-2-upgrade-guide-upgrade-now-for-the-upcoming-allegra-hard-fork-event/43094"
     ghcup upgrade
@@ -73,6 +73,10 @@ Pullcode() {
 	echo  "latest tag is:${tag}"
 	echo "-----------Checking out the ${CARDANO_NODE_VERSION}--------------"
 	git checkout ${CARDANO_NODE_VERSION} -b tag-${CARDANO_NODE_VERSION}
+
+	echo "---------------VERIFYING WHICH GIT TAG WE ARE ON NOW -------------------------"
+	git describe --tags --abbrev=0
+	
 	#git log --oneline --graph	
     else
 	echo "Error: Directory ${CARDANO_NODE_DIR} does not exists. First get this repository installed"
@@ -94,6 +98,7 @@ buildNode() {
 	fi
 
 	echo "---------------------------------------UPDATE CABAL AND BUILD CARDANO-NODE------------------------------------------"
+	cabal clean
 	cabal update
 	cabal build all
 
@@ -114,8 +119,8 @@ linkNode() {
 	echo "Now building new version of cardano-node"
 	cd ${CARDANO_NODE_DIR}
 	rm -rf /tmp/ghc-8.6.5-old
-	mv ${HOME}/.cabal/store/ghc-8.6.5 /tmp/ghc-8.6.5-old
-	cp -R ${CARDANO_NODE_DIR}/dist-newstyle/build/x86_64-linux/ghc-8.6.5 ${HOME}/.cabal/store/ghc-8.6.5
+	mv ${HOME}/.cabal/store/ghc-8.10.2 /tmp/ghc-8.10.2-old
+	cp -R ${CARDANO_NODE_DIR}/dist-newstyle/build/x86_64-linux/ghc-8.10.2 ${HOME}/.cabal/store/ghc-8.10.2
 	
 	echo "----------------------------Stopping Node for installing binaries------------------------------"
 	stopNode
@@ -125,11 +130,9 @@ linkNode() {
 	mv cardano-node cardano-node.old
 	mv cardano-cli cardano-cli.old
 	mv cardno-node-chairman cardano-node-chairman.old
-	ln -s ../store/ghc-8.6.5/cardano-cli-${CARDANO_NODE_VERSION}/x/cardano-cli/build/cardano-cli/cardano-cli
-	ln -s ../store/ghc-8.6.5/cardano-node-${CARDANO_NODE_VERSION}/x/cardano-node/build/cardano-node/cardano-node
-	ln -s ../store/ghc-8.6.5/cardano-node-chairman-${CARDANO_NODE_VERSION}/x/cardano-node-chairman/build/cardano-node-chairman/cardano-node-chairman
-	ln -s ../store/ghc-8.6.5/cardano-node-chairman-1.24.2/x/cardano-node-chairman/build/cardano-node-chairman/cardano-node-chairman
-	
+	ln -s ../store/ghc-8.10.2/cardano-cli-${CARDANO_NODE_VERSION}/x/cardano-cli/build/cardano-cli/cardano-cli
+	ln -s ../store/ghc-8.10.2/cardano-node-${CARDANO_NODE_VERSION}/x/cardano-node/build/cardano-node/cardano-node
+	ln -s ../store/ghc-8.10.2/cardano-node-chairman-${CARDANO_NODE_VERSION}/x/cardano-node-chairman/build/cardano-node-chairman/cardano-node-chairman	
 	echo "---------------------------Starting Node after relinking binaries------------------------------"
 	startNode
     else
@@ -166,12 +169,12 @@ then
    echo "Some or all of the parameters are empty";
    helpFunction
 else
-    installTools
+    #installTools
     #installLibSodium
     # Now execute the stuff
-    # pullCode
+    # Pullcode
     # buildNode   
     # linkNode
-    # exportBuild
+    exportBuild
 fi
 
