@@ -1,6 +1,6 @@
 name: 'Docker Setup Build'
 description: 'Set up Docker Build'
-author: 'docker'
+
 
 # Run this workflow every time a new commit pushed to your repository
 on: push
