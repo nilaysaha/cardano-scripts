@@ -1,11 +1,3 @@
-name: 'Docker Setup Build'
-description: 'Set up Docker Build'
-
-
-# Run this workflow every time a new commit pushed to your repository
-on: push
-
-
 jobs:
   build:
     name: Build the cardano binaries
