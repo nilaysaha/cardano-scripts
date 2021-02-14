@@ -1,11 +1,21 @@
-name: 'Docker Setup Buildx'
-description: 'Set up Docker Buildx'
+name: 'Docker Setup Build'
+description: 'Set up Docker Build'
 author: 'docker'
 
-steps:
-   - name: Build the tagged Docker image
-     with:
-      cloudsmith_api_key: ${{ secrets.CLOUDSMITH_API_KEY }}
-      cardano_node_version: ${{ secrets.CARDANO_NODE_VERSION }}
-      run: docker build --build-arg CARDANO_NODE_VERSION=cardano_node_version \
-                         --build-arg CLOUDSMITH_API_KEY=cloudsmith_api_key .
+# Run this workflow every time a new commit pushed to your repository
+on: push
+
+
+jobs:
+  build-cardano:
+    name: Build the cardano binaries
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Build the tagged Docker image
+        with:
+          cloudsmith_api_key: ${{ secrets.CLOUDSMITH_API_KEY }}
+          cardano_node_version: ${{ secrets.CARDANO_NODE_VERSION }}
+          run: |
+            docker build --build-arg CARDANO_NODE_VERSION=cardano_node_version \
+            --build-arg CLOUDSMITH_API_KEY=cloudsmith_api_key -f .github/workflows/Dockerfile .
