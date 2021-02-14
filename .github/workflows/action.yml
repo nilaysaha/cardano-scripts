@@ -9,7 +9,7 @@ jobs:
     
     steps:
       - name: Build the tagged Docker image
-        run: |          
+      - run: |          
           docker build --build-arg CARDANO_NODE_VERSION=NODE_VERSION \
           --build-arg CLOUDSMITH_API_KEY=API_KEY -f Dockerfile .
       - with:
