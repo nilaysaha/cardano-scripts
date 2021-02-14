@@ -9,6 +9,3 @@ inputs:
 runs:
   using: 'docker'
   image: 'Dockerfile'
-  args:
-    - ${{ secrets.CARDANO_NODE_VERSION }}
-    - ${{ secrets.CLOUDSMITH_API_KEY }}
