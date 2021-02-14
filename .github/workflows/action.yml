@@ -1,0 +1,11 @@
+name: 'Docker Setup Buildx'
+description: 'Set up Docker Buildx'
+author: 'docker'
+
+steps:
+   - name: Build the tagged Docker image
+     with:
+      cloudsmith_api_key: ${{ secrets.CLOUDSMITH_API_KEY }}
+      cardano_node_version: ${{ secrets.CARDANO_NODE_VERSION }}
+      run: docker build --build-arg CARDANO_NODE_VERSION=cardano_node_version \
+                         --build-arg CLOUDSMITH_API_KEY=cloudsmith_api_key .
