@@ -15,4 +15,4 @@ jobs:
           API_KEY=${{ secrets.CLOUDSMITH_API_KEY }}
           
           docker build --build-arg CARDANO_NODE_VERSION=NODE_VERSION \
-          --build-arg CLOUDSMITH_API_KEY=API_KEY .
+          --build-arg CLOUDSMITH_API_KEY=API_KEY -f Dockerfile .
