@@ -3,7 +3,7 @@
 import subprocess, sys, requests
 import process_certs as pc
 import create_keys_addr as cka
-import os, json
+import os, json, shutil
 
 FILES={
     'pool': {'cold': {'verify_key':"./kaddr_node/cold.vkey", "sign_key":"./kaddr_node/cold.skey","counter":"./kaddr_node/cold.counter"},
@@ -29,13 +29,14 @@ def setup_run_configs():
     """
     Copies the relevant files needed for BP node to run in a proper directory kaddr_run.
     """
+    print('inside setup run configs')
     try:
-        flist = [FILES['pool']['vrf']['sign_key'], FILES['pool']['kes']['sign_key'], FILES['pool']['node']['cert']]
+        flist = [FILES['pool']['vrf']['sign_key'], FILES['pool']['kes']['sign_key'], FILES['node']['cert']]
+        print(flist)
+
         for i in flist:
-            command = [ '\cp', i, './kaddr_run/.',";", 'chmod', '700', './kaddr_run/'+i]            
-            print(command)
-            s=subprocess.check_output(command, stderr=True, universal_newlines=True)
-            print(s)            
+            fname = os.path.basename(i)
+            shutil.copyfile(i,'./kaddr_run/'+fname)            
     except Exception as e:
         print(e)
 
@@ -140,10 +141,10 @@ def remaining_kes_period():
         command=["curl", f"localhost:{KES_PORT}/metrics"]
         s = subprocess.check_output(command, stderr=True)
         rows = s.decode('UTF-8').split("\n")
-        pattern="cardano_node_Forge_metrics_remainingKESPeriods_int"
+        pattern="cardano_node_metrics_remainingKESPeriods_int"
         for i in rows:
             if re.search(pattern, i):
-                #print(f"found match:{pattern} with {i}")
+                print(f"found match:{pattern} with {i}")
                 kes_period = i.split(' ')[-1]
                 print(f"remaining kes period calculated is:{kes_period}")        
                 break;
