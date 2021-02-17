@@ -1,11 +1,6 @@
 # action.yml
 name: 'Cardano Build'
 description: 'Build cardano node'
-inputs:
-  cardano_node_version:  # id of input
-    description: 'version of cardano-node to build'
-    required: true
-    default: '1.25.1'
 runs:
   using: 'docker'
   image: 'Dockerfile'
