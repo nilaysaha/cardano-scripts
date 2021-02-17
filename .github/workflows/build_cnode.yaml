@@ -1,0 +1,18 @@
+# action.yml
+name: 'Cardano node'
+description: 'Build and export an image of cardano node'
+inputs:
+  tag-id:  # id of input
+    description: 'Tag to be built'
+    required: true
+    default: '1.25.1'
+outputs:
+  cardano-node: # id of output
+    description: 'cardano-node-binary'
+  cardano-cli:
+    description: 'cardano-cli binary'
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  args:
+    - ${{ inputs.tag-id }}
