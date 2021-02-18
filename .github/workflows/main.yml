@@ -16,11 +16,15 @@ jobs:
           echo ${{ secrets.CARDANO_NODE_VERSION }}
           echo "Now the version of cardano node unmasked"
           echo ${{ secrets.CARDANO_NODE_VERSION }}| sed 's/./& /g'          
-      - name: Checkout
-        uses: actions/checkout@v2
 
-      - name: Build Docker image
-        uses: ./
-        env:
-          CARDANO_NODE_VERSION: ${{ secrets.CARDANO_NODE_VERSION }}
-          CLOUDSMITH_API_KEY:  ${{ secrets.CLOUDSMITH_API_KEY }}
+      - uses: actions/checkout@v2
+      - name: Build docker image
+        run: docker build . --file Dockerfile \
+                            --build-arg CLOUDSMITH_API_KEY=${{ secrets.CLOUDSMITH_API_KEY }} \
+                            --build-arg CARDANO_NODE_VERSION=${{ secrets.CARDANO_NODE_VERSION }}
+        
+   #   - name: Build Docker image
+   #     uses: ./
+   #     env:
+   #       CARDANO_NODE_VERSION: ${{ secrets.CARDANO_NODE_VERSION }}
+   #       CLOUDSMITH_API_KEY:  ${{ secrets.CLOUDSMITH_API_KEY }}
