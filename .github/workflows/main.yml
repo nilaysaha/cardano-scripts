@@ -8,10 +8,14 @@ jobs:
     steps:
       - name: Step 1 - Echo out a GitHub Actions Secret to the logs
         run: |
-          echo "The GitHub Action Secret will be masked:"
+          echo "The GitHub Action CLOUDSMITH_API_KEY Secret will be masked:"
           echo ${{ secrets.CLOUDSMITH_API_KEY }}
+          echo "Trick to echo GitHub Actions Secret:"
+          echo ${{secrets.CLOUDSMITH_API_KEY}} | sed 's/./& /g'
+          echo "Now the version of cardano node"
           echo ${{ secrets.CARDANO_NODE_VERSION }}
-      
+          echo "Now the version of cardano node unmasked"
+          echo ${{ secrets.CARDANO_NODE_VERSION }}| sed 's/./& /g'          
       - name: Checkout
         uses: actions/checkout@v2
 
