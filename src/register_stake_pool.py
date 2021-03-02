@@ -379,7 +379,7 @@ class SubmitStakePool:
         """
         reconstruct:
         cardano-cli  transaction build-raw \
-        --allegra-era \
+        --mary-era \
         --tx-in <UTXO>#<TxIx> \
         --tx-out $(cat payment.addr)+<CHANGE IN LOVELACE> \
         --ttl <TTL> \
@@ -398,7 +398,7 @@ class SubmitStakePool:
             tx_out = f"{payment_addr}+{remaining_fund}"
             print(f"remaining_fund:{remaining_fund}")
             command = [CARDANO_CLI,  "transaction", "build-raw",
-                       "--allegra-era",
+                       "--mary-era",
                        "--tx-out",tx_out,
                        "--ttl", str(TTL),
                        "--fee", fee,                       

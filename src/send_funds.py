@@ -4,6 +4,8 @@ import subprocess, json, sys
 import process_certs as pc
 
 """
+Follow the following tutorial:https://cardano-foundation.gitbook.io/stake-pool-course/stake-pool-guide/stake-pool/withdraw-rewards
+
 Creating a transaction is a process that requires various steps:
 
 1. Get the protocol parameters

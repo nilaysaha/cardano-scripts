@@ -39,12 +39,12 @@ def get_ttl():
 def create_protocol():
     """
         cardano-cli query protocol-parameters \
-        --allegra-era
+        --mary-era
         --testnet-magic ${NETWORK_MAGIC} \
         --out-file ./kaddr/protocol.json
     """
     try:
-        command = [ CARDANO_CLI, "query", "protocol-parameters",  "--allegra-era" ,"--mainnet", "--out-file",
+        command = [ CARDANO_CLI, "query", "protocol-parameters",  "--mary-era" ,"--mainnet", "--out-file",
                     FILES['configs']['protocol']]
         s = subprocess.check_output(command)
     except:
@@ -66,7 +66,7 @@ def _create_tx_in(tx_in):
 def _draft_transaction(tx_in, tx_out):
     """
     cardano-cli transaction build-raw \
-    --allegra-era \
+    --mary-era \
     --tx-in 4e3a6e7fdcb0d0efa17bf79c13aed2b4cb9baf37fb1aa2e39553d5bd720c5c99#4 \
     --tx-out $(cat payment2.addr)+0 \
     --tx-out $(cat payment.addr)+0 \
@@ -78,7 +78,7 @@ def _draft_transaction(tx_in, tx_out):
         ttl = get_ttl()
         print(f"Inside draft transaction")
         tx_in_array=_create_tx_in(tx_in)
-        command = ["cardano-cli", "transaction", "build-raw", "--allegra-era",
+        command = ["cardano-cli", "transaction", "build-raw", "--mary-era",
                    "--tx-out",tx_out,  "--ttl", ttl,  "--fee", '0', '--out-file', FILES['transaction']['draft'] ] + tx_in_array
         print(command)
         s = subprocess.check_output(command)
@@ -133,7 +133,7 @@ def get_payment_utx0():
     try:
         final_array = []
                 
-        command=[CARDANO_CLI , 'query', 'utxo', '--allegra-era', '--address', content(FILES['payment']['addr']), '--mainnet']
+        command=[CARDANO_CLI , 'query', 'utxo', '--mary-era', '--address', content(FILES['payment']['addr']), '--mainnet']
         s = subprocess.check_output(command)
         split_str=s.decode('UTF-8').split("\n")
         result = filter(lambda x: x != '', split_str) 
@@ -192,7 +192,7 @@ class RegisterStake:
         """
         reconstruct: 
            cardano-cli transaction build-raw \
-            --allegra-era \
+            --mary-era \
             --tx-in b64ae44e1195b04663ab863b62337e626c65b0c9855a9fbb9ef4458f81a6f5ee#1 \ (multiple values allowed)
             --tx-out $(cat payment.addr)+999428515 \
             --ttl 987654 \
@@ -213,7 +213,7 @@ class RegisterStake:
             payment_addr = content(FILES['payment']['addr'])
             tx_out = "{paddr}+{rfund}".format(paddr=payment_addr, rfund=remaining_fund)
             command = [CARDANO_CLI, "transaction", "build-raw",
-                       "--allegra-era",
+                       "--mary-era",
                        "--tx-out",tx_out,
                        "--ttl", ttl,
                        "--fee", min_fee,
