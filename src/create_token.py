@@ -1,6 +1,8 @@
 #!/usr/bin/python3
 
 import process_cert as pc;
+import sys
+
 
 FILES={
     'payment':{
@@ -152,20 +154,31 @@ class CreateToken:
             print("Oops!", sys.exc_info()[0], " occured in mint_new_asset")
 
 
-    def main(self):
-        self.generate_keys()
-        self.generate_payment_addr()
-        amount = self.check_payment()
-        if (amount == 0):
-            payment_addr = pc.content(FILES['payment']['address'])
-            print(f"Please fund your account with payment address:{payment_addr}")
-            exit 1
-        self.export_protocol_params()
-        self.generate_policy_keys()
-        self.generate_default_policy()
-        policy_id = self.mint_new_asset()
-        return policy_id
-
+    def main_phase1(self):
+        try:
+            containue = False
+            self.generate_keys()
+            self.generate_payment_addr()
+            amount = self.check_payment()
+            if (amount == 0):
+                payment_addr = pc.content(FILES['payment']['address'])
+                print(f"Please fund your account with payment address:{payment_addr}")
+                sys.exit("quitting because the account needs to be funded first")
+            else:
+                continue = True
+            return continue
+        except:
+            print("Oops!", sys.exc_info()[0], " occured in main phase 1")
+            
+    def main_phase2(self):
+        try:
+            self.export_protocol_params()
+            self.generate_policy_keys()
+            self.generate_default_policy()
+            policy_id = self.mint_new_asset()
+            return policy_id
+        except:
+            print("Oops!", sys.exc_info()[0], " occured in main phase 1")
 
 class Transaction:
     def __init__(self):
@@ -264,9 +277,11 @@ if __name__ == "__main__":
     coin_name = "REIT"
     
     c = CreateToken(coin_name)
+    if c.main_phase1():
+        policy_id = c.main_phase2()
+        t = Transaction()
+        t.main(num_coins, coin_name,policy_id)
     
-    t = Transaction()
-    t.main()
             
 
 
