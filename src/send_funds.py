@@ -126,7 +126,7 @@ class CalcFee:
         except:
             print("Oops!", sys.exc_info()[0], "occurred in calculate min fees")
 
-    def calc_remaining_funds(self, ttl, from_address, transfer_amount):
+     def calc_remaining_funds(self, ttl, from_address, transfer_amount):
         try:
             min_fee = self.calculate_min_fees(tx_array_from_address, ttl)
             print(f"minimum fees: {min_fee}")
@@ -264,13 +264,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if (args.src == None) or (args.target == None) or (args.amount == None):
-        print("Either the src/destination/amount(ADA) is empty")
-        
+        print("Either the src/destination/amount(ADA) is empty")        
     else:
         print(f"Trying to transfer funds {args.amount} from:{args.src} to {args.target}")
-
-    
-    
-    # t = Transfer()
-    # t.main()
+        t = Transfer(args.src, args.target, args.amount)
+        t.main()
             
