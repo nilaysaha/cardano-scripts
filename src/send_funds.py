@@ -2,6 +2,8 @@
 
 import subprocess, json, sys
 import process_certs as pc
+import argparse
+
 
 """
 Follow the following tutorial:https://cardano-foundation.gitbook.io/stake-pool-course/stake-pool-guide/stake-pool/withdraw-rewards
@@ -214,8 +216,7 @@ class Transfer:
         self.transfer_amount = transfer_amount 
         self.ttl = None
         self.remaining_fund = 0
-        self.transaction = Transaction()
-        self.CalcFee = CalcFee()
+
 
     
     def _step_1(self):
@@ -233,21 +234,44 @@ class Transfer:
         Build transaction
         """
         try:
-            self.remaining_fund = self.CalcFee.calc_remaining_funds(self.ttl, self.from_address, self.transfer_amount)
-            self.transaction.build()
-            self.transaction.sign()
-            self.transaction.submit()
+            c = CalcFee()
+            remaining_fund = c.calc_remaining_funds(self.ttl, self.from_address, self.transfer_amount)
+            return remaining_fund
         except:
             print("Oops!", sys.exc_info()[0], "occurred in build/sign/exec transaction for send funds. Step 2 for ref.")
+
+    def _step_3(self):        
+        t = Transaction()
+        t.build()
+        t.sign()
+        t.submit()
+        
 
     def main():
         try:
             self._step_1()
-            self._step_2()
+            rfund = self._step_2()
+            if (rfund > 0):
+                print("Enough funds present hence preparing for transfer")
+                self._step_3()
         except:
             print("Oops!", sys.exc_info()[0], "overall function to coordinate transfer")
             
-if __name__ == "__main__": 
-    t = Transfer()
-    t.main()
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument('--from', dest="src",help='Sending address')
+    parser.add_argument('--to', dest="target",help='Receiving address')
+    parser.add_argument('--amount', dest="amount",help='Amount in ADA to be transferred')
+    args = parser.parse_args()
+
+    if (args.src == None) or (args.target == None) or (args.amount == None):
+        print("Either the src/destination/amount(ADA) is empty")
+        
+    else:
+        print(f"Trying to transfer funds {args.amount} from:{args.src} to {args.target}")
+
+    
+    
+    # t = Transfer()
+    # t.main()
             
