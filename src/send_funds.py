@@ -20,7 +20,7 @@ Creating a transaction is a process that requires various steps:
 
 FILES={
     'payment': {'verify_key': './kaddr/payment.vkey', 'addr': './kaddr/payment.addr', 'sign_key': './kaddr/payment.skey'},
-    'transaction': {'draft':'./kaddr/tx_extra.draft','raw': './kaddr/tx_extra.raw', 'signed':'./kaddr/tx_extra.signed'}
+    'transaction': {'draft':'./kaddr_tx/tx_extra.draft','raw': './kaddr_tx/tx_extra.raw', 'signed':'./kaddr_tx/tx_extra.signed'}
 }
 
 def _get_payment_utx0(t_address):
@@ -30,7 +30,7 @@ def _get_payment_utx0(t_address):
     try:
         final_array = []
                 
-        command=[CARDANO_CLI, 'shelley' , 'query', 'utxo', '--address', t_address, '--mainnet']
+        command=[CARDANO_CLI, 'query', 'utxo', '--address', t_address, '--mary-era','--mainnet']
         s = subprocess.check_output(command)
         split_str=s.decode('UTF-8').split("\n")
         result = filter(lambda x: x != '', split_str) 
@@ -74,7 +74,7 @@ class CalcFee:
     
     def draft_transaction(self, tx_in, tx_out):
         """
-        cardano-cli shelley transaction build-raw \
+        cardano-cli transaction build-raw --mary-era\
         --tx-in 4e3a6e7fdcb0d0efa17bf79c13aed2b4cb9baf37fb1aa2e39553d5bd720c5c99#4 \
         --tx-out $(cat payment2.addr)+0 \
         --tx-out $(cat payment.addr)+0 \
@@ -86,7 +86,7 @@ class CalcFee:
             ttl = get_ttl()
             print(f"Inside draft transaction")
             tx_in_array= self.create_tx_in(tx_in)
-            command = ["cardano-cli", "shelley", "transaction", "build-raw", "--tx-out",tx_out,  "--ttl", ttl,  "--fee", '0', '--out-file', FILES['transaction']['draft'] ] + tx_in_array
+            command = ["cardano-cli", "shelley", "transaction", "build-raw", "--build-raw","--tx-out",tx_out,  "--ttl", ttl,  "--fee", '0', '--out-file', FILES['transaction']['draft'] ] + tx_in_array
             print(command)
             s = subprocess.check_output(command)
             print(s)
@@ -104,16 +104,18 @@ class CalcFee:
                 #generate the tx_raw first, as this is required for 1.18 MC4
                 self.draft_transaction(tx_in, tx_out)
                 witness_count = 2
+                byron_wc = 0
             else:
                 fname =  FILES['transaction']['raw']
                 witness_count = 2
+                byron_wc = 0
             
-            command = [CARDANO_CLI, 'shelley',  'transaction', 'calculate-min-fee',
+            command = [CARDANO_CLI, 'transaction', 'calculate-min-fee',
                        "--tx-body-file", fname,
                        "--witness-count", f"{witness_count}",
                        '--tx-in-count',  str(tx_in_count),
                        '--tx-out-count', str(1) ,
-                       '--byron-witness-count', str(witness_count) ,
+                       '--byron-witness-count', str(byron_wc) ,
                        '--mainnet',
                        '--protocol-params-file', FILES['configs']['protocol'] ]
             print(f"{command}")
@@ -142,7 +144,7 @@ class Transaction:
     def build(self, txArray, remaining_fund, ttl, min_fee):
         """
         reconstruct: 
-           cardano-cli shelley transaction build-raw \
+           cardano-cli transaction build-raw --mary-era\
             --tx-in b64ae44e1195b04663ab863b62337e626c65b0c9855a9fbb9ef4458f81a6f5ee#1 \ (multiple values allowed)
             --tx-out $(cat payment.addr)+999428515 \
             --ttl 987654 \
@@ -162,7 +164,7 @@ class Transaction:
                 tx_in_array.append(tx_in)
             payment_addr = content(FILES['payment']['addr'])
             tx_out = "{paddr}+{rfund}".format(paddr=payment_addr, rfund=remaining_fund)
-            command = [CARDANO_CLI, "shelley", "transaction", "build-raw",
+            command = [CARDANO_CLI,  "transaction", "build-raw", "--mary-era",
                        "--tx-out",tx_out,
                        "--ttl", ttl,
                        "--fee", min_fee,
@@ -177,15 +179,15 @@ class Transaction:
     def sign(self):
         """
         reconstruct:
-        cardano-cli shelley transaction sign \
+        cardano-cli transaction sign \
         --tx-body-file tx.raw \
         --signing-key-file payment.skey \
         --signing-key-file stake.skey \
-        --testnet-magic 42 \
+        --mainnet \
         --out-file tx.signed
         """
         try:
-            command = [CARDANO_CLI, "shelley", "transaction", "sign", "--tx-body-file", FILES['transaction']['raw'], '--signing-key-file',
+            command = [CARDANO_CLI, "transaction", "sign", "--tx-body-file", FILES['transaction']['raw'], '--signing-key-file',
                        FILES['payment']['sign_key'], '--signing-key-file', FILES['stake']['sign_key'], '--mainnet','--out-file',
                        FILES['transaction']['signed']]
             s = subprocess.check_output(command)
@@ -197,12 +199,12 @@ class Transaction:
     def submit(self):
         """
         reconstruct:
-        cardano-cli shelley transaction submit \
+        cardano-cli transaction submit \
         --tx-file tx.signed \
-        --testnet-magic 42
+        --mainnet
         """
         try:
-            command = [CARDANO_CLI, "shelley", "transaction", "submit", "--tx-file", FILES['transaction']['signed'], '--mainnet']
+            command = [CARDANO_CLI, "transaction", "submit", "--tx-file", FILES['transaction']['signed'], '--mainnet']
             s = subprocess.check_output(command)
             print("Submitted transaction for stake registration on chain usin: {command}. Result is: {s}")
         except:
@@ -215,17 +217,14 @@ class Transfer:
         self.to_address = to_address
         self.transfer_amount = transfer_amount 
         self.ttl = None
-        self.remaining_fund = 0
-
-
     
     def _step_1(self):
         """                                                                                                                                                                                                 
-        pre-requisites for transactions
+        pre-requisites for transactions. Check if the funding requirements are satisfied
         """
         try:
             pc.create_protocol()
-            self.ttl = pc.get_ttl()
+            ttl = pc.get_ttl()
         except:
             print("Oops!", sys.exc_info()[0], "occurred in pre-req transaction for send funds. Step 1 for ref.")
 
@@ -252,7 +251,7 @@ class Transfer:
             self._step_1()
             rfund = self._step_2()
             if (rfund > 0):
-                print("Enough funds present hence preparing for transfer")
+                print(f"Enough funds {rfund} present hence preparing for transfer")
                 self._step_3()
         except:
             print("Oops!", sys.exc_info()[0], "overall function to coordinate transfer")

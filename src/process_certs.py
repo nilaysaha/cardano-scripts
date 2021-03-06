@@ -126,14 +126,17 @@ def calculate_min_fees(tx_in, ttl, options={"raw_transaction":False}):
     except:
         print("Oops!", sys.exc_info()[0], "occurred in calculate min fees")
         
-def get_payment_utx0():
+def get_payment_utx0(payment_addr=None):
     """
     should be able to add all the utx0 to the address.
     """
     try:
+        if payment_addr == None:
+            payment_addr = content(FILES['payment']['addr'])
+            
         final_array = []
                 
-        command=[CARDANO_CLI , 'query', 'utxo', '--mary-era', '--address', content(FILES['payment']['addr']), '--mainnet']
+        command=[CARDANO_CLI , 'query', 'utxo', '--mary-era', '--address', payment_addr, '--mainnet']
         s = subprocess.check_output(command)
         split_str=s.decode('UTF-8').split("\n")
         result = filter(lambda x: x != '', split_str) 
@@ -148,8 +151,10 @@ def get_payment_utx0():
     except:
         print("Oops!", sys.exc_info()[0], "occurred in get payment utx0")
 
-def get_total_fund_in_utx0():
-    t = get_payment_utx0()
+def get_total_fund_in_utx0(payment_addr=None):
+    if payment_addr == None:
+        payment_addr = content(FILES['payment']['addr'])
+    t = get_payment_utx0(payment_addr)
     total_fund = 0
     for val in t:
         total_fund += int(val[2])
