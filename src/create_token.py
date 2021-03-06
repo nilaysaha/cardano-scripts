@@ -1,7 +1,8 @@
 #!/usr/bin/python3
 
-import process_cert as pc;
-import sys
+import subprocess
+import process_certs as pc;
+import sys, os
 
 
 FILES={
@@ -19,6 +20,11 @@ FILES={
     'transaction': {
         'raw': './kaddr_token/t.raw',
         'signed': "./kaddr_token/t.signed"
+    },
+    'status':{
+        'phase_1':'./kaddr_token/phase_1',
+        'phase_2':'./kaddr_token/phase_2',
+        'phase_3':'./kaddr_token/phase_3',
     }
 }
 
@@ -37,10 +43,11 @@ class CreateToken:
         """
 
         try:
-            command = ["cardano-cli", "address", "key-gen", "--verification-key-file", FILES['policy']['verification'],
+            command = ["cardano-cli", "address", "key-gen", "--verification-key-file", FILES['payment']['verification'],
                        "--signing-key-file", FILES['payment']['signature']]
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
-            print(f"Output of command is:{s}")
+            print(f"Successful:  Output of command {command} is:{s}")
+            
         except:
             print("oops!", sys.exc_info()[0], " occured in generating payment keys for token generation")
 
@@ -56,8 +63,9 @@ class CreateToken:
         try:
             command = ["cardano-cli", "address", "build", "--payment-verification-key-file", FILES['payment']['verification'],
                        '--out-file', FILES['payment']['address'], '--mainnet']
+            print(command)
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
-            print(f"Output of command {command} is:{s}")
+            print(f"Successful: Output of command {command} is:{s}")
         except:
             print("oops!", sys.exc_info()[0], " occured in generating payment address")            
 
@@ -69,7 +77,8 @@ class CreateToken:
         try:
             payment_addr = pc.content(FILES['payment']['address'])
             total_fund = pc.get_total_fund_in_utx0(payment_addr)
-            return total_fund
+            print(f"Total funds in the address:{total_fund}")
+            return {'addr':payment_addr, 'amount':total_fund}
         except:
             print("Oops!", sys.exc_info()[0], " occured in check_payment")
 
@@ -85,7 +94,7 @@ class CreateToken:
         try:
             command = ["cardano-cli", "query" , "protocol-parameters", "--mainnet", "--out-file", FILES['protocol']]
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
-            print(f"Output of command {command} is:{s}")
+            print(f"Successful:Output of command {command} is:{s}")
         except:
             print("Oops!", sys.exc_info()[0], " occured in check_payment")
 
@@ -101,7 +110,7 @@ class CreateToken:
             command = ["cardano-cli", "address", "key-gen", "--verification-key-file", FILES['policy']['verification'],
                        "--signing-key-file", FILES['policy']['signature']]
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
-            print(f"Output of command {command} is:{s}")
+            print(f"Successful: Output of command {command} is:{s}")
         except:
             print("Oops!", sys.exc_info()[0], " occured in generate_policy_keys")
 
@@ -113,7 +122,7 @@ class CreateToken:
         try:
             command = ["cardano-cli", "address", "key-hash", "--payment-verification-key-file", FILES['policy']['verification']]
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
-            print(f"Output of command {command} is:{s}")
+            print(f"Successful: Output of command {command} is:{s}")
         except:
             print("Oops!", sys.exc_info()[0], " occured in generate_keyhash_pkey")
             
@@ -124,14 +133,7 @@ class CreateToken:
         touch FILES['policy']['script']
         """
         fname = FILES['policy']['script']
-
-        if os.path.isfile(fname):
-            print ("File is exist")
-        else:
-            print ("File is not exist")
-            f = open(fname, "w+")
-        if
-
+        f = open(fname, "w+")
         policy_script = {
             "keyHash": self._generate_keyhash_pkey(),
             "type": "sig"
@@ -148,37 +150,45 @@ class CreateToken:
         try:
             command = ["cardano-cli", "transaction", "policyid", "--script-file", FILES['policy']['script']]
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
-            print(f"Output of command {command} is:{s}")
+            print(f"Successful: Output of command {command} is:{s}")
             return s
         except:
             print("Oops!", sys.exc_info()[0], " occured in mint_new_asset")
 
 
+    def create_status_file(self,phase_id):
+        """
+        create file
+        """
+        from pathlib import Path
+        Path(FILES['status'][phase_id]).touch()
+
+    def check_status(self,phase_id):
+        return  os.path.exists(FILES['status'][phase_id])
+
+        
     def main_phase1(self):
         try:
-            containue = False
             self.generate_keys()
             self.generate_payment_addr()
-            amount = self.check_payment()
-            if (amount == 0):
-                payment_addr = pc.content(FILES['payment']['address'])
-                print(f"Please fund your account with payment address:{payment_addr}")
-                sys.exit("quitting because the account needs to be funded first")
-            else:
-                continue = True
-            return continue
+            self.create_status_file('phase_1')
         except:
             print("Oops!", sys.exc_info()[0], " occured in main phase 1")
             
     def main_phase2(self):
         try:
-            self.export_protocol_params()
-            self.generate_policy_keys()
-            self.generate_default_policy()
-            policy_id = self.mint_new_asset()
-            return policy_id
+            t =  self.check_payment()
+            if t['amount'] == 0:
+                print(f"Current amount in {t['addr']} is zero. Please send some ADA to this address")
+            else:
+                self.export_protocol_params()
+                self.generate_policy_keys()
+                self.generate_default_policy()
+                policy_id = self.mint_new_asset()
+                self.create_status_file('phase_2') #add status
+                return policy_id
         except:
-            print("Oops!", sys.exc_info()[0], " occured in main phase 1")
+            print("Oops!", sys.exc_info()[0], " occured in main phase 2")
 
 class Transaction:
     def __init__(self):
@@ -277,8 +287,16 @@ if __name__ == "__main__":
     coin_name = "REIT"
     
     c = CreateToken(coin_name)
-    if c.main_phase1():
+
+    if not c.check_status('phase_1'):
+        c.main_phase1()
+    else:
+        print('step 1 has been already run')
+        
+    if not c.check_status('phase_2') and c.check_status('phase_1'):
         policy_id = c.main_phase2()
+
+    if c.check_status('phase_1') and c.check_status('phase_2') and not c.check_status('phase_3'):    
         t = Transaction()
         t.main(num_coins, coin_name,policy_id)
     
