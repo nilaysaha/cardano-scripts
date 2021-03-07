@@ -1,6 +1,6 @@
 #!/usr/bin/env python3                                                                                                                                                                                      
 
-import subprocess, json, sys
+import subprocess, json, sys, json
 import process_certs as pc
 import argparse
 import logging
@@ -50,6 +50,8 @@ class CalcFee:
             command = ["cardano-cli", "query", "stake-address-info", "--mainnet", "--mary-era", "--address", stake_addr]
             s = subprocess.check_output(command)
             print(Fore.RED + f"output for command:{command} is {s}")
+            s_package = json.loads(s)
+            return s_package[0]["rewardAccountBalance"]
         except:
             logging.exception("Could not check balance of staking address")
             
@@ -282,7 +284,7 @@ class Transfer:
 def get_user_input(args):
     print("Either the pay_address/amount(ADA) is empty. Will try to guide you. OK?")
 
-    p = input("We are going to use the default payment.addr. Is that ok ? Y/N")
+    p = input("We are going to use the default payment.addr. Is that ok (Y/N) ? ")
 
     if p == "Y" or p == "y":
         args.target = pc.content(FILES['payment']['addr'])
@@ -293,7 +295,16 @@ def get_user_input(args):
         else:
             sys.exit("Quitting!")
 
-    args.amount = float(input("How many ADA would you like to withdraw from the rewards?"))*1000000
+    a = CalcFee()
+    args.amount = a.check_balance_stake()
+    print(Fore.BLUE + f"\nWe are going to withdraw amount {args.amount} from stakepool to pledge address\n")
+    p = input("Are you ok with transferring the rewards to the payment address (Y/N)?")
+
+    if p == "Y" or p == "y":
+        pass;
+    else:
+        sys.exit("Quitting!")
+        
     return args
         
             
