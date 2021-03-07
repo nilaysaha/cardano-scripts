@@ -3,6 +3,12 @@
 import subprocess, json, sys
 import process_certs as pc
 import argparse
+import logging
+import colorama
+from colorama import Fore, Back, Style
+
+logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', datefmt='%d-%m-%y %H:%M:%S')
+colorama.init(autoreset=True)
 
 
 """
@@ -26,10 +32,6 @@ FILES={
 }
 
 
-import logging
-logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', datefmt='%d-%m-%y %H:%M:%S')
-
-
 class CalcFee:
     def __init__(self):
         pass
@@ -45,7 +47,7 @@ class CalcFee:
             stake_addr = pc.content(FILES['stake']['addr'])
             command = ["cardano-cli", "query", "stake-address-info", "--mainnet", "--mary-era", "--address", stake_addr]
             s = subprocess.check_output(command)
-            print(f"output for command:{command} is {s}")
+            print(Fore.RED + f"output for command:{command} is {s}")
         except:
             logging.exception("Could not check balance of staking address")
             
@@ -83,7 +85,7 @@ class CalcFee:
                        "--withdrawal", stake_addr+"+"+str(int(withdrawal_amount)),
                        '--out-file', FILES['transaction']['draft'] ] + tx_in_array        
             s = subprocess.check_output(command)
-            print(f"output of command:{command} output is:{s}\n\n")
+            print(Fore.RED + f"\noutput of command:{command} is:{s}\n\n")
         except:
             logging.exception("Could not draft transactions")
         
@@ -121,7 +123,7 @@ class CalcFee:
                        '--mainnet',
                        '--protocol-params-file', FILES['configs']['protocol'] ]
             s = subprocess.check_output(command,stderr=True, universal_newlines=True)
-            print(f"output of command:{command} output is:{s}\n\n")
+            print(Fore.RED + f"\nOutput of command:{command} output is:{s}\n\n")
             min_fee = float(s.split(" ")[0])
             return min_fee
         except:
@@ -180,10 +182,9 @@ class Transaction:
                        "--fee", str(min_fee),
                        "--out-file", FILES['transaction']['raw']]+tx_in_array
 
-            print(command)            
             s = subprocess.check_output(command)
             split_str=s.decode('UTF-8').split(" ")
-            print(f"out of command:{command} is {s}\n\n")
+            print(Fore.RED + f"\nOutput of command:{command} is {s}\n")
         except:
             logging.exception("Could not build transaction")
 
@@ -204,7 +205,7 @@ class Transaction:
                        '--mainnet',
                        '--out-file',FILES['transaction']['signed']]
             s = subprocess.check_output(command)
-            print(f"output of command:{command} is {s}\n\n")
+            print(Fore.RED + f"\nOutput of command:{command} is {s}\n\n")
         except:
             logging.exception("Cold not sign transaction")
 
@@ -221,7 +222,7 @@ class Transaction:
                        "--tx-file", FILES['transaction']['signed'],
                        '--mainnet']
             s = subprocess.check_output(command)
-            print("Submitted transaction on chain using: {command}. Result is: {s}\n\n")
+            print(Fore.RED + F"\nSubmitted transaction on chain using: {command}. Result is: {s}\n\n")
         except:
             logging.exception("Could not submit transaction")
 
