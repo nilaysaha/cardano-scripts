@@ -30,7 +30,7 @@ def _get_payment_utx0(t_address):
     try:
         final_array = []
                 
-        command=[CARDANO_CLI, 'query', 'utxo', '--address', t_address, '--mary-era','--mainnet']
+        command=["cardano-cli", 'query', 'utxo', '--address', t_address, '--mary-era','--mainnet']
         s = subprocess.check_output(command)
         split_str=s.decode('UTF-8').split("\n")
         result = filter(lambda x: x != '', split_str) 
@@ -118,6 +118,7 @@ class CalcFee:
                        '--byron-witness-count', str(byron_wc) ,
                        '--mainnet',
                        '--protocol-params-file', FILES['configs']['protocol'] ]
+            
             print(f"{command}")
             s = subprocess.check_output(command,stderr=True, universal_newlines=True)
             print(f"output of command:{command} output is:{s}")
@@ -126,13 +127,14 @@ class CalcFee:
         except:
             print("Oops!", sys.exc_info()[0], "occurred in calculate min fees")
 
-     def calc_remaining_funds(self, ttl, from_address, transfer_amount):
+    def calc_remaining_funds(self, ttl, from_address, transfer_amount):
         try:
-            min_fee = self.calculate_min_fees(tx_array_from_address, ttl)
+            tx_array = _get_payment_utx0(from_address)
+            min_fee = self.calculate_min_fees(tx_array, ttl)
             print(f"minimum fees: {min_fee}")
             
             #remaining funds needs to be transferred to the owner (from_address)
-            remaining_funds = self.get_total_fund_in_utx0(from_address) - min_fee - transfer_amount
+            remaining_funds = _get_total_fund_in_utx0(from_address) - min_fee - transfer_amount
         except:
             print("Oops!", sys.exc_info()[0], "occurred in calculate min fees")
 
@@ -224,7 +226,7 @@ class Transfer:
         """
         try:
             pc.create_protocol()
-            ttl = pc.get_ttl()
+            self.ttl = pc.get_ttl()
         except:
             print("Oops!", sys.exc_info()[0], "occurred in pre-req transaction for send funds. Step 1 for ref.")
 
@@ -246,7 +248,7 @@ class Transfer:
         t.submit()
         
 
-    def main():
+    def main(self):
         try:
             self._step_1()
             rfund = self._step_2()
