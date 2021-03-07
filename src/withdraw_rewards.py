@@ -17,11 +17,10 @@ Follow the following tutorial:https://cardano-foundation.gitbook.io/stake-pool-c
 Creating a transaction is a process that requires various steps:
 
 1. Get the protocol parameters
-2. Define the time-to-live (TTL) for the transaction
-3. Calculate the fee
-4. Build the transaction
-5. Sign the transaction
-6. Submit the transaction
+2. Calculate the fee
+3. Build the transaction
+4. Sign the transaction
+5. Submit the transaction
 """
 
 FILES={
@@ -31,10 +30,13 @@ FILES={
     'transaction': {'draft':'./kaddr_tx/withdraw_rewards.draft','raw': './kaddr_tx/withdraw_rewards.raw', 'signed':'./kaddr_tx/withdraw_rewards.signed'}
 }
 
+TIP_INCREMENT=10000
+
 
 class CalcFee:
     def __init__(self):
         pass
+
 
     def check_balance_stake(self):
         """
@@ -65,24 +67,25 @@ class CalcFee:
         return tx_in_array
 
     
-    def draft_transaction(self, tx_in, tx_out, withdrawal_amount):
+    def draft_transaction(self, tx_in, tx_out):
         """
-        cardano-cli shelley transaction build raw \
-        --tx-in a82f8d2a85cde39118a894306ad7a85ba40af221406064a56bdd9b3c61153527#1
-        --tx-out $(cat payment.addr)+0
-        --withdrawal $(cat stake.addr)+550000000
-        --ttl 0
-        --fee 0
-        --out-file withdraw_rewards.raw
+        cardano-cli transaction build-raw \
+        --tx-in a82f8d2a85cde39118a894306ad7a85ba40af221406064a56bdd9b3c61153527#1 \
+        --tx-out $(cat payment.addr)+0 \
+        --withdrawal $(cat stake.addr)+0 \
+        --invalid-hereafter 0 \
+        --fee 0 \
+        --out-file withdraw_rewards.draft
         """
         try:
-            ttl = pc.get_ttl()
             print(f"Inside draft transaction")
             stake_addr = pc.content(FILES['stake']['addr'])
             tx_in_array= self.create_tx_in(tx_in)
             command = ["cardano-cli",  "transaction", "build-raw", "--mary-era",
-                       "--tx-out",tx_out,  "--ttl", ttl,  "--fee", '0',
-                       "--withdrawal", stake_addr+"+"+str(int(withdrawal_amount)),
+                       "--tx-out",tx_out,
+                       "--withdrawal", stake_addr+"+"+'0',
+                       "--invalid-hereafter", '0',
+                       "--fee", '0',
                        '--out-file', FILES['transaction']['draft'] ] + tx_in_array        
             s = subprocess.check_output(command)
             print(Fore.RED + f"\noutput of command:{command} is:{s}\n\n")
@@ -90,7 +93,7 @@ class CalcFee:
             logging.exception("Could not draft transactions")
         
 
-    def calculate_min_fees(self, tx_in, ttl, withdrawl_amount):
+    def calculate_min_fees(self, tx_in, withdrawl_amount):
         """
         cardano-cli transaction calculate-min-fee \
         --tx-body-file withdraw_rewards.draft  \
@@ -102,7 +105,7 @@ class CalcFee:
         --protocol-params-file protocol.json
         """
         
-        print(f"Input to calculate min fees:{tx_in} {ttl} {withdrawl_amount}")
+        print(f"Input to calculate min fees:{tx_in} {withdrawl_amount}")
         try:
 
             fname =  FILES['transaction']['draft']            
@@ -112,7 +115,7 @@ class CalcFee:
             byron_wc = 0
 
             #This is a prerequisite to calculation of min-fee
-            self.draft_transaction(tx_in, tx_out, withdrawl_amount)            
+            self.draft_transaction(tx_in, tx_out)            
 
             command = ['cardano-cli', 'transaction', 'calculate-min-fee',
                        "--tx-body-file", fname,
@@ -131,13 +134,13 @@ class CalcFee:
 
 
             
-    def calc_remaining_funds(self, ttl, from_address=None, transfer_amount=None):
+    def calc_remaining_funds(self, from_address=None, transfer_amount=None):
         try:
             if from_address == None:
                 from_address = pc.content(FILES['payment']['addr'])
                 
             tx_array_from_address = pc.get_payment_utx0(from_address)
-            min_fee = self.calculate_min_fees(tx_array_from_address, ttl, transfer_amount)
+            min_fee = self.calculate_min_fees(tx_array_from_address, transfer_amount)
             print(f"minimum fees: {min_fee}")
             
             #remaining funds needs to be transferred to the owner (from_address)
@@ -153,11 +156,9 @@ class Transaction:
     def __init__(self):
         pass
     
-    def build(self, txArray, remaining_fund, ttl, min_fee, withdrawal_amount):
+    def build(self, txArray, remaining_fund, min_fee, withdrawal_amount):
         """
-        reconstruct: 
         cardano-cli transaction build-raw \
-        --mary-era \
         --tx-in a82f8d2a85cde39118a894306ad7a85ba40af221406064a56bdd9b3c61153527#1 \
         --tx-out $(cat payment.addr)+743882981 \
         --withdrawal $(cat stake.addr)+550000000 \
@@ -175,10 +176,13 @@ class Transaction:
                 tx_in_array.append(tx_in)
             payment_addr = pc.content(FILES['payment']['addr'])
             stake_addr   = pc.content(FILES['stake']['addr'])
+            future_tip = int(pc.get_tip())+TIP_INCREMENT
+            
             tx_out = "{paddr}+{rfund}".format(paddr=payment_addr, rfund=remaining_fund)
             command = ['cardano-cli',  "transaction", "build-raw", "--mary-era",                       
                        "--tx-out",tx_out,
                        "--withdrawal", stake_addr+"+"+str(withdrawal_amount),
+                       "--invalid-hereafter", str(future_tip),
                        "--fee", str(min_fee),
                        "--out-file", FILES['transaction']['raw']]+tx_in_array
 
@@ -231,7 +235,6 @@ class Transfer:
     def __init__(self, payment_address, transfer_amount):
         self.payment_address = payment_address
         self.transfer_amount = transfer_amount
-        self.ttl = None
         self.tx_in_array = []
         self.remaining_fund = None
         self.min_fees = None
@@ -242,7 +245,6 @@ class Transfer:
         """
         try:
             pc.create_protocol()
-            self.ttl = pc.get_ttl()
             self.tx_in_array = pc.get_payment_utx0(self.payment_address)
         except:
             logging.exception("Could not execute step 1 for funds transfer")
@@ -253,7 +255,7 @@ class Transfer:
         """
         try:
             c = CalcFee()
-            self.remaining_fund, self.min_fees = c.calc_remaining_funds(self.ttl, self.payment_address, self.transfer_amount)
+            self.remaining_fund, self.min_fees = c.calc_remaining_funds(self.payment_address, self.transfer_amount)
             return self.remaining_fund
         except:
             logging.exception("Could not execute step 2 for funds transfer")
@@ -261,7 +263,7 @@ class Transfer:
 
     def _step_3(self):        
         t = Transaction()
-        t.build(self.tx_in_array, int(self.remaining_fund), self.ttl, int(self.min_fees), int(self.transfer_amount))
+        t.build(self.tx_in_array, int(self.remaining_fund), int(self.min_fees), int(self.transfer_amount))
         t.sign()
         t.submit()
         
