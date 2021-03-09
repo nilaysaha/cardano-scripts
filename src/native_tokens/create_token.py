@@ -37,6 +37,19 @@ TOKEN_NAME="LKBH"
 TOKEN_MAX_AMOUNT="45000000000"
 
 
+def mint_new_asset(policy_file=FILES['policy']['script']):
+    """
+        ./cardano-cli transaction policyid --script-file ./policy/policy.script 
+    """
+    try:
+        command = ["cardano-cli", "transaction", "policyid", "--script-file", policy_file]
+        s = subprocess.check_output(command, stderr=True, universal_newlines=True)
+        print(f"Successful: Output of command {command} is:{s}")
+        return s.split("\n")[0]
+    except:
+        logging.exception("Could not mint new asset")            
+
+
 
 class CreateToken:
     def __init__(self,token_name="REIT"):
@@ -195,18 +208,6 @@ class Transaction:
         self.payment_addr = pc.content(FILES['payment']['address'])
         self.utx0 = pc.get_payment_utx0(self.payment_addr)        
 
-    def mint_new_asset(self):
-        """
-        ./cardano-cli transaction policyid --script-file ./policy/policy.script 
-        """
-        try:
-            command = ["cardano-cli", "transaction", "policyid", "--script-file", FILES['policy']['script']]
-            s = subprocess.check_output(command, stderr=True, universal_newlines=True)
-            print(f"Successful: Output of command {command} is:{s}")
-            return s.split("\n")[0]
-        except:
-            logging.exception("Could not mint new asset")            
-
 
     def _calculate_utx0_lovelace(self, fees):
         a = CreateToken()
@@ -322,7 +323,7 @@ class Transaction:
         if t['amount'] == 0:
             print(f"Current amount in {t['addr']} is zero. Please send some ADA to this address")
         else:
-            policy_id = self.mint_new_asset()
+            policy_id = mint_new_asset()
             print(f"found policy id:{policy_id}")
             fees = 0
             self.create_raw_trans(fees, num_coins, coin_name, policy_id)

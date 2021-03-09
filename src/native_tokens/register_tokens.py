@@ -2,7 +2,7 @@
 
 import subprocess, json
 import logging
-
+import create_token as ct
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', datefmt='%d-%m-%y %H:%M:%S')
 
@@ -24,10 +24,11 @@ class RegisterToken:
     """
     def __init__(self, name="REIT"):
         self.name = name
-        policy = "36296615943a2cba0a971b89f1a59f81928712c13eab3e4943e26086"
+        policy = ct.mint_new_asset(FILES['policy']['script'])
         b64name = "52454954"
         self.subject = policy+b64name
 
+        
     def _prepare_draft(self):
         """
         cardano-metadata-submitter --init baa836fef09cb35e180fce4b55ded152907af1e2c840ed5218776f2f6d7961737365746e616d65        
