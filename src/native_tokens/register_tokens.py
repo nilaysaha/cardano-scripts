@@ -3,6 +3,7 @@
 import subprocess, json
 import logging
 import create_token as ct
+import process_certs as pc
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', datefmt='%d-%m-%y %H:%M:%S')
 
@@ -14,6 +15,14 @@ FILES={
     },
     "logo":{
         "img":"./kaddr_token/logo.png",
+    },
+    "token":{
+        "ticker": "REIT",
+        "name": "REIT",
+        "description": "Real estate investment trust",
+        "url":"https://lkbh-pools.org",
+        "logo":"https://lh4.googleusercontent.com/97d4TLg7x_Z4gDlEZZ-akJFBuY8sV8h_UotR6Vf502-YGrpfxBJc7lahWbU-q4hTDFMq4g=w16383",
+        "unit":"2, cents"
     }
 }
 
@@ -22,7 +31,7 @@ class RegisterToken:
     """
     based on the following page:https://github.com/cardano-foundation/cardano-token-registry/wiki/How-to-prepare-an-entry-for-the-registry
     """
-    def __init__(self, name="REIT"):
+    def __init__(self, name=FILES['token']['ticker']):
         self.name = name
         policy = ct.mint_new_asset(FILES['policy']['script'])
         b64name = "52454954"
@@ -42,7 +51,7 @@ class RegisterToken:
             logging.exception("Prepare draft")
 
 
-    def _augment_data(self,name, descr, policy):
+    def _augment_data(self,name=FILES['token']['name'], descr=FILES['token']['description'], policy_file=FILES['policy']['script']):
         """
         cardano-metadata-submitter baa836fef09cb35e180fce4b55ded152907af1e2c840ed5218776f2f6d7961737365746e616d65 \
         --name "My Gaming Token" \
@@ -51,6 +60,7 @@ class RegisterToken:
         """
 
         try:
+            policy = pc.content[policy_file]
             command = ["cardano-metadata-submitter", self.subject,
                        "--name", name,
                        "--description", description,
@@ -61,7 +71,7 @@ class RegisterToken:
             logging.exception("Failed to augment data with name, description and policy json data")
 
 
-    def _add_optional_field(self, ticker, url, unit, logo):
+    def _add_optional_field(self, ticker=FILES['token']['ticker'], url=FILES['token']['url'], unit=FILES['token']['unit'], logo=FILES['token']['logo']):
         """
         cardano-metadata-submitter baa836fef09cb35e180fce4b55ded152907af1e2c840ed5218776f2f6d7961737365746e616d65 \
         --ticker "TKN" \
@@ -108,8 +118,14 @@ class RegisterToken:
 
     def main(self):
         self._prepare_draft()
-        self._augment_data("Real estate investment trust token", "Platform to tokenize global housing segment" ,FILES['policy']['script'])
-        self._add_optional_field("REIT", "https://reitbld.com","10, cents", "logo.png")
+        self._augment_data()
+        self._add_optional_field()
         self._sign_metadata()
         self._finalize_entry()
         
+
+
+if __name__ == "__main__":
+    a = RegisterToken()
+    a.main()
+    
