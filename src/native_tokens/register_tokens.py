@@ -4,14 +4,16 @@ import subprocess, json
 import logging
 import create_token as ct
 import process_certs as pc
+import colorama
+from colorama import Fore, Back, Style
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', datefmt='%d-%m-%y %H:%M:%S')
-
+colorama.init(autoreset=True)
 
 FILES={
     "policy": {
         "signature":"./kaddr_token/policy.skey",
-        "script":"./kaddr_token/policy.script"        
+        "script":"./kaddr_token/policy.json"        
     },
     "logo":{
         "img":"./kaddr_token/logo.png",
@@ -21,7 +23,7 @@ FILES={
         "name": "REIT",
         "description": "Real estate investment trust",
         "url":"https://lkbh-pools.org",
-        "logo":"https://lh4.googleusercontent.com/97d4TLg7x_Z4gDlEZZ-akJFBuY8sV8h_UotR6Vf502-YGrpfxBJc7lahWbU-q4hTDFMq4g=w16383",
+        "logo":"",
         "unit":"2, cents"
     }
 }
@@ -60,11 +62,11 @@ class RegisterToken:
         """
 
         try:
-            policy = pc.content[policy_file]
+            #policy = pc.content(policy_file)
             command = ["cardano-metadata-submitter", self.subject,
                        "--name", name,
-                       "--description", description,
-                       "--policy", policy]
+                       "--description", descr,
+                       "--policy", policy_file]
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
             print(Fore.GREEN + f"Successful:  Output of command {command} is:{s}")                        
         except:
@@ -83,7 +85,8 @@ class RegisterToken:
         try:
             command = ["cardano-metadata-submitter", self.subject,
                        "--ticker", ticker,
-                       "--url", url, "--unit", unit, "--logo", logo]
+                       "--url", url, "--unit", unit, # "--logo", logo
+            ]
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
             print(Fore.GREEN + f"Successful:  Output of command {command} is:{s}")                        
         except:

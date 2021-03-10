@@ -33,6 +33,6 @@ echo $urls
 
 for url in $urls; do
     current_binary=${url##*/}
-    echo "now downloading to a file:${current_binary}"
-    curl $url -o ${OUTPUT_DIR}/${current_binary}
+    echo "now downloading to a file:${OUTPUT_DIR}/${current_binary}"
+    curl  $url -o ${OUTPUT_DIR}/${current_binary}
 done

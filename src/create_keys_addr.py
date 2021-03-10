@@ -2,7 +2,10 @@
 
 import subprocess, process_certs,os
 import requests,shutil
-    
+import logging
+
+logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', datefmt='%d-%m-%y %H:%M:%S')
+
 CWD=os.getcwd()
 
 #BASE_URL = 'https://hydra.iohk.io/job/Cardano/cardano-node/cardano-deployment/latest-finished/download/1/'
@@ -30,8 +33,9 @@ def create_dir(d):
 
 def create_file(content, fpath):
     try:
-        # dirname = os.path.dirname(fpath)
-        # create_dir(dirname)
+        dirname = os.path.dirname(fpath)
+        if not os.path.isdir(dirname):
+            create_dir(dirname)
         f = open(fpath,"w")
         print(f"Opened file:{fpath} for writing" )
         f.write(content)
@@ -164,9 +168,23 @@ class CreateKAddr:
 
 
 if __name__ == "__main__":
-    try:        
-        a = CreateKAddr()
-        a.main()
+    import argparse
+    descr = """
+    Options to download config files or to create keys etc.
+    """
+    parser = argparse.ArgumentParser(description=descr, formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument("--configs", help="Fetch the configs and store them in proper directory",action="store_true")
+    parser.add_argument("--kaddr", help="Fetch the configs and store them in proper directory",action="store_true")
+    args = parser.parse_args()
+    print(args)
+
+    try:
+        if args.configs:
+            fetch_init_files()
+            
+        if args.kaddr:
+            a = CreateKAddr()
+            a.main()
     except:
         e = sys.exc_info()[0]
         print(e)        
