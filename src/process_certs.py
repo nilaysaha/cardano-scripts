@@ -9,7 +9,7 @@ FILES={'stake': {'verify_key': "./kaddr/stake.vkey", 'addr': './kaddr/stake.addr
        }
 
 TTL_BUFFER=1200
-WITNESS_COUNT_DEFAULT=3
+WITNESS_COUNT_DEFAULT=4
 BASE_ADDRESS_TXHASH="a09ba8bfc4b33961a744e059429b06981bfd689916971803371748917ceecc30"
 
 CARDANO_CLI="/home/nsaha/.cabal/bin/cardano-cli"

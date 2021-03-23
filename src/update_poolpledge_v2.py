@@ -27,7 +27,7 @@ class UpdatePledge:
         try:
             t = pc.get_payment_utx0()
             self.ttl = pc.get_ttl()
-            print(f"ttl calcuated is: {self.ttl}")
+            print(f"ttl calculated is: {self.ttl}")
             self.min_fee = pc.calculate_min_fees(t,self.ttl)
             print(f"minimum fees: {self.min_fee}")
             (pledgeAmount, poolCost, poolMargin) = rsp.get_pledge_params()
