@@ -9,7 +9,7 @@ Type=simple
 KillMode=process
 Environment=LD_LIBRARY_PATH="/usr/local/lib:$LD_LIBRARY_PATH":
 WorkingDirectory=/home/nsaha/projects/cardano/cardano-scripts/exec
-ExecStart=/home/nsaha/projects/cardano/cardano-scripts/exec/ff-node-shelly-mainnet-relay.v2 start
+ExecStart=/home/nsaha/project/cardano/cardano-scripts/exec/ff-node-shelly-mainnet-relay.v2 start
 ExecStop=/usr/bin/pkill -9 cardano-node
 
 [Service]

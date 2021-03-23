@@ -3,14 +3,20 @@
 USERNAME="nsaha" # replace nonroot with your username
 
 CNODE_BIN="/home/${USERNAME}/.cabal/bin"
-CNODE_HOME="/home/nsaha/projects/cardano/cardano-scripts"
+CNODE_HOME="/home/nsaha/projects/cardano-scripts"
 CNODE_LOG_DIR="${CNODE_HOME}/logs"
 
+if [ ! -d "$CNODE_LOG_DIR" ]; then
+    # Control will enter here if $DIRECTORY doesn't exist.
+    mkdir -p $CNODE_LOG_DIR
+fi
+
+
 CNODE_PORT=3001  # must match your relay node port as set in the startup command
-CNODE_HOSTNAME="relay-1.lkbh-pools.org"  # optional. must resolve to the IP you are requesting from
+CNODE_HOSTNAME="relay-3.lkbh-pools.org"  # optional. must resolve to the IP you are requesting from
 CNODE_VALENCY=1   # optional for multi-IP hostnames
 
-TESTNET_MAGIC=RequiresNoMagic
+NWMAGIC=RequiresNoMagic
 
 
 export DISPLAY=":0"
@@ -20,7 +26,11 @@ export CARDANO_NODE_SOCKET_PATH="${CNODE_HOME}/exec/state-node-shelly-mainnet/no
 
 echo ${CARDANO_NODE_SOCKET_PATH}
 
-blockNo=$(cardano-cli shelley query tip --mainnet | grep 'blockNo' |sed 's/.*://g'|sed 's/,//g'|xargs)
+bnum=$(cardano-cli query tip --mainnet | grep 'blockNo' |sed 's/.*://g'|sed 's/,//g')
+blockNo=${bnum//[[:blank:]]/}
+echo ${blockNo}
+
+#blockNo=$(cardano-cli  query tip --mainnet | grep 'blockNo' |sed 's/.*://g'|sed 's/,//g'|xargs)
 
 # Note:
 # if you run your node in IPv4/IPv6 dual stack network configuration and want announced the
@@ -32,7 +42,8 @@ if ! test -f "$LOGFILE"; then
     touch ${LOGFILE};
 fi
 
-URL="https://api.clio.one/htopology/v1/?port=${CNODE_PORT}&blockNo=${blockNo}&valency=${CNODE_VALENCY}&magic=${TESTNET_MAGIC}${CNODE_HOSTNAME}"
+
+URL="https://api.clio.one/htopology/v1/?port=${CNODE_PORT}&blockNo=${blockNo}&valency=${CNODE_VALENCY}&magic=${NWMAGIC}${CNODE_HOSTNAME}"
 echo $URL
 
-curl -4 -s -v  $URL | tee -a $CNODE_LOG_DIR/topologyUpdater_lastresult.json
+curl -s -f  -4 -v  $URL | tee -a $CNODE_LOG_DIR/topologyUpdater_lastresult.json
