@@ -4,9 +4,14 @@ FROM ubuntu:18.04
 SHELL ["/bin/bash", "-c"]
 
 ARG CARDANO_NODE_VERSION
-ARG CLOUDSMITH_API_KEY
+ARG ACCESS_KEY_ID
+ARG SECRET_ACCESS_KEY
 
 RUN env
+
+ENV AWS_ACCESS_KEY_ID=ACCESS_KEY_ID
+ENV AWS_SECRET_ACCESS_KEY=SECRET_ACCESS_KEY
+
 
 #refresh packages
 RUN apt-get update
@@ -18,9 +23,9 @@ RUN apt-get install -y \
 	libtinfo-dev libsystemd-dev \
 	zlib1g-dev make g++ tmux git \
 	jq wget libncursesw5 \
-	libtool autoconf curl
+	libtool autoconf curl \
+        awscli
 
-RUN pip3 install --upgrade cloudsmith-cli
 
 
 #install cabal
@@ -71,7 +76,11 @@ ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
 
 #Upload using api
-RUN cloudsmith push raw lkbhpool/cardano ${CARDANO_NODE_PATH} --tags ${CARDANO_NODE_VERSION} --version ${CARDANO_NODE_VERSION}
-RUN cloudsmith push raw lkbhpool/cardano ${CARDANO_CLI_PATH} --tags ${CARDANO_NODE_VERSION} --version ${CARDANO_NODE_VERSION}
-RUN cloudsmith push raw lkbhpool/cardano ${CARDANO_CHAIRMAN_PATH} --tags ${CARDANO_NODE_VERSION} --version ${CARDANO_NODE_VERSION}
+RUN aws s3 cp ${CARDANO_NODE_PATH} s3://stake-pool/"cardano-node-${CARDANO_NODE_VERSION}"
+RUN aws s3 cp ${CARDANO_CLI_PATH} s3://stake-pool/"cardano-cli-${CARDANO_NODE_VERSION}"
+RUN aws s3 cp ${CARDANO_CHAIRMAN_PATH} s3://stake-pool/"cardano-node-chairman-${CARDANO_NODE_VERSION}"
+
+#RUN cloudsmith push raw lkbhpool/cardano ${CARDANO_NODE_PATH} --tags ${CARDANO_NODE_VERSION} --version ${CARDANO_NODE_VERSION}
+#RUN cloudsmith push raw lkbhpool/cardano ${CARDANO_CLI_PATH} --tags ${CARDANO_NODE_VERSION} --version ${CARDANO_NODE_VERSION}
+#RUN cloudsmith push raw lkbhpool/cardano ${CARDANO_CHAIRMAN_PATH} --tags ${CARDANO_NODE_VERSION} --version ${CARDANO_NODE_VERSION}
 
