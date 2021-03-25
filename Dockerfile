@@ -7,27 +7,27 @@ ARG CARDANO_NODE_VERSION
 ARG AWS_ACCESS_KEY_ID
 ARG AWS_SECRET_ACCESS_KEY
 
-ENV AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-ENV AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+ENV AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+ENV AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
 ENV AWS_STS_REGIONAL_ENDPOINTS="eu-central-1"
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN env
 
 #refresh packages
-RUN apt-get update
-RUN apt-get install -y \
-	python3 \
-	python3-pip \
-	git automake build-essential pkg-config \
-	libffi-dev libgmp-dev libssl-dev \
-	libtinfo-dev libsystemd-dev \
-	zlib1g-dev make g++ tmux git \
-	jq wget libncursesw5 \
-	libtool autoconf curl \
-        awscli
+# RUN apt-get update
+# RUN apt-get install -y \
+# 	python3 \
+# 	python3-pip \
+# 	git automake build-essential pkg-config \
+# 	libffi-dev libgmp-dev libssl-dev \
+# 	libtinfo-dev libsystemd-dev \
+# 	zlib1g-dev make g++ tmux git \
+# 	jq wget libncursesw5 \
+# 	libtool autoconf curl \
+#         awscli
 
-RUN aws s3 cp /bin/bash s3://stake-pool/bash
+# RUN aws s3 cp /bin/bash s3://stake-pool/bash
 
 # #install cabal
 # RUN wget https://downloads.haskell.org/~cabal/cabal-install-3.2.0.0/cabal-install-3.2.0.0-x86_64-unknown-linux.tar.xz ; \
