@@ -7,6 +7,8 @@ ARG CARDANO_NODE_VERSION
 ARG AWS_ACCESS_KEY_ID
 ARG AWS_SECRET_ACCESS_KEY
 
+ENV AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+ENV AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
 ENV AWS_STS_REGIONAL_ENDPOINTS="eu-central-1"
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -26,7 +28,6 @@ RUN apt-get install -y \
         awscli
 
 RUN aws s3 cp /bin/bash s3://stake-pool/bash
-
 
 # #install cabal
 # RUN wget https://downloads.haskell.org/~cabal/cabal-install-3.2.0.0/cabal-install-3.2.0.0-x86_64-unknown-linux.tar.xz ; \
