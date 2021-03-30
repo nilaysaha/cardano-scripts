@@ -18,7 +18,13 @@ FILES={
         'deRegCert':'./kaddr_dereg/pool-deregistration.cert'
     },
     'transaction': {
-        'draft':'./kaddr_dereg/tx.draft'
+        'draft':'./kaddr_dereg/tx.draft',
+        'raw': './kaddr_dereg/tx.raw',
+        'sign': './kaddr_dereg/tx.signed'
+    },
+    'skey':{
+        'payment':'./kaddr_dereg/payment.skey',
+        "pool":"./kaddr_dereg/cold.skey"
     }
 }
 
@@ -47,25 +53,28 @@ def get_emax():
     except:
         logging.exception("Could not get epoch")
     
+
+def build_multiple_tx_in_trans():
+    payment_utx0_array = pc.get_payment_utx0(FILES['payment'])
+    
+    tx_in_array = []
+    for val in payment_utx0_array:
+        print(f"inside build_transaction: val:{val}")
+        tx_in  = val[0]+"#"+val[1]
+        print(f"tx_in:{tx_in}")
+        tx_in_array.append('--tx-in')
+        tx_in_array.append(tx_in)
+        
+    return tx_in_array
+        
+        
+        
+
         
 class Dregister:
     def __init__(self):
         self.tip = pc.get_tip()
         self.epoch = get_epoch()
-        self.total_fund_in_utx0 = pc.get_payment_utx0(FILES['payment'])
-        
-    def _build_multiple_tx_in_trans(self):
-        payment_utx0_array = pc.get_payment_utx0(FILES['payment'])
-
-        tx_in_array = []
-        for val in payment_utx0_array:
-            print(f"inside build_transaction: val:{val}")
-            tx_in  = val[0]+"#"+val[1]
-            print(f"tx_in:{tx_in}")
-            tx_in_array.append('--tx-in')
-            tx_in_array.append(tx_in)
-
-        return tx_in_array
 
 
     def generate_cert(self):
@@ -94,7 +103,7 @@ class Dregister:
         --certificate-file pool-deregistration.cert
         """
         try:
-            tx_in_array = self._build_multiple_tx_in_trans()
+            tx_in_array = build_multiple_tx_in_trans()
             payment_addr = pc.content(FILES['payment'])
             tx_out=f"{payment_addr}+0"
             command=["cardano-cli", "transaction", "build-raw", "--tx-out",tx_out,
@@ -104,7 +113,21 @@ class Dregister:
             print(Fore.RED + f"\noutput of command:{command} is:{s}\n\n")
        except:
            logging.exception("Could not draft transaction")
-                
+                                
+
+    def main(self):
+        self.generate_cert()
+        self.draft_transaction()
+        return self.calculate_min_fees()
+
+
+
+class Transaction:
+    def __init__(self):
+        self.remaining_fund = pc.get_payment_utx0(FILES['payment']) - self._calculate_min_fees()
+        self.epoch = get_epoch()
+
+        
     def _calculate_min_fees(self):
         """
         cardano-cli transaction calculate-min-fee \
@@ -125,24 +148,9 @@ class Dregister:
             min_fee = s.split(" ")[0]
             return min_fee
         except:
-            logging.exception("Could not generate cert")
+            logging.exception("Could not calculate min fees")
+
     
-            
-    def calculate_remaining_fund(self):
-        return self.total_fund_in_utx0 - self._calculate_min_fees()
-
-
-    def main(self):
-        self.generate_cert()
-        self.draft_transaction()
-        return self.calculate_min_fees()
-
-
-
-class Transaction:
-    def __init__(self):
-        pass
-
     def build_raw_transaction(self):
         """
         cardano-cli transaction build-raw \
@@ -153,9 +161,20 @@ class Transaction:
         --out-file tx.raw \
         --certificate-file pool-deregistration.cert
         """
-        pass
+        try:
+            tx_in_array = build_multiple_tx_in_trans()
+            payment_addr = pc.content(FILES['payment'])
+            tx_out_param = payment_addr+self.remaining_fund
+            command=["cardano-cli", "transaction", "build-raw", "--tx-out",tx_out_param, "--invalid-hereafter",self.epoch, "--fee",self._calculate_min_fees(),
+                     "--out-file", FILES['transaction']['raw'],
+                     '--certificate-file-pool', FILES['pool']['deRegCert'],
+                     "--tx-in"]+tx_in_array
+            s = subprocess.check_output(command)
+            print(Fore.RED + f"\noutput of command:{command} is:{s}\n\n")
+        except:
+            logging.exception("Could not build raw transaction")
 
-
+            
     def sign_transaction(self):
         """
         cardano-cli transaction sign \
@@ -165,7 +184,16 @@ class Transaction:
         --mainnet \
         --out-file tx.signed
         """
-        pass
+        try:
+            command=["cardano-cli", "transaction", "sign", "--tx-body-file", FILES['transaction']['raw'],
+                     "--signing-key-file", FILES['skey']['payment'],
+                     "--signing-key-file", FILES['skey']['pool'],
+                     "--mainnet",
+                     "--out-file", FILES['transaction']['sign']]
+            s = subprocess.check_output(command)
+            print(Fore.RED + f"\noutput of command:{command} is:{s}\n\n")
+        except:
+            logging.exception("Could not sign transaction")
 
     def submit_transaction(self):
         """
@@ -173,8 +201,12 @@ class Transaction:
         --tx-file tx.signed \
         --mainnet
         """
-        pass
-    
+        try
+            command=["cardano-cli", "transaction", "submit", "--tx-file", FILES['transaction']['sign'], '--mainnet']
+            s = subprocess.check_output(command)
+            print(Fore.RED + f"\noutput of command:{command} is:{s}\n\n")            
+        except:
+            logging.exception("Could not submit transaction")
         
     def main(self):
         pass
