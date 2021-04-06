@@ -18,18 +18,35 @@ FILES={
         'skey':"./kaddr_token/pay.skey"
     },
     'transaction':{
-        'draft':"./kaddr_token/t.raw",
+        'raw':"./kaddr_token/t.raw",
         'signed':"./kaddr_token/t.signed"        
     }
 }
 
 
 class Transfer:
-    def __init__(self, amount, policyid):
+    def __init__(self, amount, policyid, coin_name,  output_addr):
         self.amount = amount
         self.pid    = policyid
+        self.coin_name = coin_name
+        self.dest_addr = output_addr
+        self.payment_addr = pc.content(FILES['payment']['addr'])
+        self.utx0   = pc.get_payment_utx0(self.payment_addr)
+        
+    def _generate_tx_in(self):
+        tx_in_array = []
+        for val in self.utx0:
+            print(f"inside build_transaction: val:{val}")
+            tx_in  = val[0]+"#"+val[1]
+            print(f"tx_in:{tx_in}")
+            tx_in_array.append('--tx-in')
+            tx_in_array.append(tx_in)
+        return tx_in_array
 
 
+    def _generate_dest_addr_str(self):
+        
+    
     def raw_trans(self, fees, payment_addr, recipient_addr):
         """
         ./cardano-cli transaction build-raw \
@@ -40,7 +57,11 @@ class Transfer:
              --tx-out addr_test1vqvlku0ytscqg32rpv660uu4sgxlje25s5xrpz7zjqsva3c8pfckz+999821915+"999000000 328a60495759e0d8e244eca5b85b2467d142c8a755d6cd0592dff47b.melcoin" \  #payment address
              --out-file rec_matx.raw
         """
-        pass
+        tx_in_array = self._generate_tx_in()
+        command=["cardano-cli", "transaction", "build-raw", "--mary-era", "--fee", str(0),
+                 "--tx-out", self.dest_addr,
+                 "--tx-out", self.
+                 ,"--tx-in"]+tx_in_array
 
     def calculate_min_fees(self):
         """
@@ -52,7 +73,7 @@ class Transfer:
         --testnet-magic 3 \
         --protocol-params-file protocol.json
         """
-        pass
+        command=["cardano-cli", "transaction", "calculate-min-fee", "--tx-body-file", ]
 
 
     def sign_trans(self):

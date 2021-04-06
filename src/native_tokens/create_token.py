@@ -222,10 +222,10 @@ class Transaction:
 	     --mary-era \
              --fee 0 \
              --tx-in b1ddb0347fed2aecc7f00caabaaf2634f8e2d17541f6237bbed78e2092e1c414#0 \
-             --tx-out addr_test1vqvlku0ytscqg32rpv660uu4sgxlje25s5xrpz7zjqsva3c8pfckz+1000000000+"1000000000 328a60495759e0d8e244eca5b85b2467d142c8a755d6cd0592dff47b.melcoin" \
+             --tx-out addr_test1vqvlku0ytscqg32rpv660uu4sgxlje25s5xrpz7zjqsva3c8pfckz+1000000000+"1000000000
+                328a60495759e0d8e244eca5b85b2467d142c8a755d6cd0592dff47b.melcoin" \
              --mint="1000000000 328a60495759e0d8e244eca5b85b2467d142c8a755d6cd0592dff47b.melcoin" \
              --out-file matx.raw
-
         """        
         try:
             tx_in_array = []
