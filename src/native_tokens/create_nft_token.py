@@ -11,60 +11,72 @@ from colorama import Fore, Back, Style
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', datefmt='%d-%m-%y %H:%M:%S')
 colorama.init(autoreset=True)
 
-TOKEN_NAME="NFT"
-TOKEN_MAX_AMOUNT=""
-MUUID = uuid.v4()
+MUUID = str(uuid.uuid4())
+TOKEN_NAME="NFT-"+MUUID
+TOKEN_MAX_AMOUNT="1"
 
 FILES={
-    'payment':{
-        'verification': './kaddr_token/pay.vkey',
-        'signature':'./kaddr_token/pay.skey',
-        'address':'./kaddr_token/pay.addr'
-    },
+    'payment':{'verification': 'pay.vkey',
+               'signature':'pay.skey',
+               'address':'pay.addr'},
     'policy':{
-        'verification': './kaddr_token/policy.vkey',
-        'signature': './kaddr_token/policy.skey',
-        'script': './kaddr_token/policy.script'
+        'verification': 'policy.vkey',
+        'signature': 'policy.skey',
+        'script': 'policy.script'
     },
-    'protocol':'./kaddr_token/protocol.json',
+    'protocol':'protocol.json',
     'transaction': {
-        'raw': './kaddr_token/t.raw',
-        'signed': "./kaddr_token/t.signed"
+        'raw': 't.raw',
+        'signed': "t.signed"
     },
     'status':{
-        'phase_1':'./kaddr_token/phase_1',
-        'phase_2':'./kaddr_token/phase_2',
-        'phase_3':'./kaddr_token/phase_3',
+        'phase_1':'phase_1',
+        'phase_2':'phase_2',
+        'phase_3':'phase_3',
     }
 }
 
+class Session:
+    def __init__(self, latest=True, uuid=MUUID):
+        self.latest = latest
+        self.uuid = uuid
+        
+    def sdir(self,fpath):
+        try:
+            if (not self.latest):
+                dir_path = os.path.join(os.getcwd(),'sessions',self.uuid)
+                os.symlink(dir_path,dir_latest)
+                print(f"The directory being created for this session is:{dir_path}")
 
-def files(*args):
-    dir_path = os.path.join(os.getcwd(),MUUID)
-    if !os.path.isdir(fpath):
-        os.mkdir(dir_path, mode=0o777, *, dir_fd=None)
-    t = FILES[args.pop()]
-    while len(args)>0:
-        t = t[args.pop()]
-    return t
-
+                if not os.path.exists(dir_path):
+                    os.makedirs(dir_path,exist_ok=True)
+                else:
+                    print(f"Directory:{dir_path} exists already")            
+            else:
+                dir_latest = os.path.join(os.getcwd(),'latest')
+                dir_path = os.readlink(dir_latest)
+                print(f"Using the existing latest path:{dir_path}")
+            
+            return os.path.join(dir_path, fpath)
+        except:
+            logging.exception("")
 
 
 class CreateToken:
-    def __init__(self,token_name="REIT"):
-        self.name = f"{token_name}-{self.muuid}"
+    def __init__(self,token_name=TOKEN_NAME, latest=True, uuid=MUUID):
+        self.name = token_name
         self.tip  = pc.get_tip() #Gets the current slot number
-
+        self.s = Session(latest, uuid)
+        
     def generate_keys(self):
         """
         cardano-cli address key-gen \
         --verification-key-file pay_bld.vkey \
-        --signing-key-file pay_bld.skey
-        
+        --signing-key-file pay_bld.skey        
         """
         try:
-            command = ["cardano-cli", "address", "key-gen", "--verification-key-file", FILES['payment']['verification'],
-                       "--signing-key-file", files('payment','signature')]
+            command = ["cardano-cli", "address", "key-gen", "--verification-key-file", self.s.sdir(FILES['payment']['verification']),
+                       "--signing-key-file", self.s.sdir(FILES['payment']['signature'])]
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
             print(Fore.GREEN + f"Successful:  Output of command {command} is:{s}")
             
@@ -79,8 +91,8 @@ class CreateToken:
         --mainnet        
         """
         try:
-            command = ["cardano-cli", "address", "build", "--payment-verification-key-file", files('payment','verification'),
-                       '--out-file', files('payment','address'), '--mainnet']
+            command = ["cardano-cli", "address", "build", "--payment-verification-key-file", self.s.sdir(FILES['payment']['verification']),
+                       '--out-file', self.s.sdir(FILES['payment']['address']), '--mainnet']
             print(command)
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
             print(Fore.GREEN + f"Successful: Output of command {command} is:{s}")
@@ -96,7 +108,7 @@ class CreateToken:
 	     --out-file protocol.json
         """
         try:
-            command = ["cardano-cli", "query" , "protocol-parameters", "--mainnet", "--mary-era","--out-file", files('protocol')]
+            command = ["cardano-cli", "query" , "protocol-parameters", "--mainnet", "--mary-era","--out-file", self.s.sdir(FILES['protocol'])]
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
             print(Fore.GREEN + f"Successful:Output of command {command} is:{s}")
         except:
@@ -111,8 +123,8 @@ class CreateToken:
         """
 
         try:
-            command = ["cardano-cli", "address", "key-gen", "--verification-key-file", files('policy','verification'),
-                       "--signing-key-file", files('policy','signature')]
+            command = ["cardano-cli", "address", "key-gen", "--verification-key-file", self.s.sdir(FILES['policy']['verification']),
+                       "--signing-key-file", self.s.sdir(FILES['policy']['signature'])]
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
             print(Fore.GREEN + f"Successful: Output of command {command} is:{s}")
         except:
@@ -124,7 +136,7 @@ class CreateToken:
         cardano-cli address key-hash --payment-verification-key-file policy/policy.vkey
         """
         try:
-            command = ["cardano-cli", "address", "key-hash", "--payment-verification-key-file", files('policy','verification')]
+            command = ["cardano-cli", "address", "key-hash", "--payment-verification-key-file", self.s.sdir(FILES['policy']['verification'])]
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
             print(Fore.GREEN + f"Successful: Output of command {command} is:{s}")
             return s.split("\n")[0]
@@ -138,7 +150,7 @@ class CreateToken:
         generate keyhash and create policy script: FILES['policy']['script']
         """
         try:
-            fname = files('policy','script')
+            fname = self.s.sdir(FILES['policy']['script'])
             f = open(fname, "w+")
             policy_script = {
                 "keyHash": self._generate_keyhash_pkey(),
@@ -157,10 +169,10 @@ class CreateToken:
         create file
         """
         from pathlib import Path
-        Path(files('status',phase_id)).touch()
+        Path(self.s.sdir(FILES['status'][phase_id])).touch()
 
     def check_status(self,phase_id):
-        return  os.path.exists(files('status',phase_id))
+        return  os.path.exists(self.s.sdir(FILES['status'][phase_id]))
 
 
     def check_payment(self):
@@ -168,7 +180,7 @@ class CreateToken:
         ./cardano-cli query utxo --address `cat pay_bld.addr`   --mary-era --mainnet
         """
         try:
-            payment_addr = pc.content(files('payment','address'))
+            payment_addr = pc.content(self.s.sdir(FILES['payment']['address']))
             total_fund = pc.get_total_fund_in_utx0(payment_addr)
             print(f"Total funds in the address:{total_fund}")
             return {'addr':payment_addr, 'amount':total_fund}
@@ -205,10 +217,10 @@ class CreateToken:
 
             
 class Transaction:
-    def __init__(self):
-        self.payment_addr = pc.content(FILES['payment']['address'])
+    def __init__(self, latest=True, uuid=MUUID):
+        self.payment_addr = pc.content(sdir(FILES['payment']['address']))
         self.utx0 = pc.get_payment_utx0(self.payment_addr)        
-
+        self.s = Session(latest, uuid)
 
     def _calculate_utx0_lovelace(self, fees):
         a = CreateToken()
@@ -245,7 +257,7 @@ class Transaction:
                      "--fee", str(fees),
                      "--mint", new_coin_mint_str,
                      "--tx-out", self.payment_addr+"+"+str(utx0_status["remaining_fund"])+"+"+new_coin_mint_str,
-                     "--out-file", FILES['transaction']['raw']]+tx_in_array
+                     "--out-file", self.s.sdir(FILES['transaction']['raw'])]+tx_in_array
             
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
             print(Fore.GREEN + f"Output of command {command} is:{s}")
@@ -266,13 +278,13 @@ class Transaction:
         """
         try:
             command=[ "cardano-cli", "transaction", "calculate-min-fee",
-                      "--tx-body-file", FILES['transaction']['raw'],
+                      "--tx-body-file", self.s.sdir(FILES['transaction']['raw']),
                       "--tx-in-count",str(len(self.utx0)),
                       "--tx-out-count", '1',
                       "--witness-count", '2',
                       "--byron-witness-count", '0',
                       "--mainnet",
-                      "--protocol-params-file", files('protocol')]
+                      "--protocol-params-file", self.s.sdir(FILES['protocol'])]
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
             min_fees = int(s.split(" ")[0])  
             print(Fore.GREEN + f"Output of command {command} is:{min_fees}")
@@ -294,12 +306,12 @@ class Transaction:
         """
         try:
             command = ["cardano-cli", "transaction", "sign",
-                       "--signing-key-file", files('policy','signature'),
-                       "--signing-key-file", files('payment','signature'),
-                       "--script-file", files('policy','script'),
+                       "--signing-key-file", self.s.sdir(FILES['policy']['signature']),
+                       "--signing-key-file", self.s.sdir(FILES['payment']['signature']),
+                       "--script-file", self.s.sdir(FILES['policy']['script']),
                        "--mainnet",
-                       "--tx-body-file", files('transaction','raw'),
-                       '--out-file', files('transaction','signed')]
+                       "--tx-body-file", self.s.sdir(FILES['transaction']['raw']),
+                       '--out-file', self.s.sdir(FILES['transaction']['signed'])]
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
             print(Fore.GREEN + f"Output of command {command} is:{s}")
         except:
@@ -312,18 +324,19 @@ class Transaction:
         ./cardano-cli transaction submit --tx-file  matx.signed --mainnet
         """
         try:
-            command = ["cardano-cli", "transaction", "submit", "--tx-file", files('transaction','signed') , "--mainnet"]
+            command = ["cardano-cli", "transaction", "submit", "--tx-file", self.s.sdir(FILES['transaction']['signed']) , "--mainnet"]
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
             print(Fore.GREEN + f"Output of command {command} is:{s}")
         except:
             logging.exception("Could not submit transaction")
             
 
-    def mint_new_asset(self, policy_file=files(['policy','script'])):
+    def mint_new_asset(self):
         """
         ./cardano-cli transaction policyid --script-file ./policy/policy.script 
-        """
+        """        
         try:
+            policy_file=self.s.sdir(FILES['policy']['script'])
             command = ["cardano-cli", "transaction", "policyid", "--script-file", policy_file]
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
             print(f"Successful: Output of command {command} is:{s}")
@@ -332,7 +345,7 @@ class Transaction:
             logging.exception("Could not mint new asset")            
             
 
-    def main(self, num_coins, coin_name):
+    def main(self, num_coins, coin_name=TOKEN_NAME):
         a = CreateToken()
         t =  a.check_payment()
         if t['amount'] == 0:
@@ -349,10 +362,22 @@ class Transaction:
 
 
 if __name__ == "__main__":
-    num_coins = 1
-    coin_name = "NFT"
+
+    import argparse
+    # create parser
+    parser = argparse.ArgumentParser()
     
-    c = CreateToken(coin_name)
+    parser.add_argument('--latest', dest='latest', action='store_true')
+    parser.add_argument('--not-latest', dest='latest', action='store_false')
+    parser.add_argument('--uuid', dest='uuid')
+    parser.set_defaults(latest=True)
+
+    args = parser.parse_args()
+    
+    num_coins = 1
+    coin_name = TOKEN_NAME
+
+    c = CreateToken(coin_name, args.latest, args.uuid)
 
     if not c.check_status('phase_1'):
         c.main_phase1()
@@ -366,13 +391,13 @@ if __name__ == "__main__":
     else:
         print('STEP 2 has been already run')
 
-    if c.check_status('phase_1') and c.check_status('phase_2') and not c.check_status('phase_3'):
-        print(Fore.RED + 'Now proceeding to step 3')
-        t = Transaction()
-        t.main(num_coins, coin_name)
-        print("\n\n")
-    else:
-        print('STEP 3 also has been completed earlier!')
+    # if c.check_status('phase_1') and c.check_status('phase_2') and not c.check_status('phase_3'):
+    #     print(Fore.RED + 'Now proceeding to step 3')
+    #     t = Transaction(args.latest, args.uuid)
+    #     t.main(num_coins, coin_name)
+    #     print("\n\n")
+    # else:
+    #     print('STEP 3 also has been completed earlier!')
             
 
 
