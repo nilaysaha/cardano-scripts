@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 
-
 """
 Steps from:https://developers.cardano.org/en/development-environments/native-tokens/working-with-multi-asset-tokens/
 Goal: to withdraw the native tokens to the Daedalus wallet (or backed by hardware wallet)
@@ -45,10 +44,12 @@ class Transfer:
 
 
     def _generate_dest_addr_str(self):
-        
+        return f"{self.dest_addr}+{self.amount}+'{}'"
     
     def raw_trans(self, fees, payment_addr, recipient_addr):
         """
+        Sample for : sending 1 melcoin to the recipient
+
         ./cardano-cli transaction build-raw \
 	     --mary-era \
              --fee 0 \
