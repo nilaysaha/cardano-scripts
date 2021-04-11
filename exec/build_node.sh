@@ -170,7 +170,7 @@ then
    helpFunction
 else
     #installTools
-    #installLibSodium
+    installLibSodium
     # Now execute the stuff
     # Pullcode
     # buildNode   

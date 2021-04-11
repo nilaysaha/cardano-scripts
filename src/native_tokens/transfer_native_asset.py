@@ -22,6 +22,8 @@ FILES={
     }
 }
 
+MINIMUM_TOKEN_AMOUNT_ACCOMPANYING_TRANSFER=1.407406
+
 
 class Transfer:
     def __init__(self, amount, policyid, coin_name,  output_addr):
@@ -45,8 +47,16 @@ class Transfer:
 
     def _generate_dest_addr_str(self):
         return f"{self.dest_addr}+{self.amount}+'{}'"
+
+    def remaining_fund(self, fees):
+        rfund = pc.get_total_fund_in_utx0(self.payment_addr) - fees
+        return rfund
+
+    def remaining_native_tokens(self):
+        rtokens = 10 #to be calculated. Till now no function to extract number available in payment address and substract self.amount
+        return rtokens
     
-    def raw_trans(self, fees, payment_addr, recipient_addr):
+    def raw_trans(self, fees):
         """
         Sample for : sending 1 melcoin to the recipient
 
@@ -58,8 +68,13 @@ class Transfer:
              --tx-out addr_test1vqvlku0ytscqg32rpv660uu4sgxlje25s5xrpz7zjqsva3c8pfckz+999821915+"999000000 328a60495759e0d8e244eca5b85b2467d142c8a755d6cd0592dff47b.melcoin" \  #payment address
              --out-file rec_matx.raw
         """
+        remaining_fund = self.remaining_fund(fees)
+        remaining_native_tokens = self.remaining_native_tokens()
         tx_in_array = self._generate_tx_in()
-        command=["cardano-cli", "transaction", "build-raw", "--mary-era", "--fee", str(0),
+        tx_out_receiver = f'{self.dest_addr}+{MINIMUM_TOKEN_AMOUNT_ACCOMPANYING_TRANSFER}+"{self.amount} {self.pid}.{self.coin_name}"'
+        tx_out_self_payment_addr = f'{self.payment_addr}+{remaining_fund}+"{remaining_native_tokens} {self.pid}.{self.coin_name}"'
+        command=["cardano-cli", "transaction", "build-raw", "--mary-era",
+                 "--fee", str(fees),
                  "--tx-out", self.dest_addr,
                  "--tx-out", self.
                  ,"--tx-in"]+tx_in_array
