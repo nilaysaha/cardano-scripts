@@ -8,22 +8,19 @@ Goal: to withdraw the native tokens to the Daedalus wallet (or backed by hardwar
 """
 
 import process_certs as pc
+import create_nft_token as nft
 
-
-FILES={
-    'protocol':'./kaddr_token/protocol.json',
-    'payment':{
-        'addr':"./kaddr_token/pay.addr",
-        'skey':"./kaddr_token/pay.skey"
-    },
-    'transaction':{
-        'raw':"./kaddr_token/t.raw",
-        'signed':"./kaddr_token/t.signed"        
-    }
-}
 
 MINIMUM_TOKEN_AMOUNT_ACCOMPANYING_TRANSFER=1.407406
 
+def calculate_native_token_count(uuid):
+    try:
+        s = nft.Session(uuid)
+        payment_addr = pc.content(s.sdir(nft.FILES['payment']['address']))
+        utx0 = pc.get_payment_utx0(payment_addr)        
+    except:
+        logging.exception("Unable to calculate native token count in payment address")
+        
 
 class Transfer:
     def __init__(self, amount, policyid, coin_name,  output_addr):
@@ -42,8 +39,7 @@ class Transfer:
             print(f"tx_in:{tx_in}")
             tx_in_array.append('--tx-in')
             tx_in_array.append(tx_in)
-        return tx_in_array
-
+        return tx_in_array                   
 
     def _generate_dest_addr_str(self):
         return f"{self.dest_addr}+{self.amount}+'{}'"
