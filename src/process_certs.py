@@ -14,6 +14,8 @@ BASE_ADDRESS_TXHASH="a09ba8bfc4b33961a744e059429b06981bfd689916971803371748917ce
 
 CARDANO_CLI="/home/nsaha/.cabal/bin/cardano-cli"
 
+TESTNET_MAGIC=1097911063
+
 def content(fname):
     f = open(fname, "r")
     text = f.read()
@@ -39,12 +41,11 @@ def get_ttl():
 def create_protocol():
     """
         cardano-cli query protocol-parameters \
-        --mary-era
         --testnet-magic ${NETWORK_MAGIC} \
         --out-file ./kaddr/protocol.json
     """
     try:
-        command = [ CARDANO_CLI, "query", "protocol-parameters",  "--mary-era" ,"--mainnet", "--out-file",
+        command = [ CARDANO_CLI, "query", "protocol-parameters", "--mainnet", "--out-file",
                     FILES['configs']['protocol']]
         s = subprocess.check_output(command)
     except:
@@ -66,7 +67,6 @@ def _create_tx_in(tx_in):
 def _draft_transaction(tx_in, tx_out):
     """
     cardano-cli transaction build-raw \
-    --mary-era \
     --tx-in 4e3a6e7fdcb0d0efa17bf79c13aed2b4cb9baf37fb1aa2e39553d5bd720c5c99#4 \
     --tx-out $(cat payment2.addr)+0 \
     --tx-out $(cat payment.addr)+0 \
@@ -78,7 +78,7 @@ def _draft_transaction(tx_in, tx_out):
         ttl = get_ttl()
         print(f"Inside draft transaction")
         tx_in_array=_create_tx_in(tx_in)
-        command = ["cardano-cli", "transaction", "build-raw", "--mary-era",
+        command = ["cardano-cli", "transaction", "build-raw",
                    "--tx-out",tx_out,  "--ttl", ttl,  "--fee", '0', '--out-file', FILES['transaction']['draft'] ] + tx_in_array
         print(command)
         s = subprocess.check_output(command)
@@ -126,7 +126,7 @@ def calculate_min_fees(tx_in, ttl, options={"raw_transaction":False}):
     except:
         print("Oops!", sys.exc_info()[0], "occurred in calculate min fees")
         
-def get_payment_utx0(payment_addr=None):
+def get_payment_utx0(payment_addr=None, testnet=False):
     """
     should be able to add all the utx0 to the address.
     """
@@ -135,8 +135,11 @@ def get_payment_utx0(payment_addr=None):
             payment_addr = content(FILES['payment']['addr'])
             
         final_array = []
-                
-        command=[CARDANO_CLI , 'query', 'utxo', '--mary-era', '--address', payment_addr, '--mainnet']
+
+        if testnet:
+            command=[CARDANO_CLI , 'query', 'utxo', '--address', payment_addr, '--testnet-magic', str(TESTNET_MAGIC)]
+        else:
+            command=[CARDANO_CLI , 'query', 'utxo', '--address', payment_addr, '--mainnet']
         s = subprocess.check_output(command)
         split_str=s.decode('UTF-8').split("\n")
         result = filter(lambda x: x != '', split_str) 
@@ -151,10 +154,10 @@ def get_payment_utx0(payment_addr=None):
     except:
         print("Oops!", sys.exc_info()[0], "occurred in get payment utx0")
 
-def get_total_fund_in_utx0(payment_addr=None):
+def get_total_fund_in_utx0(payment_addr=None, testnet=False):
     if payment_addr == None:
         payment_addr = content(FILES['payment']['addr'])
-    t = get_payment_utx0(payment_addr)
+    t = get_payment_utx0(payment_addr, testnet)
     total_fund = 0
     for val in t:
         total_fund += int(val[2])
@@ -197,7 +200,6 @@ class RegisterStake:
         """
         reconstruct: 
            cardano-cli transaction build-raw \
-            --mary-era \
             --tx-in b64ae44e1195b04663ab863b62337e626c65b0c9855a9fbb9ef4458f81a6f5ee#1 \ (multiple values allowed)
             --tx-out $(cat payment.addr)+999428515 \
             --ttl 987654 \
@@ -218,7 +220,6 @@ class RegisterStake:
             payment_addr = content(FILES['payment']['addr'])
             tx_out = "{paddr}+{rfund}".format(paddr=payment_addr, rfund=remaining_fund)
             command = [CARDANO_CLI, "transaction", "build-raw",
-                       "--mary-era",
                        "--tx-out",tx_out,
                        "--ttl", ttl,
                        "--fee", min_fee,

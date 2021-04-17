@@ -15,10 +15,14 @@ MUUID = str(uuid.uuid4())
 TOKEN_NAME="NFT-"+MUUID
 TOKEN_MAX_AMOUNT="1"
 
+TESTNET_MAGIC=1097911063
+
 FILES={
-    'payment':{'verification': 'pay.vkey',
-               'signature':'pay.skey',
-               'address':'pay.addr'},
+    'payment':{
+        'verification': 'pay.vkey',
+        'signature':'pay.skey',
+        'address':'pay.addr'
+    },
     'policy':{
         'verification': 'policy.vkey',
         'signature': 'policy.skey',
@@ -40,20 +44,32 @@ class Session:
     def __init__(self, latest=True, uuid=MUUID):
         self.latest = latest
         self.uuid = uuid
+
+        if self.latest:
+            self.uuid = None #both cannot be valid. We give preference to the latest.
+
         
     def sdir(self,fpath):
         try:
+            dir_latest = os.path.join(os.getcwd(),'latest')
+            print(dir_latest)
+            
             if (not self.latest):
+                print("WE ARE NOT USING THE LATEST")
+                
                 dir_path = os.path.join(os.getcwd(),'sessions',self.uuid)
-                os.symlink(dir_path,dir_latest)
                 print(f"The directory being created for this session is:{dir_path}")
 
                 if not os.path.exists(dir_path):
-                    os.makedirs(dir_path,exist_ok=True)
+                    os.makedirs(dir_path,exist_ok=True)                    
                 else:
-                    print(f"Directory:{dir_path} exists already")            
+                    print(f"Directory:{dir_path} exists already")
+
+                if os.path.exists(dir_latest):
+                    os.unlink(dir_latest)
+                    
+                os.symlink(dir_path,dir_latest)
             else:
-                dir_latest = os.path.join(os.getcwd(),'latest')
                 dir_path = os.readlink(dir_latest)
                 print(f"Using the existing latest path:{dir_path}")
             
@@ -63,7 +79,7 @@ class Session:
 
 
 class CreateToken:
-    def __init__(self,token_name=TOKEN_NAME, latest=True, uuid=MUUID):
+    def __init__(self,token_name=TOKEN_NAME, latest=False, uuid=MUUID):
         self.name = token_name
         self.tip  = pc.get_tip() #Gets the current slot number
         self.s = Session(latest, uuid)
@@ -88,11 +104,13 @@ class CreateToken:
         ./cardano-cli address build \
         --payment-verification-key-file pay_bld.vkey \
         --out-file pay_bld.addr \
-        --mainnet        
+        --testnet-magic 764824073        
+ 
+        cardano-cli address build --payment-verification-key-file ./sessions/55d03462-cd0e-4fab-b0d6-0ce0be48e8bb/pay_bld.vkey --out-file ./sessions/55d03462-cd0e-4fab-b0d6-0ce0be48e8bb/pay_bld.addr
         """
         try:
             command = ["cardano-cli", "address", "build", "--payment-verification-key-file", self.s.sdir(FILES['payment']['verification']),
-                       '--out-file', self.s.sdir(FILES['payment']['address']), '--mainnet']
+                       '--out-file', self.s.sdir(FILES['payment']['address']), '--testnet-magic', str(TESTNET_MAGIC)]
             print(command)
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
             print(Fore.GREEN + f"Successful: Output of command {command} is:{s}")
@@ -104,11 +122,11 @@ class CreateToken:
     def export_protocol_params(self):
         """
         cardano-cli  query protocol-parameters \
-	     --mainnet \
+	     --testnet-magic 764824073 \
 	     --out-file protocol.json
         """
         try:
-            command = ["cardano-cli", "query" , "protocol-parameters", "--mainnet", "--mary-era","--out-file", self.s.sdir(FILES['protocol'])]
+            command = ["cardano-cli", "query" , "protocol-parameters", "--testnet-magic",str(TESTNET_MAGIC), "--out-file", self.s.sdir(FILES['protocol'])]
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
             print(Fore.GREEN + f"Successful:Output of command {command} is:{s}")
         except:
@@ -177,11 +195,11 @@ class CreateToken:
 
     def check_payment(self):
         """
-        ./cardano-cli query utxo --address `cat pay_bld.addr`   --mary-era --mainnet
+        ./cardano-cli query utxo --address `cat pay_bld.addr` --testnet-magic 764824073
         """
         try:
             payment_addr = pc.content(self.s.sdir(FILES['payment']['address']))
-            total_fund = pc.get_total_fund_in_utx0(payment_addr)
+            total_fund = pc.get_total_fund_in_utx0(payment_addr, True)
             print(f"Total funds in the address:{total_fund}")
             return {'addr':payment_addr, 'amount':total_fund}
         except:
@@ -232,7 +250,6 @@ class Transaction:
     def create_raw_trans(self, fees, num_coins, coin_name, policy_id):
         """
         ./cardano-cli transaction build-raw \
-	     --mary-era \
              --fee 0 \
              --invalid-before SLOT
              --invalid-hereafter SLOT+20
@@ -253,7 +270,7 @@ class Transaction:
 
             new_coin_mint_str = str(num_coins)+" "+policy_id+"."+coin_name
             utx0_status = self._calculate_utx0_lovelace(fees) 
-            command=["cardano-cli", "transaction", "build-raw", "--mary-era",
+            command=["cardano-cli", "transaction", "build-raw",
                      "--fee", str(fees),
                      "--mint", new_coin_mint_str,
                      "--tx-out", self.payment_addr+"+"+str(utx0_status["remaining_fund"])+"+"+new_coin_mint_str,
@@ -283,7 +300,7 @@ class Transaction:
                       "--tx-out-count", '1',
                       "--witness-count", '2',
                       "--byron-witness-count", '0',
-                      "--mainnet",
+                      "--testnet-magic", str(TESTNET_MAGIC),
                       "--protocol-params-file", self.s.sdir(FILES['protocol'])]
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
             min_fees = int(s.split(" ")[0])  
@@ -309,7 +326,7 @@ class Transaction:
                        "--signing-key-file", self.s.sdir(FILES['policy']['signature']),
                        "--signing-key-file", self.s.sdir(FILES['payment']['signature']),
                        "--script-file", self.s.sdir(FILES['policy']['script']),
-                       "--mainnet",
+                       "--testnet-magic", str(TESTNET_MAGIC),
                        "--tx-body-file", self.s.sdir(FILES['transaction']['raw']),
                        '--out-file', self.s.sdir(FILES['transaction']['signed'])]
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
@@ -321,10 +338,10 @@ class Transaction:
 
     def submit_transaction(self):
         """
-        ./cardano-cli transaction submit --tx-file  matx.signed --mainnet
+        ./cardano-cli transaction submit --tx-file  matx.signed --testnet-magic 764824073
         """
         try:
-            command = ["cardano-cli", "transaction", "submit", "--tx-file", self.s.sdir(FILES['transaction']['signed']) , "--mainnet"]
+            command = ["cardano-cli", "transaction", "submit", "--tx-file", self.s.sdir(FILES['transaction']['signed']) , "--testnet-magic", str(TESTNET_MAGIC)]
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
             print(Fore.GREEN + f"Output of command {command} is:{s}")
         except:
@@ -377,6 +394,11 @@ if __name__ == "__main__":
     num_coins = 1
     coin_name = TOKEN_NAME
 
+    if args.latest:
+        args.uuid = None
+    elif not args.uuid:
+        args.uuid = MUUID
+        
     c = CreateToken(coin_name, args.latest, args.uuid)
 
     if not c.check_status('phase_1'):
@@ -398,15 +420,3 @@ if __name__ == "__main__":
     #     print("\n\n")
     # else:
     #     print('STEP 3 also has been completed earlier!')
-            
-
-
-
-
-
-
-
-
-
-        
-        
