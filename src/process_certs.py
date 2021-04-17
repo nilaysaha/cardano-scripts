@@ -14,8 +14,6 @@ BASE_ADDRESS_TXHASH="a09ba8bfc4b33961a744e059429b06981bfd689916971803371748917ce
 
 CARDANO_CLI="/home/nsaha/.cabal/bin/cardano-cli"
 
-TESTNET_MAGIC=1097911063
-
 def content(fname):
     f = open(fname, "r")
     text = f.read()
@@ -126,9 +124,9 @@ def calculate_min_fees(tx_in, ttl, options={"raw_transaction":False}):
     except:
         print("Oops!", sys.exc_info()[0], "occurred in calculate min fees")
         
-def get_payment_utx0(payment_addr=None, testnet=False):
+def get_payment_utx0(payment_addr=None):
     """
-    should be able to add all the utx0 to the address.
+    should be able to add all the utx0 to the address. Ugly way that we have to support two networks. 
     """
     try:
         if payment_addr == None:
@@ -136,10 +134,11 @@ def get_payment_utx0(payment_addr=None, testnet=False):
             
         final_array = []
 
-        if testnet:
-            command=[CARDANO_CLI , 'query', 'utxo', '--address', payment_addr, '--testnet-magic', str(TESTNET_MAGIC)]
+        if os.environ["CHAIN"] == "testnet":
+            command=[CARDANO_CLI , 'query', 'utxo', '--address', payment_addr, '--testnet-magic', str(os.environ["MAGIC"])]
         else:
             command=[CARDANO_CLI , 'query', 'utxo', '--address', payment_addr, '--mainnet']
+            
         s = subprocess.check_output(command)
         split_str=s.decode('UTF-8').split("\n")
         result = filter(lambda x: x != '', split_str) 

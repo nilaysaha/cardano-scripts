@@ -14,8 +14,9 @@ colorama.init(autoreset=True)
 MUUID = str(uuid.uuid4())
 TOKEN_NAME="NFT-"+MUUID
 TOKEN_MAX_AMOUNT="1"
-
 TESTNET_MAGIC=1097911063
+
+os.environ["CHAINxo"] = "testnet"
 
 FILES={
     'payment':{
@@ -79,8 +80,7 @@ class Session:
 
 
 class CreateToken:
-    def __init__(self,token_name=TOKEN_NAME, latest=False, uuid=MUUID):
-        self.name = token_name
+    def __init__(self, latest=False, uuid=MUUID):
         self.tip  = pc.get_tip() #Gets the current slot number
         self.s = Session(latest, uuid)
         
@@ -91,11 +91,11 @@ class CreateToken:
         --signing-key-file pay_bld.skey        
         """
         try:
+            print(Fore.GREEN + f"Executing generate keys")            
             command = ["cardano-cli", "address", "key-gen", "--verification-key-file", self.s.sdir(FILES['payment']['verification']),
                        "--signing-key-file", self.s.sdir(FILES['payment']['signature'])]
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
-            print(Fore.GREEN + f"Successful:  Output of command {command} is:{s}")
-            
+            print(Fore.GREEN + f"Successful:  Output of command {command} is:{s}")            
         except:
             logging.exception("Could not generateg payment keys for token generation")
 
@@ -109,6 +109,7 @@ class CreateToken:
         cardano-cli address build --payment-verification-key-file ./sessions/55d03462-cd0e-4fab-b0d6-0ce0be48e8bb/pay_bld.vkey --out-file ./sessions/55d03462-cd0e-4fab-b0d6-0ce0be48e8bb/pay_bld.addr
         """
         try:
+            print(Fore.GREEN + f"Executing generate payment addr")            
             command = ["cardano-cli", "address", "build", "--payment-verification-key-file", self.s.sdir(FILES['payment']['verification']),
                        '--out-file', self.s.sdir(FILES['payment']['address']), '--testnet-magic', str(TESTNET_MAGIC)]
             print(command)
@@ -126,6 +127,7 @@ class CreateToken:
 	     --out-file protocol.json
         """
         try:
+            print(Fore.GREEN + f"Executing export protocol params")            
             command = ["cardano-cli", "query" , "protocol-parameters", "--testnet-magic",str(TESTNET_MAGIC), "--out-file", self.s.sdir(FILES['protocol'])]
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
             print(Fore.GREEN + f"Successful:Output of command {command} is:{s}")
@@ -141,6 +143,7 @@ class CreateToken:
         """
 
         try:
+            print(Fore.GREEN + f"Executing policy keys")            
             command = ["cardano-cli", "address", "key-gen", "--verification-key-file", self.s.sdir(FILES['policy']['verification']),
                        "--signing-key-file", self.s.sdir(FILES['policy']['signature'])]
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
@@ -154,6 +157,7 @@ class CreateToken:
         cardano-cli address key-hash --payment-verification-key-file policy/policy.vkey
         """
         try:
+            print(Fore.GREEN + f"Executing generate keyhash")            
             command = ["cardano-cli", "address", "key-hash", "--payment-verification-key-file", self.s.sdir(FILES['policy']['verification'])]
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
             print(Fore.GREEN + f"Successful: Output of command {command} is:{s}")
@@ -168,6 +172,7 @@ class CreateToken:
         generate keyhash and create policy script: FILES['policy']['script']
         """
         try:
+            print(Fore.GREEN + f"Executing generate default policy")            
             fname = self.s.sdir(FILES['policy']['script'])
             f = open(fname, "w+")
             policy_script = {
@@ -186,10 +191,12 @@ class CreateToken:
         """
         create file
         """
+        print(Fore.GREEN + f"Executing status file")            
         from pathlib import Path
         Path(self.s.sdir(FILES['status'][phase_id])).touch()
 
     def check_status(self,phase_id):
+        print(Fore.GREEN + f"Executing check status")            
         return  os.path.exists(self.s.sdir(FILES['status'][phase_id]))
 
 
@@ -198,6 +205,7 @@ class CreateToken:
         ./cardano-cli query utxo --address `cat pay_bld.addr` --testnet-magic 764824073
         """
         try:
+            print(Fore.GREEN + f"Executing check payments")            
             payment_addr = pc.content(self.s.sdir(FILES['payment']['address']))
             total_fund = pc.get_total_fund_in_utx0(payment_addr, True)
             print(f"Total funds in the address:{total_fund}")
@@ -234,15 +242,9 @@ class CreateToken:
             logging.exception("Could not complete phase 2")
 
             
-class Transaction:
-    def __init__(self, latest=True, uuid=MUUID):
-        self.payment_addr = pc.content(sdir(FILES['payment']['address']))
-        self.utx0 = pc.get_payment_utx0(self.payment_addr)        
-        self.s = Session(latest, uuid)
-
+class Transaction(CreateToken):
     def _calculate_utx0_lovelace(self, fees):
-        a = CreateToken()
-        n = a.check_payment()
+        n = self.check_payment()
         n["remaining_fund"] = n["amount"] -fees
         return n
             
@@ -260,6 +262,9 @@ class Transaction:
              --out-file matx.raw
         """        
         try:
+            payment_addr = pc.content(self.s.sdir(FILES['payment']['address']))
+            utx0 = pc.get_payment_utx0(payment_addr)        
+
             tx_in_array = []
             for val in self.utx0:
                 print(f"inside build_transaction: val:{val}")
@@ -362,9 +367,8 @@ class Transaction:
             logging.exception("Could not mint new asset")            
             
 
-    def main(self, num_coins, coin_name=TOKEN_NAME):
-        a = CreateToken()
-        t =  a.check_payment()
+    def main(self, coin_name, num_coins):
+        t =  self.check_payment()
         if t['amount'] == 0:
             print(f"Current amount in {t['addr']} is zero. Please send some ADA to this address")
         else:
@@ -413,10 +417,10 @@ if __name__ == "__main__":
     else:
         print('STEP 2 has been already run')
 
-    # if c.check_status('phase_1') and c.check_status('phase_2') and not c.check_status('phase_3'):
-    #     print(Fore.RED + 'Now proceeding to step 3')
-    #     t = Transaction(args.latest, args.uuid)
-    #     t.main(num_coins, coin_name)
-    #     print("\n\n")
-    # else:
-    #     print('STEP 3 also has been completed earlier!')
+    if c.check_status('phase_1') and c.check_status('phase_2') and not c.check_status('phase_3'):
+        print(Fore.RED + 'Now proceeding to step 3')
+        t = Transaction(c)
+        t.main(coin_name, num_coins)
+        print("\n\n")
+    else:
+        print('STEP 3 also has been completed earlier!')
