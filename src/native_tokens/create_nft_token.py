@@ -3,6 +3,7 @@
 import subprocess, json
 import process_certs as pc;
 import uuid
+from uuid import UUID
 import sys, os
 import logging
 import colorama
@@ -12,11 +13,13 @@ logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', datefmt=
 colorama.init(autoreset=True)
 
 MUUID = str(uuid.uuid4())
-TOKEN_NAME="NFT-"+MUUID
+TOKEN_NAME=UUID(MUUID).hex
 TOKEN_MAX_AMOUNT="1"
-TESTNET_MAGIC=1097911063
+MIN_NFT_SLOT_OFFSET=0
+MAX_NFT_SLOT_OFFSET=200
 
-os.environ["CHAINxo"] = "testnet"
+os.environ["CHAIN"] = "testnet"
+os.environ["MAGIC"] = "1097911063"
 
 FILES={
     'payment':{
@@ -76,10 +79,33 @@ class Session:
             
             return os.path.join(dir_path, fpath)
         except:
-            logging.exception("")
+            logging.exception(f"Failed to construct session:{self.uuid} path for {fpath}")
+            sys.exit(1)
 
 
+class Metadata:
+    def __init__(self, imgUrl, name, policyid):
+        self.imgUrl      = imgUrl
+        self.tokenname   = name
+        self.policyid    = policyid
+
+    def template(self):
+        t={}
+        t["nft"] = {
+            "name": self.name,
+            "image": self.imgUrl
+        }
+        t1 = {}
+        t1[policyid] = t
+
+        t2 = {"721": t1}
+        return t2
+        
 class CreateToken:
+    """
+    We will try to enforce the following CIP:https://forum.cardano.org/t/cip-nft-metadata-standard/45687
+    Thus when minting NFT we will metadata and the above CIP standard.
+    """
     def __init__(self, latest=False, uuid=MUUID):
         self.tip  = pc.get_tip() #Gets the current slot number
         self.s = Session(latest, uuid)
@@ -98,7 +124,8 @@ class CreateToken:
             print(Fore.GREEN + f"Successful:  Output of command {command} is:{s}")            
         except:
             logging.exception("Could not generateg payment keys for token generation")
-
+            sys.exit(1)
+            
     def generate_payment_addr(self):
         """
         ./cardano-cli address build \
@@ -111,13 +138,13 @@ class CreateToken:
         try:
             print(Fore.GREEN + f"Executing generate payment addr")            
             command = ["cardano-cli", "address", "build", "--payment-verification-key-file", self.s.sdir(FILES['payment']['verification']),
-                       '--out-file', self.s.sdir(FILES['payment']['address']), '--testnet-magic', str(TESTNET_MAGIC)]
+                       '--out-file', self.s.sdir(FILES['payment']['address']), '--testnet-magic', os.environ["MAGIC"]]
             print(command)
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
             print(Fore.GREEN + f"Successful: Output of command {command} is:{s}")
         except:
             logging.exception("Could not generate payment addr for token generation")
-
+            sys.exit(1)
 
 
     def export_protocol_params(self):
@@ -128,12 +155,12 @@ class CreateToken:
         """
         try:
             print(Fore.GREEN + f"Executing export protocol params")            
-            command = ["cardano-cli", "query" , "protocol-parameters", "--testnet-magic",str(TESTNET_MAGIC), "--out-file", self.s.sdir(FILES['protocol'])]
+            command = ["cardano-cli", "query" , "protocol-parameters", "--testnet-magic",os.environ["MAGIC"], "--out-file", self.s.sdir(FILES['protocol'])]
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
             print(Fore.GREEN + f"Successful:Output of command {command} is:{s}")
         except:
             logging.exception("Could not export protocol params")
-
+            sys.exit(1)
 
     def generate_policy_keys(self):
         """
@@ -150,7 +177,7 @@ class CreateToken:
             print(Fore.GREEN + f"Successful: Output of command {command} is:{s}")
         except:
             logging.exception("Could not generate policy keys")
-
+            sys.exit(1)
 
     def _generate_keyhash_pkey(self):
         """
@@ -164,7 +191,7 @@ class CreateToken:
             return s.split("\n")[0]
         except:
             logging.exception("Could not generate keyhash")
-            
+            sys.exit(1)
         
             
     def generate_default_policy(self):
@@ -185,7 +212,7 @@ class CreateToken:
             f.close()
         except:
             logging.exception("Could not generate default policy")
-
+            sys.exit(1)
 
     def create_status_file(self,phase_id):
         """
@@ -207,12 +234,12 @@ class CreateToken:
         try:
             print(Fore.GREEN + f"Executing check payments")            
             payment_addr = pc.content(self.s.sdir(FILES['payment']['address']))
-            total_fund = pc.get_total_fund_in_utx0(payment_addr, True)
+            total_fund = pc.get_total_fund_in_utx0(payment_addr)
             print(f"Total funds in the address:{total_fund}")
             return {'addr':payment_addr, 'amount':total_fund}
         except:
             logging.exception("Could not check payment")
-
+            sys.exit(1)
         
     
     def main_phase1(self):
@@ -225,7 +252,7 @@ class CreateToken:
             self.create_status_file('phase_1')
         except:
             logging.exception("Could not complete phase 1")
-
+            sys.exit(1)
             
     def main_phase2(self):
         """
@@ -240,8 +267,9 @@ class CreateToken:
             self.create_status_file('phase_2') #add status
         except:
             logging.exception("Could not complete phase 2")
-
+            sys.exit(1)
             
+                
 class Transaction(CreateToken):
     def _calculate_utx0_lovelace(self, fees):
         n = self.check_payment()
@@ -266,26 +294,39 @@ class Transaction(CreateToken):
             utx0 = pc.get_payment_utx0(payment_addr)        
 
             tx_in_array = []
-            for val in self.utx0:
+            for val in utx0:
                 print(f"inside build_transaction: val:{val}")
                 tx_in  = val[0]+"#"+val[1]
                 print(f"tx_in:{tx_in}")
                 tx_in_array.append('--tx-in')
                 tx_in_array.append(tx_in)
 
-            new_coin_mint_str = str(num_coins)+" "+policy_id+"."+coin_name
-            utx0_status = self._calculate_utx0_lovelace(fees) 
-            command=["cardano-cli", "transaction", "build-raw",
-                     "--fee", str(fees),
-                     "--mint", new_coin_mint_str,
-                     "--tx-out", self.payment_addr+"+"+str(utx0_status["remaining_fund"])+"+"+new_coin_mint_str,
-                     "--out-file", self.s.sdir(FILES['transaction']['raw'])]+tx_in_array
+            new_coin_mint_str = str(num_coins)+' '+policy_id+'.'+coin_name
+            utx0_status = self._calculate_utx0_lovelace(fees)
+
+            ctip = int(pc.get_tip())
+            print(Fore.RED + f"Current slotid/tip is:{ctip}")
             
+            min_slot_id=ctip+MIN_NFT_SLOT_OFFSET
+            max_slot_id=ctip+MAX_NFT_SLOT_OFFSET
+
+            
+            
+            command=["cardano-cli", "transaction", "build-raw",
+                     "--mint", new_coin_mint_str,
+                     "--fee", str(fees),
+                     "--invalid-before",str(min_slot_id),
+                     "--invalid-hereafter", str(max_slot_id),
+                     "--tx-out", payment_addr+"+"+str(utx0_status["remaining_fund"])+"+"+new_coin_mint_str,
+                     "--out-file", self.s.sdir(FILES['transaction']['raw'])]+tx_in_array
+
+            
+            print(Fore.RED + f"executing command {command}")
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
-            print(Fore.GREEN + f"Output of command {command} is:{s}")
+            print(Fore.GREEN + f"Output is {s}")
         except:
             logging.exception("Could not create raw transaction")
-
+            sys.exit(1)
 
     def calculate_min_fees(self):
         """
@@ -299,23 +340,28 @@ class Transaction(CreateToken):
         --protocol-params-file protocol.json        
         """
         try:
+            payment_addr = pc.content(self.s.sdir(FILES['payment']['address']))
+            utx0 = pc.get_payment_utx0(payment_addr)        
+
             command=[ "cardano-cli", "transaction", "calculate-min-fee",
                       "--tx-body-file", self.s.sdir(FILES['transaction']['raw']),
-                      "--tx-in-count",str(len(self.utx0)),
+                      "--tx-in-count",str(len(utx0)),
                       "--tx-out-count", '1',
                       "--witness-count", '2',
                       "--byron-witness-count", '0',
-                      "--testnet-magic", str(TESTNET_MAGIC),
+                      "--testnet-magic", os.environ["MAGIC"],
                       "--protocol-params-file", self.s.sdir(FILES['protocol'])]
+
+            print(Fore.RED + f"executing command {command}")
+            
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
             min_fees = int(s.split(" ")[0])  
-            print(Fore.GREEN + f"Output of command {command} is:{min_fees}")
+            print(Fore.GREEN + f"Output is min_fees:{min_fees}")
             return min_fees
         except:
             logging.exception("Could not calculate min fees")
-        
-
-
+            sys.exit(1)
+            
     def sign_transaction(self):
         """
         ./cardano-cli transaction sign \
@@ -331,14 +377,17 @@ class Transaction(CreateToken):
                        "--signing-key-file", self.s.sdir(FILES['policy']['signature']),
                        "--signing-key-file", self.s.sdir(FILES['payment']['signature']),
                        "--script-file", self.s.sdir(FILES['policy']['script']),
-                       "--testnet-magic", str(TESTNET_MAGIC),
+                       "--testnet-magic", os.environ["MAGIC"],
                        "--tx-body-file", self.s.sdir(FILES['transaction']['raw']),
                        '--out-file', self.s.sdir(FILES['transaction']['signed'])]
+
+            print(Fore.RED + f"executing command {command}")
+            
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
-            print(Fore.GREEN + f"Output of command {command} is:{s}")
+            print(Fore.GREEN + f"Output is:{s}")
         except:
             logging.exception("Could not sign transaction")
-
+            sys.exit(1)
         
 
     def submit_transaction(self):
@@ -346,12 +395,12 @@ class Transaction(CreateToken):
         ./cardano-cli transaction submit --tx-file  matx.signed --testnet-magic 764824073
         """
         try:
-            command = ["cardano-cli", "transaction", "submit", "--tx-file", self.s.sdir(FILES['transaction']['signed']) , "--testnet-magic", str(TESTNET_MAGIC)]
+            command = ["cardano-cli", "transaction", "submit", "--tx-file", self.s.sdir(FILES['transaction']['signed']) , "--testnet-magic", os.environ["MAGIC"]]
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
             print(Fore.GREEN + f"Output of command {command} is:{s}")
         except:
             logging.exception("Could not submit transaction")
-            
+            sys.exit(1)
 
     def mint_new_asset(self):
         """
@@ -365,21 +414,25 @@ class Transaction(CreateToken):
             return s.split("\n")[0]
         except:
             logging.exception("Could not mint new asset")            
-            
+            sys.exit(1)
 
     def main(self, coin_name, num_coins):
-        t =  self.check_payment()
-        if t['amount'] == 0:
-            print(f"Current amount in {t['addr']} is zero. Please send some ADA to this address")
-        else:
-            policy_id = self.mint_new_asset()
-            print(f"found policy id:{policy_id}")
-            fees = 0
-            self.create_raw_trans(fees, num_coins, coin_name, policy_id)
-            min_fees = self.calculate_min_fees()
-            self.create_raw_trans(min_fees, num_coins, coin_name, policy_id)
-            self.sign_transaction()
-            self.submit_transaction()
+        try:
+            t =  self.check_payment()
+            if t['amount'] == 0:
+                print(f"Current amount in {t['addr']} is zero. Please send some ADA to this address")
+            else:
+                policy_id = self.mint_new_asset()
+                print(f"found policy id:{policy_id}")
+                fees = 0
+                self.create_raw_trans(fees, num_coins, coin_name, policy_id)
+                min_fees = self.calculate_min_fees()
+                self.create_raw_trans(min_fees, num_coins, coin_name, policy_id)
+                self.sign_transaction()
+                self.submit_transaction()
+        except:
+            logging.exception("Failed main function")
+            sys.exit(1)
 
 
 if __name__ == "__main__":
@@ -403,7 +456,7 @@ if __name__ == "__main__":
     elif not args.uuid:
         args.uuid = MUUID
         
-    c = CreateToken(coin_name, args.latest, args.uuid)
+    c = CreateToken(args.latest, args.uuid)
 
     if not c.check_status('phase_1'):
         c.main_phase1()

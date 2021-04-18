@@ -1,6 +1,15 @@
 #!/bin/python3
 
-import subprocess, sys, json
+import subprocess, sys, json, os
+import logging
+import colorama
+from colorama import Fore, Back, Style
+
+
+logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', datefmt='%d-%m-%y %H:%M:%S')
+colorama.init(autoreset=True)
+
+
 
 FILES={'stake': {'verify_key': "./kaddr/stake.vkey", 'addr': './kaddr/stake.addr', 'sign_key': './kaddr/stake.skey', 'cert': './kaddr/stake.cert' },
        'payment': {'verify_key': './kaddr/payment.vkey', 'addr': './kaddr/payment.addr', 'sign_key': './kaddr/payment.skey'},
@@ -22,11 +31,14 @@ def content(fname):
 
 def get_tip():
     try:
-        command = [CARDANO_CLI , "query" , "tip" ,"--mainnet"]
+        if os.environ["CHAIN"] == "testnet":
+            command=[CARDANO_CLI , 'query', 'tip','--testnet-magic', str(os.environ["MAGIC"])]
+        else:
+            command = [CARDANO_CLI , "query" , "tip" ,"--mainnet"]
         s =  subprocess.check_output(command, stderr=True, universal_newlines=True)
         print(s)
         s_package = json.loads(s)
-        return s_package["slotNo"]
+        return s_package["slot"]
     except:
         print("Oops!", sys.exc_info()[0], "occurred get ttl")
 
@@ -47,7 +59,7 @@ def create_protocol():
                     FILES['configs']['protocol']]
         s = subprocess.check_output(command)
     except:
-        print(f"Oops! Error occured during create_protocol: {sys.exc_info()[0]}")
+        logging.exception(f"Oops! Error occured during create_protocol")
 
 
 def _create_tx_in(tx_in):
@@ -82,7 +94,7 @@ def _draft_transaction(tx_in, tx_out):
         s = subprocess.check_output(command)
         print(s)
     except:
-        print("Oops!", sys.exc_info(), "occurred in draft transaction")
+        logging.exception("failed to draft transaction")
         
 def calculate_min_fees(tx_in, ttl, options={"raw_transaction":False}):
     try:
@@ -122,7 +134,7 @@ def calculate_min_fees(tx_in, ttl, options={"raw_transaction":False}):
         min_fee = s.split(" ")[0]
         return min_fee
     except:
-        print("Oops!", sys.exc_info()[0], "occurred in calculate min fees")
+        logging.exception("Failed to calculate min fees")
         
 def get_payment_utx0(payment_addr=None):
     """
@@ -145,23 +157,33 @@ def get_payment_utx0(payment_addr=None):
         farray = list(result)[2:]
         print(f"farray:{farray}")        
         for val in farray:
-            print(val)
-            (txHash, txtx, lovelace, dumbo) = val.split()
+            print(f"Now trying to split up :{val}\n")
+
+            #Now we have to distinguish the scenario of presence of native tokens as well.
+            #Scenario 1:'65fc4a7a2429e90b54848e9ceb24992bdf4a1dbd248259b9e91ff616df74aa22     0        1407406 lovelace + 2 6b8d07d69639e9413dd637a1a815a7323c69c86abbafb66dbfdb1aa7'
+            #Scenario 2:'bd46fa89a00ae1ae4629fe85557a1695dfbc760a5227008beb074dda3976e9ea     0        1000000000 lovelace'
+            
+            (txHash, txtx, lovelace) = val.split('lovelace')[0].split()
             final_array.append((txHash, txtx, lovelace))
         print(f"final array:{final_array}")
         return final_array
     except:
-        print("Oops!", sys.exc_info()[0], "occurred in get payment utx0")
+        logging.exception("Failed to get payment utx0")
 
-def get_total_fund_in_utx0(payment_addr=None, testnet=False):
-    if payment_addr == None:
-        payment_addr = content(FILES['payment']['addr'])
-    t = get_payment_utx0(payment_addr, testnet)
-    total_fund = 0
-    for val in t:
-        total_fund += int(val[2])
-    return total_fund
-        
+def get_total_fund_in_utx0(payment_addr=None):
+    try:
+        print(f"Now trying to get total funds in ADA in address:{payment_addr}")
+        if payment_addr == None:
+            payment_addr = content(FILES['payment']['addr'])
+        t = get_payment_utx0(payment_addr)
+        total_fund = 0
+        for val in t:
+            total_fund += int(val[2])
+        return total_fund
+    except:
+        logging.exception(f"Failed to get total fund in the utxo of address:{payment_addr}")
+    
+    
 def get_key_deposit_fee():
     import json
     s = json.loads(content(FILES['configs']['protocol']))    
@@ -188,7 +210,7 @@ def get_funds_via_faucet():
         r = requests.post(url = URL)
         return r.text #response text.
     except e:
-        print(e)
+        logging.exception("failed to get funds via faucet")
     
 
 class RegisterStake:
@@ -228,7 +250,7 @@ class RegisterStake:
             s = subprocess.check_output(command)
             split_str=s.decode('UTF-8').split(" ")
         except:
-            print("Oops!", sys.exc_info()[0], "occurred in build transaction")
+            logging.exception("Failed to build transaction in registerstake")
 
     def sign_transaction(self):
         """
@@ -248,7 +270,7 @@ class RegisterStake:
             s = subprocess.check_output(command)
             print(s)
         except:
-            print("Oops!", sys.exc_info()[0], "occurred in sign transaction")
+            logging.exception("Failure in sign transaction")
 
 
     def submit_transaction(self):
@@ -264,7 +286,7 @@ class RegisterStake:
             s = subprocess.check_output(command)
             print("Submitted transaction for stake registration on chain usin: {command}. Result is: {s}")
         except:
-            print("Oops!", sys.exc_info()[0], "occurred in submit transaction")
+            logging.exception("Failed to submit transaction")
             
 def main():
     try:
@@ -290,7 +312,7 @@ def main():
         a.submit_transaction()       
  
     except:
-        print("Oops!", sys.exc_info()[0], "occurred in main")
+        logging.exception("Error in main function of process_certs.py")
         
 if __name__ == "__main__": 
     main()                       
