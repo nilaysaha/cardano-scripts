@@ -18,6 +18,8 @@ TOKEN_MAX_AMOUNT="1"
 MIN_NFT_SLOT_OFFSET=0
 MAX_NFT_SLOT_OFFSET=200
 
+DEFAULT_URL="/ipfs/QmYypFZyFUwo4WNKzumg9FJbw836bZTbguqeLaazKmiHjb"
+
 os.environ["CHAIN"] = "testnet"
 os.environ["MAGIC"] = "1097911063"
 
@@ -41,9 +43,24 @@ FILES={
         'phase_1':'phase_1',
         'phase_2':'phase_2',
         'phase_3':'phase_3',
+    },
+    'metadata': {
+        'store': 'metadata.json'
     }
 }
 
+def fetch_uuid_for_latest():
+    try:
+        dir_latest = os.path.join(os.getcwd(),'latest')
+        dir_path = os.readlink(dir_latest)
+        path_array = os.path.split(dir_path)
+        print(f"path array is:{path_array}")
+        return path_array[1]
+    except:
+        logging.exception("Could not find the uuid corresponding to the latest")
+        sys.exit(1)
+
+        
 class Session:
     def __init__(self, latest=True, uuid=MUUID):
         self.latest = latest
@@ -82,24 +99,38 @@ class Session:
             logging.exception(f"Failed to construct session:{self.uuid} path for {fpath}")
             sys.exit(1)
 
+                
+            
 
-class Metadata:
-    def __init__(self, imgUrl, name, policyid):
+class TokenMetadata:
+    """
+    Right now we are doing for single token. Later this can be adapted for multiple tokens.
+    The CIP submitted for this is: https://www.reddit.com/r/CardanoDevelopers/comments/mkhlv8/nft_metadata_standard/
+    """
+    def __init__(self,uuid, name, policyid,  imgUrl, extra_data={}):
         self.imgUrl      = imgUrl
         self.tokenname   = name
         self.policyid    = policyid
+        self.data = extra_data
+        self.uuid = uuid
 
-    def template(self):
+    def form(self):
         t={}
         t["nft"] = {
-            "name": self.name,
+            "name": self.tokenname,
             "image": self.imgUrl
         }
         t1 = {}
-        t1[policyid] = t
+        t1[self.policyid] = t
 
         t2 = {"721": t1}
-        return t2
+
+        s = Session(True, self.uuid)
+        metadata_file = s.sdir(FILES['metadata']['store'])
+        f = open(metadata_file, 'w')
+        json.dump(t2, f)
+        f.close()
+        return metadata_file
         
 class CreateToken:
     """
@@ -109,6 +140,7 @@ class CreateToken:
     def __init__(self, latest=False, uuid=MUUID):
         self.tip  = pc.get_tip() #Gets the current slot number
         self.s = Session(latest, uuid)
+        self.uuid = uuid
         
     def generate_keys(self):
         """
@@ -277,12 +309,15 @@ class Transaction(CreateToken):
         return n
             
         
-    def create_raw_trans(self, fees, num_coins, coin_name, policy_id):
+    def create_raw_trans(self, fees, num_coins, coin_name, policy_id, metadata_file):
         """
+        Pls note: there is redundant data in metadata_info (which also contains coin_name, policy etc.). Can be optimized later.
+
         ./cardano-cli transaction build-raw \
              --fee 0 \
              --invalid-before SLOT
              --invalid-hereafter SLOT+20
+             --metadata-json-file metadata_file
              --tx-in b1ddb0347fed2aecc7f00caabaaf2634f8e2d17541f6237bbed78e2092e1c414#0 \
              --tx-out addr_test1vqvlku0ytscqg32rpv660uu4sgxlje25s5xrpz7zjqsva3c8pfckz+1000000000+"1000000000
                 328a60495759e0d8e244eca5b85b2467d142c8a755d6cd0592dff47b.melcoin" \
@@ -291,8 +326,8 @@ class Transaction(CreateToken):
         """        
         try:
             payment_addr = pc.content(self.s.sdir(FILES['payment']['address']))
-            utx0 = pc.get_payment_utx0(payment_addr)        
-
+            utx0 = pc.get_payment_utx0(payment_addr)
+            
             tx_in_array = []
             for val in utx0:
                 print(f"inside build_transaction: val:{val}")
@@ -315,6 +350,7 @@ class Transaction(CreateToken):
             command=["cardano-cli", "transaction", "build-raw",
                      "--mint", new_coin_mint_str,
                      "--fee", str(fees),
+                     "--metadata-json-file", metadata_file,
                      "--invalid-before",str(min_slot_id),
                      "--invalid-hereafter", str(max_slot_id),
                      "--tx-out", payment_addr+"+"+str(utx0_status["remaining_fund"])+"+"+new_coin_mint_str,
@@ -416,7 +452,7 @@ class Transaction(CreateToken):
             logging.exception("Could not mint new asset")            
             sys.exit(1)
 
-    def main(self, coin_name, num_coins):
+    def main(self, coin_name, num_coins, imgUrl=None, extra_metadata={}):
         try:
             t =  self.check_payment()
             if t['amount'] == 0:
@@ -424,10 +460,18 @@ class Transaction(CreateToken):
             else:
                 policy_id = self.mint_new_asset()
                 print(f"found policy id:{policy_id}")
+
+                #Now create the metadata associated with this transaction
+                m = TokenMetadata(self.uuid, coin_name,policy_id,imgUrl)
+                metadata_file = m.form()
+                
+                
                 fees = 0
-                self.create_raw_trans(fees, num_coins, coin_name, policy_id)
+                self.create_raw_trans(fees, num_coins, coin_name, policy_id, metadata_file)
+                
                 min_fees = self.calculate_min_fees()
-                self.create_raw_trans(min_fees, num_coins, coin_name, policy_id)
+                self.create_raw_trans(min_fees, num_coins, coin_name, policy_id, metadata_file)
+
                 self.sign_transaction()
                 self.submit_transaction()
         except:
@@ -452,7 +496,7 @@ if __name__ == "__main__":
     coin_name = TOKEN_NAME
 
     if args.latest:
-        args.uuid = None
+        args.uuid = fetch_uuid_for_latest()
     elif not args.uuid:
         args.uuid = MUUID
         
@@ -473,7 +517,7 @@ if __name__ == "__main__":
     if c.check_status('phase_1') and c.check_status('phase_2') and not c.check_status('phase_3'):
         print(Fore.RED + 'Now proceeding to step 3')
         t = Transaction(c)
-        t.main(coin_name, num_coins)
+        t.main(coin_name, num_coins,DEFAULT_URL,)
         print("\n\n")
     else:
         print('STEP 3 also has been completed earlier!')
