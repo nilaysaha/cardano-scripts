@@ -309,7 +309,7 @@ class Transaction(CreateToken):
         return n
             
         
-    def create_raw_trans(self, fees, num_coins, coin_name, policy_id, metadata_file):
+    def create_raw_trans(self, fees, num_coins, recv_addr, coin_name, policy_id, metadata_file):
         """
         Pls note: there is redundant data in metadata_info (which also contains coin_name, policy etc.). Can be optimized later.
 
@@ -353,7 +353,8 @@ class Transaction(CreateToken):
                      "--metadata-json-file", metadata_file,
                      "--invalid-before",str(min_slot_id),
                      "--invalid-hereafter", str(max_slot_id),
-                     "--tx-out", payment_addr+"+"+str(utx0_status["remaining_fund"])+"+"+new_coin_mint_str,
+                     "--tx-out", payment_addr+"+"+str(utx0_status["remaining_fund"]),
+                     "--tx-out", recv_addr+"+"+new_coin_mint_str,
                      "--out-file", self.s.sdir(FILES['transaction']['raw'])]+tx_in_array
 
             
@@ -452,7 +453,7 @@ class Transaction(CreateToken):
             logging.exception("Could not mint new asset")            
             sys.exit(1)
 
-    def main(self, coin_name, num_coins, imgUrl=None, extra_metadata={}):
+    def main(self, coin_name, num_coins, recv_addr, imgUrl=None, extra_metadata={}):
         try:
             t =  self.check_payment()
             if t['amount'] == 0:
@@ -467,10 +468,10 @@ class Transaction(CreateToken):
                 
                 
                 fees = 0
-                self.create_raw_trans(fees, num_coins, coin_name, policy_id, metadata_file)
+                self.create_raw_trans(fees, num_coins, recv_addr, coin_name, policy_id, metadata_file)
                 
                 min_fees = self.calculate_min_fees()
-                self.create_raw_trans(min_fees, num_coins, coin_name, policy_id, metadata_file)
+                self.create_raw_trans(min_fees, num_coins, recv_addr, coin_name, policy_id, metadata_file)
 
                 self.sign_transaction()
                 self.submit_transaction()
@@ -488,6 +489,7 @@ if __name__ == "__main__":
     parser.add_argument('--latest', dest='latest', action='store_true')
     parser.add_argument('--not-latest', dest='latest', action='store_false')
     parser.add_argument('--uuid', dest='uuid')
+    parser.add_argument('--recv-addr', dest='recvAddr')
     parser.set_defaults(latest=True)
 
     args = parser.parse_args()
@@ -517,7 +519,7 @@ if __name__ == "__main__":
     if c.check_status('phase_1') and c.check_status('phase_2') and not c.check_status('phase_3'):
         print(Fore.RED + 'Now proceeding to step 3')
         t = Transaction(c)
-        t.main(coin_name, num_coins,DEFAULT_URL,)
+        t.main(coin_name, num_coins, args.recvAddr, DEFAULT_URL,)
         print("\n\n")
     else:
         print('STEP 3 also has been completed earlier!')

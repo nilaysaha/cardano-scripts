@@ -7,10 +7,17 @@ Goal: to withdraw the native tokens to the Daedalus wallet (or backed by hardwar
 
 """
 
+import subprocess, json, os
 import process_certs as pc
 import create_nft_token as nft
+import logging
+import colorama
+from colorama import Fore, Back, Style
 
 MINIMUM_TOKEN_AMOUNT_ACCOMPANYING_TRANSFER=1.407406
+
+os.environ["CHAIN"] = "testnet"
+os.environ["MAGIC"] = "1097911063"
 
 
 FILES={
@@ -22,6 +29,10 @@ FILES={
     } 
 }
 
+def fetch_file(fpath, uuid):
+    s = nft.Session(False, uuid)
+    return s.sdir(fpath)
+
 
 class Transfer:
     def __init__(self, uuid, amount, policyid, coin_name,  output_addr):
@@ -30,22 +41,27 @@ class Transfer:
         self.pid    = policyid
         self.coin_name = coin_name
         self.dest_addr = output_addr
-        self.payment_addr = pc.content(FILES['payment']['addr'])
+        self.payment_addr = pc.content(fetch_file(nft.FILES['payment']['address'], uuid))
         self.utx0   = pc.get_payment_utx0(self.payment_addr)
-        self.s = nft.Session(self.uuid)
+        self.s = nft.Session(False,uuid)
         
     def _generate_tx_in(self):
-        tx_in_array = []
-        for val in self.utx0:
-            print(f"inside build_transaction: val:{val}")
-            tx_in  = val[0]+"#"+val[1]
-            print(f"tx_in:{tx_in}")
-            tx_in_array.append('--tx-in')
-            tx_in_array.append(tx_in)
-        return tx_in_array                   
+        try:
+            tx_in_array = []
+            for val in self.utx0:
+                print(f"testing {val}")
+                tx_in  = val[0]+"#"+val[1]
+                print(f"tx_in:{tx_in}")
+                tx_in_array.append('--tx-in')
+                tx_in_array.append(tx_in)
+            return tx_in_array                   
+        except:
+            logging.exception(f"Failed to generate_tx_in")
+            sys.exit(1)
 
+        
     def _generate_dest_addr_str(self):
-        return f"{self.dest_addr}+{self.amount}+'{}'"
+        return "testing "+self.dest_addr+"+"+self.amount+'{}'
 
     def calculate_native_token_count(self):
         try:
@@ -86,10 +102,9 @@ class Transfer:
                      "--fee", str(fees),
                      "--tx-out", self.dest_addr,
                      "--tx-out", raw_trans_file,
-                     ,"--tx-in"]+tx_in_array
+                     "--tx-in"]+tx_in_array
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
             print(Fore.GREEN + f"Successful:  Output of command {command} is:{s}")
-
         except:
             logging.exception("Unable to create raw transaction for receiving the nft tokens")
             
@@ -152,7 +167,7 @@ class Transfer:
 
 
     def main(self):
-        a.raw_trans()
+        a.raw_trans(0)
         min_fees = a.calculate_min_fees()
         a.raw_trans(min_fees)
         a.sign_trans()
@@ -167,13 +182,13 @@ if __name__ == "__main__":
     parser.add_argument('--uuid', dest='uuid')
     parser.add_argument('--amount', dest='amount')
     parser.add_argument('--policyid', dest='policyid')
-    parser.add_argument('--coinName', dest='coinname')
+    parser.add_argument('--coinname', dest='coinname')
     parser.add_argument('--outputAddr', dest='outputAddr')
     parser.set_defaults(latest=True)
 
     args = parser.parse_args()
 
-    a = Transfer(args.uuid, args.amount, args.policyid, args.coinName,  args.outputAddr)
+    a = Transfer(args.uuid, args.amount, args.policyid, args.coinname,  args.outputAddr)
     a.main()
     
         

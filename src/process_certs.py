@@ -141,11 +141,11 @@ def get_payment_utx0(payment_addr=None):
     should be able to add all the utx0 to the address. Ugly way that we have to support two networks. 
     """
     try:
+        final_array = []
+        
         if payment_addr == None:
             payment_addr = content(FILES['payment']['addr'])
             
-        final_array = []
-
         if os.environ["CHAIN"] == "testnet":
             command=[CARDANO_CLI , 'query', 'utxo', '--address', payment_addr, '--testnet-magic', str(os.environ["MAGIC"])]
         else:
@@ -170,6 +170,43 @@ def get_payment_utx0(payment_addr=None):
     except:
         logging.exception("Failed to get payment utx0")
 
+def get_payment_utx0_with_native_tokens(payment_addr=None):
+    """
+    should be able to add all the utx0 to the address. Ugly way that we have to support two networks. 
+    """
+    try:
+        final_struct = {}
+
+        #Final structure has to be like this: {'txAll':{'hash':fsdafsdafaf, 'tx':1, 'lovelace': 1000, 'native_tokens':[{policy:fsadfsadfsdafsdf, 'amount':1}] }}
+
+        
+        if payment_addr == None:
+            payment_addr = content(FILES['payment']['addr'])
+            
+        if os.environ["CHAIN"] == "testnet":
+            command=[CARDANO_CLI , 'query', 'utxo', '--address', payment_addr, '--testnet-magic', str(os.environ["MAGIC"])]
+        else:
+            command=[CARDANO_CLI , 'query', 'utxo', '--address', payment_addr, '--mainnet']
+            
+        s = subprocess.check_output(command)
+        split_str=s.decode('UTF-8').split("\n")
+        result = filter(lambda x: x != '', split_str) 
+        farray = list(result)[2:]
+        print(f"farray:{farray}")        
+        for val in farray:
+            print(f"Now trying to split up :{val}\n")
+            #Now we have to distinguish the scenario of presence of native tokens as well.
+            #Scenario 1:'65fc4a7a2429e90b54848e9ceb24992bdf4a1dbd248259b9e91ff616df74aa22     0        1407406 lovelace + 2 6b8d07d69639e9413dd637a1a815a7323c69c86abbafb66dbfdb1aa7
+            #Scenario 2:'bd46fa89a00ae1ae4629fe85557a1695dfbc760a5227008beb074dda3976e9ea     0        1000000000 lovelace'
+            
+            (txHash, txtx, lovelace) = val.split('lovelace')[0].split()
+            final_array.append((txHash, txtx, lovelace))
+        print(f"final array:{final_array}")
+        return final_array
+    except:
+        logging.exception("Failed to get payment utx0")
+
+        
 def get_total_fund_in_utx0(payment_addr=None):
     try:
         print(f"Now trying to get total funds in ADA in address:{payment_addr}")
