@@ -7,14 +7,14 @@ Goal: to withdraw the native tokens to the Daedalus wallet (or backed by hardwar
 
 """
 
-import subprocess, json, os, sys
+import subprocess, json, os, sys, shlex
 import process_certs as pc
 import create_nft_token as nft
 import logging
 import colorama
 from colorama import Fore, Back, Style
 
-MINIMUM_TOKEN_AMOUNT_ACCOMPANYING_TRANSFER=str(1407406)
+MINIMUM_TOKEN_AMOUNT_ACCOMPANYING_TRANSFER=str(10000000)
 
 os.environ["CHAIN"] = "testnet"
 os.environ["MAGIC"] = "1097911063"
@@ -33,6 +33,18 @@ def fetch_file(fpath, uuid):
     s = nft.Session(False, uuid)
     return s.sdir(fpath)
 
+
+def run_command(command):
+    print(Fore.GREEN + f"Command is:{command}")
+    process = subprocess.Popen(shlex.split(command), stdout=subprocess.PIPE)
+    while True:
+        output = process.stdout.readline()
+        if output == '' and process.poll() is not None:
+            break
+        if output:
+            print(output.strip())
+    rc = process.poll()
+    return rc
 
 class Transfer:
     def __init__(self, uuid, amount, policyid, coin_name,  output_addr):
@@ -70,12 +82,16 @@ class Transfer:
             logging.exception("Unable to calculate native token count in payment address")
     
     
-    def remaining_fund(self, fees=0):
-        rfund = pc.get_total_fund_in_utx0(self.payment_addr) - fees
+    def remaining_fund(self, fees=0, native_token_fees=MINIMUM_TOKEN_AMOUNT_ACCOMPANYING_TRANSFER):
+        if (int(fees) > 0):
+            rfund = pc.get_total_fund_in_utx0(self.payment_addr) - int(fees) -int(native_token_fees)
+        else:
+            rfund = pc.get_total_fund_in_utx0(self.payment_addr)
+            
         return rfund
 
     def remaining_native_tokens(self):
-        rtokens = 1 #to be calculated. Till now no function to extract number available in payment address and substract self.amount
+        rtokens = 0 #to be calculated. Till now no function to extract number available in payment address and substract self.amount
         return rtokens
     
     def raw_trans(self, fees):
@@ -91,22 +107,23 @@ class Transfer:
              --out-file rec_matx.raw
         """
         try:
+            remaining_fund = str(self.remaining_fund(fees, MINIMUM_TOKEN_AMOUNT_ACCOMPANYING_TRANSFER))                
             raw_trans_file = self.s.sdir(FILES['recieve']['transaction']['raw'])
-            remaining_fund = str(self.remaining_fund(fees))
             remaining_native_tokens = str(self.remaining_native_tokens())
             tx_in_array = self._generate_tx_in()
-            tx_out_receiver = f'{self.dest_addr}+{MINIMUM_TOKEN_AMOUNT_ACCOMPANYING_TRANSFER}+"{self.amount} {self.pid}.{self.coin_name}"'
-            tx_out_self_payment_addr = f"{self.payment_addr}+{remaining_fund}+'{remaining_native_tokens} {self.pid}.{self.coin_name}'"
+            tx_out_receiver = f"{self.dest_addr}+{MINIMUM_TOKEN_AMOUNT_ACCOMPANYING_TRANSFER}+'{self.amount}  {self.pid}.{self.coin_name}'"
+            tx_out_self_payment_addr = f"{self.payment_addr}+{remaining_fund}"
 
             command=["cardano-cli", "transaction", "build-raw",
                      "--fee", str(fees),
-                     "--tx-out", tx_out_receiver,
                      "--tx-out", tx_out_self_payment_addr,
+                     "--tx-out", tx_out_receiver,
                      "--out-file", raw_trans_file]+tx_in_array
             
-            print(Fore.RED + f"Command is:{command}")
-            s = subprocess.check_output(command)
-            print( f"Successful:  Output is:{s}")
+            command_str = " ".join(command)
+            print(Fore.RED + f"Command is:{command_str}")
+            s = os.system(command_str)
+            #run_command(command)            
         except:
             logging.exception("Unable to create raw transaction for receiving the nft tokens")
             sys.exit(1)
@@ -128,7 +145,7 @@ class Transfer:
             command=["cardano-cli", "transaction", "calculate-min-fee", "--tx-body-file",tx_body_file, "--tx-in-count", str(1),
                      "--tx-out-count", str(2), "--witness-count", str(1), "--testnet-magic",os.environ["MAGIC"], "--protocol-params-file", protocol_file]
             print(Fore.GREEN + f"Command is:{command}")
-            s = subprocess.check_output(command, stderr=True, universal_newlines=True)
+            s = subprocess.check_output(command, stderr=True,  universal_newlines=True)
             return s.split()[0]
             print(f"Successful:  Output is:{s}")
         except:
@@ -148,7 +165,7 @@ class Transfer:
             pay_skey = self.s.sdir(nft.FILES['payment']['signature'])
             tx_raw_file=self.s.sdir(FILES['recieve']['transaction']['raw'])
             tx_raw_signed=self.s.sdir(FILES['recieve']['transaction']['signed'])
-            command=["cardano-cli", "transaction", "sign", "--signing-key-file", pay_skey, "--testnet",os.environ["MAGIC"],
+            command=["cardano-cli", "transaction", "sign", "--signing-key-file", pay_skey, "--testnet-magic",os.environ["MAGIC"],
                      "--tx-body-file", tx_raw_file,
                      "--out-file", tx_raw_signed]
             print(Fore.GREEN + f"Command is:{command}")
@@ -166,7 +183,7 @@ class Transfer:
         """
         try:
             tx_raw_signed=self.s.sdir(FILES['recieve']['transaction']['signed'])
-            command=["cardano-cli", "transaction", "submit", "--tx-file", tx_raw_signed, "--testnet", os.environ["MAGIC"]]
+            command=["cardano-cli", "transaction", "submit", "--tx-file", tx_raw_signed, "--testnet-magic", os.environ["MAGIC"]]
             print(Fore.GREEN + f"Command is:{command}")
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
             print(f"Successful:  Output is:{s}")
