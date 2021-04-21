@@ -170,16 +170,33 @@ def get_payment_utx0(payment_addr=None):
     except:
         logging.exception("Failed to get payment utx0")
 
+
+        
 def get_payment_utx0_with_native_tokens(payment_addr=None):
     """
     should be able to add all the utx0 to the address. Ugly way that we have to support two networks. 
     """
     try:
         final_struct = {}
-
-        #Final structure has to be like this: {'txAll':{'hash':fsdafsdafaf, 'tx':1, 'lovelace': 1000, 'native_tokens':[{policy:fsadfsadfsdafsdf, 'amount':1}] }}
-
         
+        #Final structure has to be like this:
+        # [
+        #     {
+        #         "hash": "1ff5efd94b1e537875477f0dd3ebc630b519f40771d13596270c910bf319ab0a",
+        #         "tx": "0",
+        #         "tokens": [
+        #             {
+        #                 "id": "lovelace",
+        #                 "count": "999808099"
+        #             },
+        #             {
+        #                 "id": "ad9f33675c1bfa3db8a1e3ed943a8e3ce1b077a00fbd9cbe26bf9e15.a0c3aa67533d405d92e262ece8ed4344",
+        #                 "count": "1"
+        #             }
+        #         ]
+        #     }
+        # ]
+
         if payment_addr == None:
             payment_addr = content(FILES['payment']['addr'])
             
@@ -192,17 +209,39 @@ def get_payment_utx0_with_native_tokens(payment_addr=None):
         split_str=s.decode('UTF-8').split("\n")
         result = filter(lambda x: x != '', split_str) 
         farray = list(result)[2:]
-        print(f"farray:{farray}")        
+        print(f"farray:{farray}")
+        futxo = []
+
+    
         for val in farray:
+            
+            nt=[]
             print(f"Now trying to split up :{val}\n")
+
             #Now we have to distinguish the scenario of presence of native tokens as well.
             #Scenario 1:'65fc4a7a2429e90b54848e9ceb24992bdf4a1dbd248259b9e91ff616df74aa22     0        1407406 lovelace + 2 6b8d07d69639e9413dd637a1a815a7323c69c86abbafb66dbfdb1aa7
-            #Scenario 2:'bd46fa89a00ae1ae4629fe85557a1695dfbc760a5227008beb074dda3976e9ea     0        1000000000 lovelace'
-            
+            #Scenario 2:'bd46fa89a00ae1ae4629fe85557a1695dfbc760a5227008beb074dda3976e9ea     0        1000000000 lovelace'    
+
             (txHash, txtx, lovelace) = val.split('lovelace')[0].split()
-            final_array.append((txHash, txtx, lovelace))
-        print(f"final array:{final_array}")
-        return final_array
+            
+            nt.append({"id":"lovelace", "count": lovelace})
+            
+            native_token_array = val.split("+")[1:]
+            
+            for t in native_token_array:
+                s = t.split()
+                nt.append({"id": s[1], "count": s[0]})
+
+            futxo.append(
+                {
+                    "hash": txHash,
+                    "tx": txtx,
+                    "tokens": nt
+                }
+            )
+
+        print(f"final array:{native_token_array}")
+        return futxo
     except:
         logging.exception("Failed to get payment utx0")
 
