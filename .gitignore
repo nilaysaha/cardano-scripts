@@ -133,3 +133,7 @@ dmypy.json
 ./src/kaddr/
 ./src/kaddr_node/
 ./src/kaddr_run/
+
+
+#for the angular stuff
+node_modules
