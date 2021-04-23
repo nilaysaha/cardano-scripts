@@ -46,11 +46,14 @@ class Monitor:
         """
         Now we trigger minting and transfer of the minted tokens.
         step 1: mint the tokens
-          Sample command: python3 transfer_native_asset.py --uuid 1409ec32-d336-46a0-8d89-dba7feed4c1c --amount 1 --policyid c10195d0c12870379fdab17b3395629bd942a2509a0873b01ede72b3 --coinName  d4b13db2443e4ef5a378caa596b102df
+          Sample command: python3 
         step 2: transfer the tokens
           Sample command: python3 transfer_native_asset.py --uuid be3f7e33-7147-4dad-9658-158e88819a9e --amount 1 \
                                   --policyid ad9f33675c1bfa3db8a1e3ed943a8e3ce1b077a00fbd9cbe26bf9e15 --coinname a0c3aa67533d405d92e262ece8ed4344 \
                                   --outputAddr addr_test1vzlzqgcvehq56yd3aya69cyz8wsdu3deju8fsw2jwd0rrvgpwkw6x
         """
-        
-        
+        try:
+            aasdf
+        except:
+            logging.exception("Could not complete all the post payment steps")
+            

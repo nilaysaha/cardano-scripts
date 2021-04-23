@@ -30,7 +30,7 @@ FILES={
 }
 
 def fetch_file(fpath, uuid):
-    s = nft.Session(False, uuid)
+    s = nft.Session(uuid)
     return s.sdir(fpath)
 
 
@@ -55,7 +55,7 @@ class Transfer:
         self.dest_addr = output_addr
         self.payment_addr = pc.content(fetch_file(nft.FILES['payment']['address'], uuid))
         self.utx0   = pc.get_payment_utx0_with_native_tokens(self.payment_addr)
-        self.s = nft.Session(False,uuid)
+        self.s = nft.Session(uuid)
         
     def _generate_tx_in(self):
         try:

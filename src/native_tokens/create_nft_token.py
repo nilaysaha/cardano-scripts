@@ -63,14 +63,16 @@ def fetch_uuid_for_latest():
         logging.exception("Could not find the uuid corresponding to the latest")
         sys.exit(1)
 
+def is_uuid_latest(uuid):
+    """
+    checks if the 'uuid' is the latest or not.
+    """
+    return fetch_uuid_for_latest() == uuid
+        
         
 class Session:
-    def __init__(self, latest=True, uuid=MUUID):
-        self.latest = latest
+    def __init__(self, uuid=MUUID):
         self.uuid = uuid
-
-        if self.latest:
-            self.uuid = None #both cannot be valid. We give preference to the latest.
 
         
     def sdir(self,fpath):
@@ -78,7 +80,7 @@ class Session:
             dir_latest = os.path.join(os.getcwd(),'latest')
             print(dir_latest)
             
-            if (not self.latest):
+            if (not is_uuid_latest(self.uuid)):
                 print("WE ARE NOT USING THE LATEST")
                 
                 dir_path = os.path.join(os.getcwd(),'sessions',self.uuid)
@@ -128,7 +130,7 @@ class TokenMetadata:
 
         t2 = {"721": t1}
 
-        s = Session(True, self.uuid)
+        s = Session(self.uuid)
         metadata_file = s.sdir(FILES['metadata']['store'])
         f = open(metadata_file, 'w')
         json.dump(t2, f)
@@ -140,9 +142,9 @@ class CreateToken:
     We will try to enforce the following CIP:https://forum.cardano.org/t/cip-nft-metadata-standard/45687
     Thus when minting NFT we will metadata and the above CIP standard.
     """
-    def __init__(self, latest=False, uuid=MUUID):
+    def __init__(self, uuid=MUUID):
         self.tip  = pc.get_tip() #Gets the current slot number
-        self.s = Session(latest, uuid)
+        self.s = Session(uuid)
         self.uuid = uuid
         
     def generate_keys(self):
@@ -462,7 +464,7 @@ class Transaction(CreateToken):
             logging.exception("Could not mint new asset")            
             sys.exit(1)
 
-    def _fetch_buffered_inputs(self):
+    def fetch_buffered_inputs(self):
         try:
             f = open(self.sdir(FILES['buffer']['input']), 'r')
             content = json.load(f)
@@ -478,7 +480,7 @@ class Transaction(CreateToken):
         This is a fair way to get contents because we are doing this is stepped fashion where only after payments this step can be executed.
         """
         try:
-            content = self._fetch_buffered_inputs()
+            content = self.fetch_buffered_inputs()
             t =  self.check_payment()
             if t['amount'] == 0:
                 print(f"Current amount in {t['addr']} is zero. Please send some ADA to this address")
@@ -504,24 +506,23 @@ class Transaction(CreateToken):
             sys.exit(1)
 
 
-def main(latest, uuid, name):
+def main(uuid, name, amount, metadata):
     try:
-        num_coins = 1
+        if not amount:            
+            num_coins = 1
+        else:
+            num_coins = amount
+            
         if not name:
             coin_name = TOKEN_NAME
         else:
             coin_name = name 
-        
-        if latest:
-            uuid = fetch_uuid_for_latest()
-        elif not uuid:
-            uuid = MUUID
-                
-        c = CreateToken(latest, uuid)
+                        
+        c = CreateToken(uuid)
 
         
         if not c.check_status('phase_1'):
-            c.buffer_inputs(args)
+            c.buffer_inputs(uuid, coin_name, num_coins, metadata)
             c.main_phase1()
         else:
             print('step 1 has been already run')        
@@ -555,9 +556,16 @@ if __name__ == "__main__":
     parser.add_argument('--not-latest', dest='latest', action='store_false')
     parser.add_argument('--uuid', dest='uuid', help="This customer uuid being assigned")
     parser.add_argument('--name', dest='name', help="Name of the NFT token. In absense we will assign some uuid based random name")
-    parser.add_argument('--name', dest='meta', help="Metadata associated with this NFT. Will vary depending on the medium like picture, video, text etc.")
+    parser.add_argument('--amount',dest='amount', help="Number of NFT tokens with the policy.name combination")
+    parser.add_argument('--meta', dest='meta', help="Metadata associated with this NFT. Will vary depending on the medium like picture, video, text etc.")
     parser.set_defaults(latest=True)
 
     args = parser.parse_args()
     
-    main(args)
+    if latest:
+        uuid = fetch_uuid_for_latest()
+    elif not uuid:
+        uuid = MUUID
+
+    #Phase 1 and Phase 2 generally run together. Phase 3 runs after payments gets submitted (in Phase 3: only seesion uuid is enough)
+    main(args.uuid, args.name, args.amount, args.meta)
