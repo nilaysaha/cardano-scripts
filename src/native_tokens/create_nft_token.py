@@ -46,6 +46,9 @@ FILES={
     },
     'metadata': {
         'store': 'metadata.json'
+    },
+    'buffer': {
+        'input': 'input.json'
     }
 }
 
@@ -107,8 +110,8 @@ class TokenMetadata:
     Right now we are doing for single token. Later this can be adapted for multiple tokens.
     The CIP submitted for this is: https://www.reddit.com/r/CardanoDevelopers/comments/mkhlv8/nft_metadata_standard/
     """
-    def __init__(self,uuid, name, policyid,  imgUrl, extra_data={}):
-        self.imgUrl      = imgUrl
+    def __init__(self,uuid, name, policyid,  metadata={}):
+        self.imgUrl      = metadata.url #TODO: Has to be augmented with metadata type.If type == Image then url.
         self.tokenname   = name
         self.policyid    = policyid
         self.data = extra_data
@@ -272,8 +275,15 @@ class CreateToken:
         except:
             logging.exception("Could not check payment")
             sys.exit(1)
-        
-    
+
+    def buffer_inputs(self, inputs):
+        try:
+            f = open(self.sdir(FILES['buffer']['input']), 'w')
+            json.dump(inputs, f)
+            f.close()
+        except:
+            logging.exception("Could not buffer the inputs")
+            
     def main_phase1(self):
         """
         can be triggered for any new customer. 
@@ -452,8 +462,23 @@ class Transaction(CreateToken):
             logging.exception("Could not mint new asset")            
             sys.exit(1)
 
-    def main(self, coin_name, num_coins, imgUrl=None, extra_metadata={}):
+    def _fetch_buffered_inputs(self):
         try:
+            f = open(self.sdir(FILES['buffer']['input']), 'r')
+            content = json.load(f)
+            f.close()
+            return content
+        except:
+            logging.exception("Could not buffer the inputs")
+
+        
+    def main(self):
+        """
+        This relies on a a buffered input of the inputs from Step 2. Without that this would fail.
+        This is a fair way to get contents because we are doing this is stepped fashion where only after payments this step can be executed.
+        """
+        try:
+            content = self._fetch_buffered_inputs()
             t =  self.check_payment()
             if t['amount'] == 0:
                 print(f"Current amount in {t['addr']} is zero. Please send some ADA to this address")
@@ -462,7 +487,7 @@ class Transaction(CreateToken):
                 print(f"found policy id:{policy_id}")
 
                 #Now create the metadata associated with this transaction
-                m = TokenMetadata(self.uuid, coin_name,policy_id,imgUrl)
+                m = TokenMetadata(content.uuid, content.name,policy_id,content.meta)                
                 metadata_file = m.form()
                 
                 
@@ -479,45 +504,60 @@ class Transaction(CreateToken):
             sys.exit(1)
 
 
+def main(latest, uuid, name):
+    try:
+        num_coins = 1
+        if not name:
+            coin_name = TOKEN_NAME
+        else:
+            coin_name = name 
+        
+        if latest:
+            uuid = fetch_uuid_for_latest()
+        elif not uuid:
+            uuid = MUUID
+                
+        c = CreateToken(latest, uuid)
+
+        
+        if not c.check_status('phase_1'):
+            c.buffer_inputs(args)
+            c.main_phase1()
+        else:
+            print('step 1 has been already run')        
+
+        if not c.check_status('phase_2') and c.check_status('phase_1'):
+            print(Fore.RED + 'Now proceeding to step 2')
+            c.main_phase2()
+            print("\n\n")
+        else:
+            print('STEP 2 has been already run')
+
+        if c.check_status('phase_1') and c.check_status('phase_2') and not c.check_status('phase_3'):
+            print(Fore.RED + 'Now proceeding to step 3')
+            t = Transaction(c)
+            t.main() #fetch coin information from the buffer created in step 2.
+            print("\n\n")
+        else:
+            print('STEP 3 also has been completed earlier!')
+    except:
+        logging.exception("Failed to create nft.")
+
+    
+            
 if __name__ == "__main__":
 
     import argparse
     # create parser
     parser = argparse.ArgumentParser()
-    
+        
     parser.add_argument('--latest', dest='latest', action='store_true')
     parser.add_argument('--not-latest', dest='latest', action='store_false')
-    parser.add_argument('--uuid', dest='uuid')
+    parser.add_argument('--uuid', dest='uuid', help="This customer uuid being assigned")
+    parser.add_argument('--name', dest='name', help="Name of the NFT token. In absense we will assign some uuid based random name")
+    parser.add_argument('--name', dest='meta', help="Metadata associated with this NFT. Will vary depending on the medium like picture, video, text etc.")
     parser.set_defaults(latest=True)
 
     args = parser.parse_args()
     
-    num_coins = 1
-    coin_name = TOKEN_NAME
-
-    if args.latest:
-        args.uuid = fetch_uuid_for_latest()
-    elif not args.uuid:
-        args.uuid = MUUID
-        
-    c = CreateToken(args.latest, args.uuid)
-
-    if not c.check_status('phase_1'):
-        c.main_phase1()
-    else:
-        print('step 1 has been already run')        
-
-    if not c.check_status('phase_2') and c.check_status('phase_1'):
-            print(Fore.RED + 'Now proceeding to step 2')
-            c.main_phase2()
-            print("\n\n")
-    else:
-        print('STEP 2 has been already run')
-
-    if c.check_status('phase_1') and c.check_status('phase_2') and not c.check_status('phase_3'):
-        print(Fore.RED + 'Now proceeding to step 3')
-        t = Transaction(c)
-        t.main(coin_name, num_coins,DEFAULT_URL,)
-        print("\n\n")
-    else:
-        print('STEP 3 also has been completed earlier!')
+    main(args)
