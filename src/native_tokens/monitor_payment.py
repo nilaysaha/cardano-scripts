@@ -7,7 +7,7 @@ This module is meant to monitor a session payment from the customer and then tri
 import subprocess, json, os, sys, shlex
 import process_certs as pc
 import create_nft_token as nft
-import transfer_native_asset as tna
+import transfer_native_asset as ta
 import logging
 import colorama
 from colorama import Fore, Back, Style
@@ -46,14 +46,23 @@ class Monitor:
         """
         Now we trigger minting and transfer of the minted tokens.
         step 1: mint the tokens
-          Sample command: python3 
+          Sample command: python3 --fetchInputs --uuid <uuid>
         step 2: transfer the tokens
           Sample command: python3 transfer_native_asset.py --uuid be3f7e33-7147-4dad-9658-158e88819a9e --amount 1 \
                                   --policyid ad9f33675c1bfa3db8a1e3ed943a8e3ce1b077a00fbd9cbe26bf9e15 --coinname a0c3aa67533d405d92e262ece8ed4344 \
                                   --outputAddr addr_test1vzlzqgcvehq56yd3aya69cyz8wsdu3deju8fsw2jwd0rrvgpwkw6x
         """
         try:
-            aasdf
+            inputs = nft.fetch_inputs(self.session)
+            token_metadata = nft.TokenMetadata()
+            m = token_metadata.fetch() #This will only work when the payment is done and minting is done.
+            if m["721"] != None:
+                t = m["721"]
+                policy_keys = m['721'].keys()
+                for p in policy_keys:
+                    
+                    a = ta.Transfer(uuid=inputs.uuid, amount=inputs.num_coins, coinname=inputs.coinName, policyid=p, outputAddr=self.dest_addr)
+                    a.main()
         except:
             logging.exception("Could not complete all the post payment steps")
             

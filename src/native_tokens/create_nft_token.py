@@ -55,10 +55,14 @@ FILES={
 def fetch_uuid_for_latest():
     try:
         dir_latest = os.path.join(os.getcwd(),'latest')
-        dir_path = os.readlink(dir_latest)
-        path_array = os.path.split(dir_path)
-        print(f"path array is:{path_array}")
-        return path_array[1]
+
+        if os.path.exists(dir_latest):
+            dir_path = os.readlink(dir_latest)        
+            path_array = os.path.split(dir_path)
+            print(f"path array is:{path_array}")
+            return path_array[1]
+        else:
+            return None
     except:
         logging.exception("Could not find the uuid corresponding to the latest")
         sys.exit(1)
@@ -66,20 +70,24 @@ def fetch_uuid_for_latest():
 def is_uuid_latest(uuid):
     """
     checks if the 'uuid' is the latest or not.
+    if latest does not exist, then return False
     """
-    return fetch_uuid_for_latest() == uuid
+    if fetch_uuid_for_latest() == None:
+        return False
+    else:
+        return fetch_uuid_for_latest() == uuid
         
         
 class Session:
-    def __init__(self, uuid=MUUID):
+    def __init__(self, uuid):
         self.uuid = uuid
 
         
     def sdir(self,fpath):
         try:
             dir_latest = os.path.join(os.getcwd(),'latest')
-            print(dir_latest)
-            
+            print(dir_latest)                
+                
             if (not is_uuid_latest(self.uuid)):
                 print("WE ARE NOT USING THE LATEST")
                 
@@ -118,7 +126,8 @@ class TokenMetadata:
         self.policyid    = policyid
         self.data = extra_data
         self.uuid = uuid
-
+        self.m = {}
+        
     def form(self):
         t={}
         t["nft"] = {
@@ -134,18 +143,25 @@ class TokenMetadata:
         metadata_file = s.sdir(FILES['metadata']['store'])
         f = open(metadata_file, 'w')
         json.dump(t2, f)
+        self.m = t2
         f.close()
         return metadata_file
-        
+
+    def fetch(self):
+        metadata_file = s.sdir(FILES['metadata']['store'])
+        f = open(metadata_file, 'r')
+        return json.load(f)
+    
 class CreateToken:
     """
     We will try to enforce the following CIP:https://forum.cardano.org/t/cip-nft-metadata-standard/45687
     Thus when minting NFT we will metadata and the above CIP standard.
     """
-    def __init__(self, uuid=MUUID):
+    def __init__(self, uuid):
         self.tip  = pc.get_tip() #Gets the current slot number
         self.s = Session(uuid)
         self.uuid = uuid
+        self.policyId = None
         
     def generate_keys(self):
         """
@@ -278,9 +294,15 @@ class CreateToken:
             logging.exception("Could not check payment")
             sys.exit(1)
 
-    def buffer_inputs(self, inputs):
+    def buffer_inputs(self, uuid, coin_name, num_coins, metadata):
         try:
-            f = open(self.sdir(FILES['buffer']['input']), 'w')
+            inputs = {
+                "uuid": uuid,
+                "coinName": coin_name,
+                "num_coins": num_coins,
+                "extra": metadata
+            }
+            f = open(self.s.sdir(FILES['buffer']['input']), 'w+')
             json.dump(inputs, f)
             f.close()
         except:
@@ -315,14 +337,19 @@ class CreateToken:
             
                 
 class Transaction(CreateToken):
+    def __init__(self,uuid):
+        super().__init__(uuid)
+        
     def _calculate_utx0_lovelace(self, fees):
         n = self.check_payment()
         n["remaining_fund"] = n["amount"] -fees
         return n
             
-        
+    
     def create_raw_trans(self, fees, num_coins, coin_name, policy_id, metadata_file):
         """
+        
+        
         Pls note: there is redundant data in metadata_info (which also contains coin_name, policy etc.). Can be optimized later.
 
         ./cardano-cli transaction build-raw \
@@ -466,7 +493,9 @@ class Transaction(CreateToken):
 
     def fetch_buffered_inputs(self):
         try:
-            f = open(self.sdir(FILES['buffer']['input']), 'r')
+            fpath = self.s.sdir(FILES['buffer']['input'])
+            print(f"path for buffered input is:{fpath}")
+            f = open(fpath, 'r')
             content = json.load(f)
             f.close()
             return content
@@ -480,19 +509,26 @@ class Transaction(CreateToken):
         This is a fair way to get contents because we are doing this is stepped fashion where only after payments this step can be executed.
         """
         try:
+            print(Fore.RED + f'CHECKING PRECONDITIONS FOR STEP 3. THE UUID BEING USED IS:{self.uuid}')
             content = self.fetch_buffered_inputs()
+
+            print(f"Fetched content :{content} from previous steps")
+
+            #In principle we receive payment for a group of  tokens to be minted under a new policyId.
             t =  self.check_payment()
             if t['amount'] == 0:
                 print(f"Current amount in {t['addr']} is zero. Please send some ADA to this address")
             else:
                 policy_id = self.mint_new_asset()
                 print(f"found policy id:{policy_id}")
-
+                
                 #Now create the metadata associated with this transaction
                 m = TokenMetadata(content.uuid, content.name,policy_id,content.meta)                
                 metadata_file = m.form()
                 
-                
+
+                #--------------------CHALLENGE: HOW TO EXTEND THIS PART TO PRINT FOR MULTIPLE COIN_NAME, COIN_NUM ----------------#
+                #-------------------------------- FOR NOW WE HAVE TESTED FOR SINGLE COIN NAME+ NUM_COINS COMBINATION--------------#
                 fees = 0
                 self.create_raw_trans(fees, num_coins, coin_name, policy_id, metadata_file)
                 
@@ -501,12 +537,14 @@ class Transaction(CreateToken):
 
                 self.sign_transaction()
                 self.submit_transaction()
+                #-----------------------------------------END: End creation of tokens --------------------------------------------#
+                
         except:
             logging.exception("Failed main function")
             sys.exit(1)
 
 
-def main(uuid, name, amount, metadata):
+def main(uuid, name, amount, metadata={}):
     try:
         if not amount:            
             num_coins = 1
@@ -519,7 +557,6 @@ def main(uuid, name, amount, metadata):
             coin_name = name 
                         
         c = CreateToken(uuid)
-
         
         if not c.check_status('phase_1'):
             c.buffer_inputs(uuid, coin_name, num_coins, metadata)
@@ -536,36 +573,49 @@ def main(uuid, name, amount, metadata):
 
         if c.check_status('phase_1') and c.check_status('phase_2') and not c.check_status('phase_3'):
             print(Fore.RED + 'Now proceeding to step 3')
-            t = Transaction(c)
-            t.main() #fetch coin information from the buffer created in step 2.
+            t = Transaction(uuid)
+            t.main()
             print("\n\n")
         else:
             print('STEP 3 also has been completed earlier!')
     except:
         logging.exception("Failed to create nft.")
 
-    
-            
+
+def fetch_inputs(uuid):
+    try:
+        c = CreateToken(uuid)        
+        if c.check_status('phase_1'):
+            return c.fetch_buffered_inputs()
+        else:
+            print("Did not complete phase 1 and hence did not buffer any data")
+            return None
+    except:
+        logging.exception("Could not fetch inputs")
+        
 if __name__ == "__main__":
 
     import argparse
     # create parser
     parser = argparse.ArgumentParser()
-        
+
+    
     parser.add_argument('--latest', dest='latest', action='store_true')
     parser.add_argument('--not-latest', dest='latest', action='store_false')
     parser.add_argument('--uuid', dest='uuid', help="This customer uuid being assigned")
     parser.add_argument('--name', dest='name', help="Name of the NFT token. In absense we will assign some uuid based random name")
     parser.add_argument('--amount',dest='amount', help="Number of NFT tokens with the policy.name combination")
     parser.add_argument('--meta', dest='meta', help="Metadata associated with this NFT. Will vary depending on the medium like picture, video, text etc.")
-    parser.set_defaults(latest=True)
+    parser.add_argument('--fetchInputs', dest='finputs', action='store_true')
 
     args = parser.parse_args()
+
+    print(args.latest)
     
-    if latest:
-        uuid = fetch_uuid_for_latest()
-    elif not uuid:
-        uuid = MUUID
+    if args.latest:
+        args.uuid = fetch_uuid_for_latest()
+    else:
+        args.uuid = MUUID
 
     #Phase 1 and Phase 2 generally run together. Phase 3 runs after payments gets submitted (in Phase 3: only seesion uuid is enough)
     main(args.uuid, args.name, args.amount, args.meta)
