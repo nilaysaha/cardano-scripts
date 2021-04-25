@@ -12,17 +12,16 @@ import logging
 import colorama
 from colorama import Fore, Back, Style
 
-
 HEARTBEAT_INTERVAL = 200
-
+        
 
 class Monitor:
     def __init__(self, session_uuid, payment_due, transfer_address):
         self.session = session_uuid
         self.dest_addr = transfer_address
         self.payment_amount = payment_due
-        self.initial_amount = self.check_payment() #needs to be verified by a separate function before we start heartbeat.
-        self.s = nft.Session(False, session_uuid)
+        self.initial_amount = 0 #ASSUMPITON: We start with a fresh payment address per person.
+        self.s = nft.Session(session_uuid)
         self.heartbeat_interval = HEARTBEAT_INTERVAL
         
     def heartbeat(self):
@@ -42,7 +41,7 @@ class Monitor:
         status = (rfund - self.initial_amount)>= self.payment_amount
         return status
 
-    def _post_payment_steps(self):
+    def post_payment_steps(self):
         """
         Now we trigger minting and transfer of the minted tokens.
         step 1: mint the tokens
@@ -53,16 +52,24 @@ class Monitor:
                                   --outputAddr addr_test1vzlzqgcvehq56yd3aya69cyz8wsdu3deju8fsw2jwd0rrvgpwkw6x
         """
         try:
-            inputs = nft.fetch_inputs(self.session)
-            token_metadata = nft.TokenMetadata()
-            m = token_metadata.fetch() #This will only work when the payment is done and minting is done.
-            if m["721"] != None:
-                t = m["721"]
-                policy_keys = m['721'].keys()
-                for p in policy_keys:
-                    
-                    a = ta.Transfer(uuid=inputs.uuid, amount=inputs.num_coins, coinname=inputs.coinName, policyid=p, outputAddr=self.dest_addr)
-                    a.main()
+            #Fetch the run parameters and store back the recv address of the customer
+            a = nft.inputs(self.session)
+            inputs = a.fetch_inputs()
+            inputs["recv_address"] = self.dest_addr
+            a.buffer(inputs.name, inputs.policy_id, inputs.amount,inputs.metadata, self.dest_addr)
+
+            #Step 1: Minting of the tokens
+            nft.main_phase_B(self.session)
+
+            #Step 2: Transfer of minted tokens to target address            
+            a = ta.Transfer(uuid=inputs.uuid, amount=inputs.count, coinname=inputs.name, policy=inputs.policy, outputAddr=self.dest_addr)
+            a.main()
+            
         except:
             logging.exception("Could not complete all the post payment steps")
             
+
+def main(uuid, payment_amount, transfer_address):
+    a = monitor()
+    a.heartbeat()
+    a.post_payment_steps()

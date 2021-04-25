@@ -46,9 +46,40 @@ FILES={
     },
     'metadata': {
         'store': 'metadata.json'
+    },
+    'buffer': {
+        'input':'input.json'
     }
 }
 
+class Inputs:
+    def __init__(uuid):
+        self.uuid = uuid
+        
+        
+    def buffer(self, name, policy_id,amount, metadata={}, recv_addr=None):
+        input_json = {
+            "uuid": self.uuid,
+            "name": name,
+            "policy": policy_id,
+            "count": amount,
+            "metadata": metadata,
+            "recv_address": recv_addr
+        }
+
+        f = open(self.s.sdir(FILES['buffer']['input']), "w")
+        json_obj = json.dumps(input_json, indent=4)
+        f.write(json_obj)
+        f.close()
+
+        
+    def fetch(self):
+        s = Session(self.uuid)
+        fpath = s.sdir(FILES['buffer']['input'])
+        f = open(fpath, 'r')
+        return json.load(f)    
+
+    
 def fetch_uuid_for_latest():
     try:
         dir_latest = os.path.join(os.getcwd(),'latest')
@@ -471,16 +502,17 @@ class Transaction(CreateToken):
             logging.exception("Could not mint new asset")            
             sys.exit(1)
 
-        
+            
     def main(self):
         """
         This is a fair way to get contents because we are doing this is stepped fashion where only after payments this step can be executed.
         """
         try:
             #In principle we receive payment for a group of  tokens to be minted under a new policyId.
-            t =  self.check_payment()
+            t =  self.check_payment()            
             if t['amount'] == 0:
                 print(f"Current amount in {t['addr']} is zero. Please send some ADA to this address")
+                raise Exception(Fore.RED+f"Not sufficient funds in the payment address:{t['addr']}. Without this minting is not possible. Please deposit sufficient ADA into the above address")
             else:
                 policy_id = self.mint_new_asset()
                 print(f"found policy id:{policy_id}")
@@ -499,9 +531,9 @@ class Transaction(CreateToken):
                 min_fees = self.calculate_min_fees()
                 self.create_raw_trans(min_fees, self.amount, self.name, policy_id, metadata_file)
                 self.sign_transaction()
-                self.submit_transaction()
-                
-                #-----------------------------------------END: End creation of tokens --------------------------------------------#                
+                self.submit_transaction()                
+                #-----------------------------------------END: End creation of tokens --------------------------------------------#
+            return (self.uuid, policy_id, self.name, self.amount, self.metadata)
         except:
             logging.exception("Failed main function")
             sys.exit(1)
@@ -524,21 +556,31 @@ def main_phase_A(uuid):
             print('STEP 2 has been already run')
     except:
         logging.exception("Failed to create nft.")
+        sys.exit(1)
 
 
 def main_phase_B(uuid, name=TOKEN_NAME, amount=1, metadata={}):
+    """
+    Currently minting only a single native token. TODO: Later should be extended to mint multiple token names corresponding to single policy_id in single transaction
+    """
     try:
         c = CreateToken(uuid)
         if c.check_status('phase_1') and c.check_status('phase_2') and not c.check_status('phase_3'):        
             print(Fore.RED + 'Now proceeding to step 3')
             t = Transaction(uuid, name, amount, metadata)
-            t.main()
+            uuid, policy_id, name, amount, metadata = t.main()
+
+            #now store the inputs for future ref for this session
+            a = Inputs(uuid)
+            a.buffer(name, policy_id,amount, metadata)
+            
+            c.create_status_file('phase_3')
             print("\n\n")
         else:
             print('STEP 3 also has been completed earlier!')
     except:
-        logging.exception("Could not mint the :{name} with amount:{amount}")
-    
+        logging.exception(f"Could not mint the :{name} with amount:{amount}")
+        sys.exit(1)
         
         
 if __name__ == "__main__":
