@@ -133,7 +133,7 @@ dmypy.json
 ./src/kaddr/
 ./src/kaddr_node/
 ./src/kaddr_run/
-
+./src/native-token/sessions
 
 #for the angular stuff
 node_modules

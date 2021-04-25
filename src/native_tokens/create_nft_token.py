@@ -46,9 +46,6 @@ FILES={
     },
     'metadata': {
         'store': 'metadata.json'
-    },
-    'buffer': {
-        'input': 'input.json'
     }
 }
 
@@ -79,34 +76,30 @@ def is_uuid_latest(uuid):
         
         
 class Session:
+    """
+    Get the session information
+    """
     def __init__(self, uuid):
         self.uuid = uuid
 
+
+    def exists(self):
+        dir_path = os.path.join(os.getcwd(),'sessions',self.uuid)
+        if os.path.exists(dir_path):
+            return dir_path
+        else:
+            return None
         
     def sdir(self,fpath):
         try:
-            dir_latest = os.path.join(os.getcwd(),'latest')
-            print(dir_latest)                
-                
-            if (not is_uuid_latest(self.uuid)):
-                print("WE ARE NOT USING THE LATEST")
-                
-                dir_path = os.path.join(os.getcwd(),'sessions',self.uuid)
-                print(f"The directory being created for this session is:{dir_path}")
-
-                if not os.path.exists(dir_path):
-                    os.makedirs(dir_path,exist_ok=True)                    
-                else:
-                    print(f"Directory:{dir_path} exists already")
-
-                if os.path.exists(dir_latest):
-                    os.unlink(dir_latest)
-                    
-                os.symlink(dir_path,dir_latest)
-            else:
-                dir_path = os.readlink(dir_latest)
-                print(f"Using the existing latest path:{dir_path}")
+            dir_path = os.path.join(os.getcwd(),'sessions',self.uuid)
+            print(f"The directory being created for this session is:{dir_path}")
             
+            if not os.path.exists(dir_path):
+                os.makedirs(dir_path,exist_ok=True)                    
+            else:
+                print(f"Directory:{dir_path} exists already")
+
             return os.path.join(dir_path, fpath)
         except:
             logging.exception(f"Failed to construct session:{self.uuid} path for {fpath}")
@@ -121,18 +114,17 @@ class TokenMetadata:
     The CIP submitted for this is: https://www.reddit.com/r/CardanoDevelopers/comments/mkhlv8/nft_metadata_standard/
     """
     def __init__(self,uuid, name, policyid,  metadata={}):
-        self.imgUrl      = metadata.url #TODO: Has to be augmented with metadata type.If type == Image then url.
         self.tokenname   = name
         self.policyid    = policyid
-        self.data = extra_data
+        self.data = metadata
         self.uuid = uuid
         self.m = {}
         
     def form(self):
         t={}
+            
         t["nft"] = {
             "name": self.tokenname,
-            "image": self.imgUrl
         }
         t1 = {}
         t1[self.policyid] = t
@@ -294,19 +286,6 @@ class CreateToken:
             logging.exception("Could not check payment")
             sys.exit(1)
 
-    def buffer_inputs(self, uuid, coin_name, num_coins, metadata):
-        try:
-            inputs = {
-                "uuid": uuid,
-                "coinName": coin_name,
-                "num_coins": num_coins,
-                "extra": metadata
-            }
-            f = open(self.s.sdir(FILES['buffer']['input']), 'w+')
-            json.dump(inputs, f)
-            f.close()
-        except:
-            logging.exception("Could not buffer the inputs")
             
     def main_phase1(self):
         """
@@ -337,8 +316,11 @@ class CreateToken:
             
                 
 class Transaction(CreateToken):
-    def __init__(self,uuid):
+    def __init__(self,uuid, name, amount, metadata={}):
         super().__init__(uuid)
+        self.name = name
+        self.amount = amount
+        self.metadata = metadata
         
     def _calculate_utx0_lovelace(self, fees):
         n = self.check_payment()
@@ -347,9 +329,7 @@ class Transaction(CreateToken):
             
     
     def create_raw_trans(self, fees, num_coins, coin_name, policy_id, metadata_file):
-        """
-        
-        
+        """                
         Pls note: there is redundant data in metadata_info (which also contains coin_name, policy etc.). Can be optimized later.
 
         ./cardano-cli transaction build-raw \
@@ -491,29 +471,12 @@ class Transaction(CreateToken):
             logging.exception("Could not mint new asset")            
             sys.exit(1)
 
-    def fetch_buffered_inputs(self):
-        try:
-            fpath = self.s.sdir(FILES['buffer']['input'])
-            print(f"path for buffered input is:{fpath}")
-            f = open(fpath, 'r')
-            content = json.load(f)
-            f.close()
-            return content
-        except:
-            logging.exception("Could not buffer the inputs")
-
         
     def main(self):
         """
-        This relies on a a buffered input of the inputs from Step 2. Without that this would fail.
         This is a fair way to get contents because we are doing this is stepped fashion where only after payments this step can be executed.
         """
         try:
-            print(Fore.RED + f'CHECKING PRECONDITIONS FOR STEP 3. THE UUID BEING USED IS:{self.uuid}')
-            content = self.fetch_buffered_inputs()
-
-            print(f"Fetched content :{content} from previous steps")
-
             #In principle we receive payment for a group of  tokens to be minted under a new policyId.
             t =  self.check_payment()
             if t['amount'] == 0:
@@ -523,43 +486,32 @@ class Transaction(CreateToken):
                 print(f"found policy id:{policy_id}")
                 
                 #Now create the metadata associated with this transaction
-                m = TokenMetadata(content.uuid, content.name,policy_id,content.meta)                
+                m = TokenMetadata(self.uuid, self.name, policy_id, self.metadata)                
                 metadata_file = m.form()
                 
 
                 #--------------------CHALLENGE: HOW TO EXTEND THIS PART TO PRINT FOR MULTIPLE COIN_NAME, COIN_NUM ----------------#
                 #-------------------------------- FOR NOW WE HAVE TESTED FOR SINGLE COIN NAME+ NUM_COINS COMBINATION--------------#
+
                 fees = 0
-                self.create_raw_trans(fees, num_coins, coin_name, policy_id, metadata_file)
+                self.create_raw_trans(fees, self.amount, self.name, policy_id, metadata_file)
                 
                 min_fees = self.calculate_min_fees()
-                self.create_raw_trans(min_fees, num_coins, coin_name, policy_id, metadata_file)
-
+                self.create_raw_trans(min_fees, self.amount, self.name, policy_id, metadata_file)
                 self.sign_transaction()
                 self.submit_transaction()
-                #-----------------------------------------END: End creation of tokens --------------------------------------------#
                 
+                #-----------------------------------------END: End creation of tokens --------------------------------------------#                
         except:
             logging.exception("Failed main function")
             sys.exit(1)
 
 
-def main(uuid, name, amount, metadata={}):
+def main_phase_A(uuid):
     try:
-        if not amount:            
-            num_coins = 1
-        else:
-            num_coins = amount
-            
-        if not name:
-            coin_name = TOKEN_NAME
-        else:
-            coin_name = name 
-                        
         c = CreateToken(uuid)
-        
+                
         if not c.check_status('phase_1'):
-            c.buffer_inputs(uuid, coin_name, num_coins, metadata)
             c.main_phase1()
         else:
             print('step 1 has been already run')        
@@ -570,52 +522,57 @@ def main(uuid, name, amount, metadata={}):
             print("\n\n")
         else:
             print('STEP 2 has been already run')
+    except:
+        logging.exception("Failed to create nft.")
 
-        if c.check_status('phase_1') and c.check_status('phase_2') and not c.check_status('phase_3'):
+
+def main_phase_B(uuid, name=TOKEN_NAME, amount=1, metadata={}):
+    try:
+        c = CreateToken(uuid)
+        if c.check_status('phase_1') and c.check_status('phase_2') and not c.check_status('phase_3'):        
             print(Fore.RED + 'Now proceeding to step 3')
-            t = Transaction(uuid)
+            t = Transaction(uuid, name, amount, metadata)
             t.main()
             print("\n\n")
         else:
             print('STEP 3 also has been completed earlier!')
     except:
-        logging.exception("Failed to create nft.")
-
-
-def fetch_inputs(uuid):
-    try:
-        c = CreateToken(uuid)        
-        if c.check_status('phase_1'):
-            return c.fetch_buffered_inputs()
-        else:
-            print("Did not complete phase 1 and hence did not buffer any data")
-            return None
-    except:
-        logging.exception("Could not fetch inputs")
+        logging.exception("Could not mint the :{name} with amount:{amount}")
+    
+        
         
 if __name__ == "__main__":
 
     import argparse
-    # create parser
-    parser = argparse.ArgumentParser()
 
+    parser = argparse.ArgumentParser()
     
-    parser.add_argument('--latest', dest='latest', action='store_true')
-    parser.add_argument('--not-latest', dest='latest', action='store_false')
+    parser.add_argument('--new', dest='new', action='store_true', help="For a new customer request this is what creates a new session id")
     parser.add_argument('--uuid', dest='uuid', help="This customer uuid being assigned")
+    parser.add_argument('--phase', dest='phase', help="Phase A (create a policy id) or Phase B (create coins connected to the policy. Name and number is needed) ")
     parser.add_argument('--name', dest='name', help="Name of the NFT token. In absense we will assign some uuid based random name")
     parser.add_argument('--amount',dest='amount', help="Number of NFT tokens with the policy.name combination")
     parser.add_argument('--meta', dest='meta', help="Metadata associated with this NFT. Will vary depending on the medium like picture, video, text etc.")
-    parser.add_argument('--fetchInputs', dest='finputs', action='store_true')
 
     args = parser.parse_args()
 
-    print(args.latest)
+    print(args.new)
     
-    if args.latest:
-        args.uuid = fetch_uuid_for_latest()
-    else:
-        args.uuid = MUUID
+    if args.new:
+        args.uuid = MUUID        
+    elif not args.uuid:
+        print("It seems that this is neither a new nor an UUID has been provided. Hence we quit!")
+        sys.exit(1)
 
+    if args.uuid and not args.new:
+        s = Session(args.uuid)
+        if s.exists() == None:
+            print(f"This uuid:{args.uuid} does not exist. Please run this script with --new option and --phase A options")
+            sys.exit(1)
+        
     #Phase 1 and Phase 2 generally run together. Phase 3 runs after payments gets submitted (in Phase 3: only seesion uuid is enough)
-    main(args.uuid, args.name, args.amount, args.meta)
+    if (args.phase == "A") and (args.new == True) :
+        main_phase_A(args.uuid)
+
+    if (args.phase == "B") and args.uuid :
+        main_phase_B(args.uuid, args.name, args.amount, args.meta)
