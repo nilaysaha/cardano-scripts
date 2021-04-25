@@ -63,8 +63,7 @@ class Monitor:
 
             #Step 2: Transfer of minted tokens to target address            
             a = ta.Transfer(uuid=inputs.uuid, amount=inputs.count, coinname=inputs.name, policy=inputs.policy, outputAddr=self.dest_addr)
-            a.main()
-            
+            a.main()            
         except:
             logging.exception("Could not complete all the post payment steps")
             
@@ -73,3 +72,18 @@ def main(uuid, payment_amount, transfer_address):
     a = monitor()
     a.heartbeat()
     a.post_payment_steps()
+
+
+
+if __name__ == "__main__":
+
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    
+    parser.add_argument('--uuid', dest='uuid', help="This customer uuid being assigned")
+    parser.add_argument('--amount',dest='amount', help="Payment Amount")
+    parser.add_argument('--payAddr', dest='meta', help="Metadata associated with this NFT. Will vary depending on the medium like picture, video, text etc.")
+
+    args = parser.parse_args()
+

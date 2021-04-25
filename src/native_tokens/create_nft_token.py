@@ -553,7 +553,7 @@ def main_phase_A(uuid):
             c.main_phase2()
             print("\n\n")
         else:
-            print('STEP 2 has been already run')
+            print('STEP 2 has been already run') 
     except:
         logging.exception("Failed to create nft.")
         sys.exit(1)
@@ -582,7 +582,7 @@ def main_phase_B(uuid, name=TOKEN_NAME, amount=1, metadata={}):
         logging.exception(f"Could not mint the :{name} with amount:{amount}")
         sys.exit(1)
         
-        
+
 if __name__ == "__main__":
 
     import argparse
@@ -612,9 +612,10 @@ if __name__ == "__main__":
             print(f"This uuid:{args.uuid} does not exist. Please run this script with --new option and --phase A options")
             sys.exit(1)
         
-    #Phase 1 and Phase 2 generally run together. Phase 3 runs after payments gets submitted (in Phase 3: only seesion uuid is enough)
+    #Phase 1 and Phase 2 generally run together. Phase 3 runs after payments gets submitted 
     if (args.phase == "A") and (args.new == True) :
         main_phase_A(args.uuid)
 
+    #(in Phase 3: only seesion uuid is enough)
     if (args.phase == "B") and args.uuid :
         main_phase_B(args.uuid, args.name, args.amount, args.meta)
