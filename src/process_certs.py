@@ -245,6 +245,29 @@ def get_payment_utx0_with_native_tokens(payment_addr=None):
     except:
         logging.exception("Failed to get payment utx0")
 
+
+def get_total_fund_in_utx0_with_native_tokens(payment_addr=None):
+    """
+    Output should be:{
+        "lovelace": amount_ADA,
+        "native_token_A": Amount_token_A ...
+    }
+    """
+    try:
+        print("Now trying to get total funds for all the tokens")
+        if payment_addr == None:
+            payment_addr = content(FILES['payment']['addr'])
+        t = get_payment_utx0_with_native_tokens(payment_addr)
+
+        val_obj={}
+
+        for val in t:
+            for token in val.tokens:
+                val_obj[token.id] += int(token.count)
+        return val_obj                
+    except:
+        logging.exception("failed to get total funds")
+        
         
 def get_total_fund_in_utx0(payment_addr=None):
     try:
