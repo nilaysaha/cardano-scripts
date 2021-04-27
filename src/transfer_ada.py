@@ -197,16 +197,13 @@ if __name__ == "__main__":
     # create parser
     parser = argparse.ArgumentParser()
     
-    parser.add_argument('--uuid', dest='uuid')
-    parser.add_argument('--amount', dest='amount')
-    parser.add_argument('--policyid', dest='policyid')
-    parser.add_argument('--coinname', dest='coinname')
-    parser.add_argument('--outputAddr', dest='outputAddr')
-    parser.set_defaults(latest=True)
+    parser.add_argument('--inputAddr', dest='inputAddr', help="Payment address where funds originate from. This can also have other native tokens at the same utxo. ")
+    parser.add_argument('--amount', dest='amount', help="Amount of ADA to be transferred")
+    parser.add_argument('--outputAddr', dest='outputAddr', help="Destination address where ADA needs to be transferred to.")
 
     args = parser.parse_args()
 
-    a = Transfer(args.uuid, args.amount, args.policyid, args.coinname,  args.outputAddr)
+    a = Transfer(args.inputAddr, args.amount,args.outputAddr)
     a.main()
     
         
