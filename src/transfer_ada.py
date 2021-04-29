@@ -1,11 +1,12 @@
 #!/usr/bin/python3
 
 """
-Steps from:https://developers.cardano.org/en/development-environments/native-tokens/working-with-multi-asset-tokens/
-Goal: to withdraw the native tokens to the Daedalus wallet (or backed by hardware wallet)
-
-
+precondition to using this script:
+  - Add directory 'trans' to this directory.
+  - Add pay.skey and protocol.json to the trans directory created above.
+  - Run the command.
 """
+
 
 import subprocess, json, os, sys, shlex
 import process_certs as pc
@@ -190,7 +191,7 @@ if __name__ == "__main__":
     # create parser
     parser = argparse.ArgumentParser()
     
-    parser.add_argument('--inputAddr', dest='inputAddr', help="Payment address where funds originate from. This can also have other native tokens at the same utxo. ")
+    parser.add_argument('--inputAddr', dest='inputAddr', help="Payment address where funds originate from. This can also have other native tokens at the same utxo.  ")
     parser.add_argument('--amount', dest='amount', help="Amount of ADA to be transferred")
     parser.add_argument('--outputAddr', dest='outputAddr', help="Destination address where ADA needs to be transferred to.")
 
