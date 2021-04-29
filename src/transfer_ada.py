@@ -21,18 +21,14 @@ os.environ["MAGIC"] = "1097911063"
 
 
 FILES={
-    "recieve":{
-        "transaction": {
-            "raw":"recv_token.raw",
-            "signed": "recv_token.signed"
-        }
-    } 
+    "transaction": {
+        "raw":"./trans/token.raw",
+        "signed": "./trans/token.signed"},
+    "protocol":"./trans/protocol.json",
+    "payment": {
+        "signature":"./trans/pay.skey"
+    }
 }
-
-def fetch_file(fpath, uuid):
-    s = nft.Session(uuid)
-    return s.sdir(fpath)
-
 
 def run_command(command):
     print(Fore.GREEN + f"Command is:{command}")
@@ -49,11 +45,9 @@ def run_command(command):
 class Transfer:
     def __init__(self, input_addr, amount, output_addr):
         self.amount = amount
-        self.uuid   = uuid
         self.dest_addr = output_addr
         self.payment_addr = input_addr
-        self.utx0   = pc.get_payment_utx0_with_native_tokens(self.payment_addr)
-        self.s = nft.Session(uuid)
+        self.utx0   = pc.get_payment_utx0_with_native_tokens(input_addr)
         
     def _generate_tx_in(self):
         try:
@@ -72,7 +66,7 @@ class Transfer:
     
     def remaining_fund_lovelace(self, fees=0, native_token_fees=MINIMUM_TOKEN_AMOUNT_ACCOMPANYING_TRANSFER):
         total_funds = pc.get_total_fund_in_utx0_with_native_tokens(self.payment_addr)
-        rfund = total_funds["lovelace"] -int(fees) -int(native_token_fees) -self.amount 
+        rfund = total_funds["lovelace"] -int(fees) - int(self.amount)
         return rfund
 
     def remaining_native_tokens(self):
@@ -93,24 +87,23 @@ class Transfer:
              --out-file rec_matx.raw
         """
         try:
-            funds_in_origin = fees + MINIMUM_TOKEN_AMOUNT_ACCOMPANYING_TRANSFER
-            raw_trans_file = self.s.sdir(FILES['recieve']['transaction']['raw'])
-            remaining_fund = self.remaining_fund_lovelace(fees, MINIMUM_TOKEN_AMOUNT_ACCOMPANYING_TRANSFER)
+            raw_trans_file = FILES['transaction']['raw']
+            remaining_fund = self.remaining_fund_lovelace(fees)
             total_token_counts = pc.get_total_fund_in_utx0_with_native_tokens(self.payment_addr)
 
-            recv_string = f"{self.dest_addr}+{funds_in_origin}"
+            tx_out_recv_addr = f"{self.dest_addr}+{self.amount}"
+            
+            self_pay_string = f"{self.payment_addr}+{remaining_fund}+"
             for key in total_token_counts.keys():
                 if key != 'lovelace':
-                    recv_string += f"{total_token_counts[key]} {key}"
+                    self_pay_string += f"'{total_token_counts[key]} {key}'"
             
             tx_in_array = self._generate_tx_in()
-            tx_out_receiver = recv_string
-            tx_out_self_payment_addr = f"{self.payment_addr}+{remaining_fund}"
 
             command=["cardano-cli", "transaction", "build-raw",
                      "--fee", str(fees),
-                     "--tx-out", tx_out_self_payment_addr,
-                     "--tx-out", tx_out_receiver,
+                     "--tx-out", self_pay_string,
+                     "--tx-out", tx_out_recv_addr,
                      "--out-file", raw_trans_file]+tx_in_array
             
             command_str = " ".join(command)
@@ -133,8 +126,8 @@ class Transfer:
         --protocol-params-file protocol.json
         """
         try:
-            tx_body_file=self.s.sdir(FILES['recieve']['transaction']['raw'])
-            protocol_file=self.s.sdir(nft.FILES['protocol'])
+            tx_body_file=FILES['transaction']['raw']
+            protocol_file=FILES['protocol']
             command=["cardano-cli", "transaction", "calculate-min-fee", "--tx-body-file",tx_body_file, "--tx-in-count", str(1),
                      "--tx-out-count", str(2), "--witness-count", str(1), "--testnet-magic",os.environ["MAGIC"], "--protocol-params-file", protocol_file]
             print(Fore.GREEN + f"Command is:{command}")
@@ -155,9 +148,9 @@ class Transfer:
 
         """
         try:
-            pay_skey = self.s.sdir(nft.FILES['payment']['signature'])
-            tx_raw_file=self.s.sdir(FILES['recieve']['transaction']['raw'])
-            tx_raw_signed=self.s.sdir(FILES['recieve']['transaction']['signed'])
+            pay_skey = FILES['payment']['signature']
+            tx_raw_file=FILES['transaction']['raw']
+            tx_raw_signed=FILES['transaction']['signed']
             command=["cardano-cli", "transaction", "sign", "--signing-key-file", pay_skey, "--testnet-magic",os.environ["MAGIC"],
                      "--tx-body-file", tx_raw_file,
                      "--out-file", tx_raw_signed]
@@ -175,7 +168,7 @@ class Transfer:
         Note that we must send more than 1000000 Lovelace in the transaction. (mainnet-shelley-genesis.json:    "minUTxOValue": 1000000,)
         """
         try:
-            tx_raw_signed=self.s.sdir(FILES['recieve']['transaction']['signed'])
+            tx_raw_signed=FILES['transaction']['signed']
             command=["cardano-cli", "transaction", "submit", "--tx-file", tx_raw_signed, "--testnet-magic", os.environ["MAGIC"]]
             print(Fore.GREEN + f"Command is:{command}")
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
@@ -203,9 +196,11 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    a = Transfer(args.inputAddr, args.amount,args.outputAddr)
-    a.main()
-    
+    if (args.inputAddr != None) and (args.amount != None) and (args.outputAddr != None) :
+        a = Transfer(args.inputAddr, args.amount,args.outputAddr)
+        a.main()
+    else:
+        print("Not sufficient params. To see help: python3 transfer_ada.py --help")
         
         
         

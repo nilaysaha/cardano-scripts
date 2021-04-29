@@ -261,9 +261,17 @@ def get_total_fund_in_utx0_with_native_tokens(payment_addr=None):
 
         val_obj={}
 
+        print(f"The utxo for the address:{payment_addr} is {t}")
         for val in t:
-            for token in val.tokens:
-                val_obj[token.id] += int(token.count)
+            for token in val["tokens"]:
+                print(f"token is:{token}")
+                if token["id"] in val_obj:
+                    val_obj[token["id"]] += int(token["count"])
+                else:
+                    val_obj[token["id"]] = int(token["count"])
+                print(val_obj)
+                
+        print(f"value object returned is:{val_obj}")
         return val_obj                
     except:
         logging.exception("failed to get total funds")
