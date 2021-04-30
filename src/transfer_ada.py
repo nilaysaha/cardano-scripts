@@ -16,6 +16,7 @@ import colorama
 from colorama import Fore, Back, Style
 
 MINIMUM_TOKEN_AMOUNT_ACCOMPANYING_TRANSFER=str(10000000)
+ADA2LOVELACE=1000000
 
 os.environ["CHAIN"] = "testnet"
 os.environ["MAGIC"] = "1097911063"
@@ -94,10 +95,10 @@ class Transfer:
 
             tx_out_recv_addr = f"{self.dest_addr}+{self.amount}"
             
-            self_pay_string = f"{self.payment_addr}+{remaining_fund}+"
+            self_pay_string = f"{self.payment_addr}+{remaining_fund}"
             for key in total_token_counts.keys():
                 if key != 'lovelace':
-                    self_pay_string += f"'{total_token_counts[key]} {key}'"
+                    self_pay_string += f"+'{total_token_counts[key]} {key}'"
             
             tx_in_array = self._generate_tx_in()
 
@@ -198,7 +199,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if (args.inputAddr != None) and (args.amount != None) and (args.outputAddr != None) :
-        a = Transfer(args.inputAddr, args.amount,args.outputAddr)
+        a = Transfer(args.inputAddr, int(args.amount)*ADA2LOVELACE,args.outputAddr)
         a.main()
     else:
         print("Not sufficient params. To see help: python3 transfer_ada.py --help")

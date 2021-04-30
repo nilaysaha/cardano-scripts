@@ -53,7 +53,7 @@ FILES={
 }
 
 class Inputs:
-    def __init__(uuid):
+    def __init__(self,uuid):
         self.uuid = uuid
         
         

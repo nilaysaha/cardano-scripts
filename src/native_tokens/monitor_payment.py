@@ -10,35 +10,45 @@ import create_nft_token as nft
 import transfer_native_asset as ta
 import logging
 import colorama
+import time
 from colorama import Fore, Back, Style
 
-HEARTBEAT_INTERVAL = 200
-        
+HEARTBEAT_INTERVAL = 10
+ADA2LOVELACE=1000000
+
+os.environ["CHAIN"] = "testnet"
+os.environ["MAGIC"] = "1097911063"
 
 class Monitor:
     def __init__(self, session_uuid, payment_due, transfer_address):
         self.session = session_uuid
         self.dest_addr = transfer_address
-        self.payment_amount = payment_due
+        self.payment_amount = int(payment_due)*ADA2LOVELACE
         self.initial_amount = 0 #ASSUMPITON: We start with a fresh payment address per person.
         self.s = nft.Session(session_uuid)
+        self.payment_addr = pc.content(self.s.sdir(nft.FILES['payment']['address']))
         self.heartbeat_interval = HEARTBEAT_INTERVAL
         
     def heartbeat(self):
         """
         check the balance every 200ms
         """
-        while not check_payment():            
-            sleep(HEARTBEAT_INTERVAL)
-        print(f"Payment has been recieved.")
-            
+        payment_status = False
+        while not payment_status:            
+            payment_status = self.check_payment()
+            print(f"Next loop...Continue till the payment of {self.payment_amount} has arrived at {self.payment_addr}")
+            time.sleep(HEARTBEAT_INTERVAL)
+        print(f"Payment has been recieved. Now proceeding with post payment steps.")
+        return True
+        
     def check_payment(self):
         """
         returns the funds in the pay.addr for that session uuid.
         """
-        payment_addr = pc.content(self.s.sdir(nft.FILES['payment']['address']))
-        rfund = pc.get_total_fund_in_utx0(payment_addr)
-        status = (rfund - self.initial_amount)>= self.payment_amount
+        fund = pc.get_total_fund_in_utx0(self.payment_addr)
+        print(f"fund in the payment address :{self.payment_addr} is {fund}")        
+        status = int(fund) >= int(self.payment_amount)
+        print(f"payment status is:{status}")
         return status
 
     def post_payment_steps(self):
@@ -53,8 +63,8 @@ class Monitor:
         """
         try:
             #Fetch the run parameters and store back the recv address of the customer
-            a = nft.inputs(self.session)
-            inputs = a.fetch_inputs()
+            a = nft.Inputs(self.session)
+            inputs = a.fetch()
             inputs["recv_address"] = self.dest_addr
             a.buffer(inputs.name, inputs.policy_id, inputs.amount,inputs.metadata, self.dest_addr)
 
@@ -69,7 +79,7 @@ class Monitor:
             
 
 def main(uuid, payment_amount, transfer_address):
-    a = monitor()
+    a = Monitor(uuid, payment_amount, transfer_address)
     a.heartbeat()
     a.post_payment_steps()
 
@@ -82,8 +92,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     
     parser.add_argument('--uuid', dest='uuid', help="This customer uuid being assigned")
-    parser.add_argument('--amount',dest='amount', help="Payment Amount")
-    parser.add_argument('--payAddr', dest='meta', help="Metadata associated with this NFT. Will vary depending on the medium like picture, video, text etc.")
+    parser.add_argument('--amount',dest='amount', help="Payment Amount in ADA")
+    parser.add_argument('--payAddr', dest='payAddr', help="Address of the reciever where the NFT token should be transferred to")
 
     args = parser.parse_args()
 
+    if args.uuid != None and args.amount != None and args.payAddr != None:
+        main(args.uuid, args.amount, args.payAddr)
