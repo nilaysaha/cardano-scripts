@@ -65,14 +65,16 @@ class Monitor:
             #Fetch the run parameters and store back the recv address of the customer
             a = nft.Inputs(self.session)
             inputs = a.fetch()
-            inputs["recv_address"] = self.dest_addr
-            a.buffer(inputs.name, inputs.policy_id, inputs.amount,inputs.metadata, self.dest_addr)
+            print(f"fetched the inputs for this run:{inputs}")
+            
+            t = nft.Transaction(self.session, inputs["name"], inputs["amount"], inputs["metadata"])
+            policy_id = t.mint_new_asset()
 
             #Step 1: Minting of the tokens
             nft.main_phase_B(self.session)
 
             #Step 2: Transfer of minted tokens to target address            
-            a = ta.Transfer(uuid=inputs.uuid, amount=inputs.count, coinname=inputs.name, policy=inputs.policy, outputAddr=self.dest_addr)
+            a = ta.Transfer(uuid=self.session, amount=inputs["count"], coinname=inputs["name"], policy=policy_id, outputAddr=inputs["dest_addr"])
             a.main()            
         except:
             logging.exception("Could not complete all the post payment steps")
@@ -99,3 +101,5 @@ if __name__ == "__main__":
 
     if args.uuid != None and args.amount != None and args.payAddr != None:
         main(args.uuid, args.amount, args.payAddr)
+    else:
+        print(f"Missed minimum input params. For help: python3 monitory_payment.py --help")

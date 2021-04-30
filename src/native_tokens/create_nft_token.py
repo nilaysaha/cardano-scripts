@@ -57,14 +57,13 @@ class Inputs:
         self.uuid = uuid
         
         
-    def buffer(self, name, policy_id,amount, metadata={}, recv_addr=None):
+    def buffer(self, name, amount, payment, metadata={}, recv_addr=None):
         input_json = {
-            "uuid": self.uuid,
             "name": name,
-            "policy": policy_id,
-            "count": amount,
+            "amount": amount,
+            "payment": payment,
             "metadata": metadata,
-            "recv_address": recv_addr
+            "dest_address": recv_addr
         }
 
         f = open(self.s.sdir(FILES['buffer']['input']), "w")
@@ -388,6 +387,7 @@ class Transaction(CreateToken):
                 tx_in_array.append(tx_in)
 
             new_coin_mint_str = str(num_coins)+' '+policy_id+'.'+coin_name
+            ncms_2 = f"'{new_coin_mint_str}'"
             utx0_status = self._calculate_utx0_lovelace(fees)
 
             ctip = int(pc.get_tip())
@@ -568,12 +568,7 @@ def main_phase_B(uuid, name=TOKEN_NAME, amount=1, metadata={}):
         if c.check_status('phase_1') and c.check_status('phase_2') and not c.check_status('phase_3'):        
             print(Fore.RED + 'Now proceeding to step 3')
             t = Transaction(uuid, name, amount, metadata)
-            uuid, policy_id, name, amount, metadata = t.main()
-
-            #now store the inputs for future ref for this session
-            a = Inputs(uuid)
-            a.buffer(name, policy_id,amount, metadata)
-            
+            t.main()            
             c.create_status_file('phase_3')
             print("\n\n")
         else:
