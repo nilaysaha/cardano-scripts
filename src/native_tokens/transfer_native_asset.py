@@ -192,11 +192,11 @@ class Transfer:
             sys.exit(1)
 
     def main(self):
-        a.raw_trans(0)
-        min_fees = a.calculate_min_fees()
-        a.raw_trans(min_fees)
-        a.sign_trans()
-        a.submit_trans()
+        self.raw_trans(0)
+        min_fees = self.calculate_min_fees()
+        self.raw_trans(min_fees)
+        self.sign_trans()
+        self.submit_trans()
 
 
 if __name__ == "__main__":

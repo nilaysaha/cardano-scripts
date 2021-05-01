@@ -20,14 +20,23 @@ os.environ["CHAIN"] = "testnet"
 os.environ["MAGIC"] = "1097911063"
 
 class Monitor:
-    def __init__(self, session_uuid, payment_due, transfer_address):
+    def __init__(self, session_uuid):
         self.session = session_uuid
-        self.dest_addr = transfer_address
-        self.payment_amount = int(payment_due)*ADA2LOVELACE
-        self.initial_amount = 0 #ASSUMPITON: We start with a fresh payment address per person.
         self.s = nft.Session(session_uuid)
+        inputs= self._fetch_buffer(session_uuid)
+
+        print(f"Fetched input params are:{inputs}")
+        
+        self.dest_addr = inputs["dest_addr"]
+        self.payment_amount = int(inputs["payment"])*ADA2LOVELACE
+        self.initial_amount = 0 #ASSUMPITON: We start with a fresh payment address per person.
         self.payment_addr = pc.content(self.s.sdir(nft.FILES['payment']['address']))
         self.heartbeat_interval = HEARTBEAT_INTERVAL
+
+    def _fetch_buffer(self,uuid):
+        i =nft.Inputs(uuid)
+        return i.fetch()
+
         
     def heartbeat(self):
         """
@@ -74,14 +83,14 @@ class Monitor:
             nft.main_phase_B(self.session)
 
             #Step 2: Transfer of minted tokens to target address            
-            a = ta.Transfer(uuid=self.session, amount=inputs["count"], coinname=inputs["name"], policy=policy_id, outputAddr=inputs["dest_addr"])
+            a = ta.Transfer(uuid=self.session, amount=inputs["amount"], policyid=policy_id, coin_name=inputs["name"], output_addr=inputs["dest_addr"])
             a.main()            
         except:
             logging.exception("Could not complete all the post payment steps")
             
 
-def main(uuid, payment_amount, transfer_address):
-    a = Monitor(uuid, payment_amount, transfer_address)
+def main(uuid):
+    a = Monitor(uuid)
     a.heartbeat()
     a.post_payment_steps()
 
@@ -94,12 +103,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     
     parser.add_argument('--uuid', dest='uuid', help="This customer uuid being assigned")
-    parser.add_argument('--amount',dest='amount', help="Payment Amount in ADA")
-    parser.add_argument('--payAddr', dest='payAddr', help="Address of the reciever where the NFT token should be transferred to")
 
     args = parser.parse_args()
 
-    if args.uuid != None and args.amount != None and args.payAddr != None:
-        main(args.uuid, args.amount, args.payAddr)
+    if args.uuid != None:
+        main(args.uuid)
     else:
         print(f"Missed minimum input params. For help: python3 monitory_payment.py --help")

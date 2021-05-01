@@ -23,6 +23,17 @@ DEFAULT_URL="/ipfs/QmYypFZyFUwo4WNKzumg9FJbw836bZTbguqeLaazKmiHjb"
 os.environ["CHAIN"] = "testnet"
 os.environ["MAGIC"] = "1097911063"
 
+DEFAULT_INPUT={
+    "name": "NFT1",
+    "amount": "1",
+    "payment": "100",
+    "tags": "music, sunday",
+    "dest_addr": "addr_test1vzrdjqr3yup52hq5dp6ctv32q4t425mth595gge0sfarjzsapqtg", 
+    "metadata": {
+	"url":"/ipfs/QmYypFZyFUwo4WNKzumg9FJbw836bZTbguqeLaazKmiHjb?filename=Screenshot%202021-03-18%20at%2007.33.06.png"
+    }
+}
+
 FILES={
     'payment':{
         'verification': 'pay.vkey',
@@ -54,20 +65,12 @@ FILES={
 
 class Inputs:
     def __init__(self,uuid):
-        self.uuid = uuid
+        self.uuid = uuid        
+        self.s = Session(uuid)
         
-        
-    def buffer(self, name, amount, payment, metadata={}, recv_addr=None):
-        input_json = {
-            "name": name,
-            "amount": amount,
-            "payment": payment,
-            "metadata": metadata,
-            "dest_address": recv_addr
-        }
-
+    def buffer(self, input_obj):
         f = open(self.s.sdir(FILES['buffer']['input']), "w")
-        json_obj = json.dumps(input_json, indent=4)
+        json_obj = json.dumps(input_obj, indent=4)
         f.write(json_obj)
         f.close()
 
@@ -539,7 +542,7 @@ class Transaction(CreateToken):
             sys.exit(1)
 
 
-def main_phase_A(uuid):
+def main_phase_A(uuid, sample_input_data=DEFAULT_INPUT):
     try:
         c = CreateToken(uuid)
                 
@@ -551,6 +554,8 @@ def main_phase_A(uuid):
         if not c.check_status('phase_2') and c.check_status('phase_1'):
             print(Fore.RED + 'Now proceeding to step 2')
             c.main_phase2()
+            i = Inputs(uuid)
+            i.buffer(sample_input_data)
             print("\n\n")
         else:
             print('STEP 2 has been already run') 
@@ -559,15 +564,19 @@ def main_phase_A(uuid):
         sys.exit(1)
 
 
-def main_phase_B(uuid, name=TOKEN_NAME, amount=1, metadata={}):
+def main_phase_B(uuid):
     """
     Currently minting only a single native token. TODO: Later should be extended to mint multiple token names corresponding to single policy_id in single transaction
+    Fetch the inputs from phase A from input.json. We need :name=TOKEN_NAME, amount=1, metadata={}
     """
     try:
         c = CreateToken(uuid)
+        i = Inputs(uuid)
+        saved_params = i.fetch()
+        
         if c.check_status('phase_1') and c.check_status('phase_2') and not c.check_status('phase_3'):        
             print(Fore.RED + 'Now proceeding to step 3')
-            t = Transaction(uuid, name, amount, metadata)
+            t = Transaction(uuid, saved_params["name"], saved_params["amount"], saved_params["metadata"])
             t.main()            
             c.create_status_file('phase_3')
             print("\n\n")
@@ -586,7 +595,6 @@ if __name__ == "__main__":
     
     parser.add_argument('--new', dest='new', action='store_true', help="For a new customer request this is what creates a new session id")
     parser.add_argument('--uuid', dest='uuid', help="This customer uuid being assigned")
-    parser.add_argument('--phase', dest='phase', help="Phase A (create a policy id) or Phase B (create coins connected to the policy. Name and number is needed) ")
     parser.add_argument('--name', dest='name', help="Name of the NFT token. In absense we will assign some uuid based random name")
     parser.add_argument('--amount',dest='amount', help="Number of NFT tokens with the policy.name combination")
     parser.add_argument('--meta', dest='meta', help="Metadata associated with this NFT. Will vary depending on the medium like picture, video, text etc.")
@@ -597,20 +605,18 @@ if __name__ == "__main__":
     
     if args.new:
         args.uuid = MUUID        
-    elif not args.uuid:
-        print("It seems that this is neither a new nor an UUID has been provided. Hence we quit!")
-        sys.exit(1)
-
-    if args.uuid and not args.new:
-        s = Session(args.uuid)
-        if s.exists() == None:
-            print(f"This uuid:{args.uuid} does not exist. Please run this script with --new option and --phase A options")
-            sys.exit(1)
+    else:
+        args.new = False
         
     #Phase 1 and Phase 2 generally run together. Phase 3 runs after payments gets submitted 
-    if (args.phase == "A") and (args.new == True) :
+    if (args.new == True) :
         main_phase_A(args.uuid)
-
+        
     #(in Phase 3: only seesion uuid is enough)
-    if (args.phase == "B") and args.uuid :
-        main_phase_B(args.uuid, args.name, args.amount, args.meta)
+    if not args.new and args.uuid :
+        main_phase_B(args.uuid)
+
+    if not args.new and (args.uuid == None) :
+        print(f"It is seems you need to run an existing uuid but forgot to mention that!")
+
+        
