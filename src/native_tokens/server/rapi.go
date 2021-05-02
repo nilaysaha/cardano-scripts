@@ -5,28 +5,53 @@ import (
 	"net/http"
 	"fmt"
 )
- 
-type NFT struct {
-	Id          integer `json:"Id"`
-	Title       string `json:"Title"`
-	StorageLink string `json:"Storage"`
-	Name   string `json:"Text"`
+
+type NFTMeta struct {
+	keywords   string `json:"keywords"`
+	image      string `json:"image"`
+	version    string `json:"version"`
+	copyright  string `json:"copyright"`
 }
+
+
+type NftToken struct {
+	policyid    string  `json:"policyid"`
+	assetName   string  `json:"assetName"`
+	assetAmount integer `json:"assetAmount"`
+	mintingCost float   `json:"mintingCost"`
+	recvAddr    string  `json:"recvAddr"`
+	metaInfo    NFTMeta `json:"NftMeta"`
+}
+
  
 func PostsHandler(w http.ResponseWriter, r *http.Request) {
- 
-    nfts := []NFT{
-        NFT{"Post one", "John", "This is first post."},
-        NFT{"Post two", "Jane", "This is second post."},
-        NFT{"Post three", "John", "This is another post."},
-    }
- 
-    json.NewEncoder(w).Encode(posts)
+
+	if r.Method != http.MethodPost {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		fmt.Fprintf(w, "invalid_http_method")
+		return
+	}
+
+	// Must call ParseForm() before working with data
+	r.ParseForm()
+
+	// Log all data. Form is a map[]
+	log.Println(r.Form)
+
+	// Print the data back. We can use Form.Get() or Form["name"][0]
+	fmt.Fprintf(w, r.Form.Get("policyid"))
+
+
+	//Check all the parameters and then invoke the python code for the blockchain code.
+	
+	
 }
- 
+
+
+
 func main() {
 	
 	fmt.Println("Starting a server on localhost:5051")
-	http.HandleFunc("/posts", PostsHandler)
+	http.HandleFunc("/nfts", PostsHandler)
 	http.ListenAndServe(":5051", nil)
 }

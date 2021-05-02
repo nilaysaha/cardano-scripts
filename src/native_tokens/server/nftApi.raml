@@ -1,0 +1,66 @@
+#%RAML 1.0
+#editor used:https://rawgit.com/mulesoft/api-designer/v0.4.2/dist/index.html#/?xDisableProxy=true
+title: NFT designer
+baseUri: http://localhost:5051/api
+version: 1.0
+
+types:
+  NFTMeta:
+    type: object
+    properties:
+      keywords:
+        description: tags associated with this NFT should be mentioned here.
+        required: false
+        type: array
+      image:
+        description: Url in ipfs for stroring the image.
+        required: true
+        type: string
+      version:
+        description: Version of this NFT. Maybe the next version will be linked to the earlier one.
+        type: integer
+        required: true
+      copyright:
+        description: Owner of this NFT can put this information here.
+        type: string
+        required: true
+  NFTToken:
+    type: object
+    properties:
+      policyid:
+        description: The policyid of the tokens associated with this NFT
+        type: string
+        required: true
+      assetName:
+        description: The name of the token. The combination of <assetname>.<policyid> is unique.
+        required: true
+        type: string
+      assetAmount:
+        description: Number of NFT tokens to be created for this metadata.
+        required: true
+        type: integer
+      mintingCost:
+        description: Amount in ADA required for minting the token.
+        required: true
+        type: integer
+      recvAddr:
+        description: Address to which the minted tokens should be transferred
+        required: true
+        type: string
+      metaInfo:
+        description: The metadata associated with the token minted.
+        required: true
+        type: NFTMeta
+/NFT:
+  displayName: NFT endpoint
+  get:
+    description: Lists the NFT created on this platform using txId.
+    queryParameters:
+      txId:
+        type: string
+        description: use to query all orders using txid.
+  post:
+    description: Create NFT corresponding to the metadata.
+    body:
+      application/json:
+        type: NFTMeta
