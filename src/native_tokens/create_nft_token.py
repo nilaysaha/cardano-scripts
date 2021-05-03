@@ -343,6 +343,7 @@ class CreateToken:
             self.generate_policy_keys()
             self.generate_default_policy()
             self.create_status_file('phase_2') #add status
+            return t
         except:
             logging.exception("Could not complete phase 2")
             sys.exit(1)
@@ -553,10 +554,11 @@ def main_phase_A(uuid, sample_input_data=DEFAULT_INPUT):
 
         if not c.check_status('phase_2') and c.check_status('phase_1'):
             print(Fore.RED + 'Now proceeding to step 2')
-            c.main_phase2()
+            output = c.main_phase2()
             i = Inputs(uuid)
             i.buffer(sample_input_data)
             print("\n\n")
+            return output
         else:
             print('STEP 2 has been already run') 
     except:
