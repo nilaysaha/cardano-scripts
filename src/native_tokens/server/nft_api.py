@@ -1,8 +1,8 @@
-from flask import Flask, request
+from flask import Flask, request, jsonify
 from flask_restful import Resource, Api
 
 import create_nft_token as cnt
-
+import queue_task as qt
 
 app = Flask(__name__)
 api = Api(app)
@@ -28,11 +28,11 @@ class Actions:
             }
         }
         
-        output = nft.main_phase_A(self.uuid, sinput)
+        output = cnt.main_phase_A(self.uuid, sinput)
         return output["addr"]
         
 
-Class NFT(Resource):
+class NFT(Resource):
     def post(self):
         data = request.get_json()
         assetname = request.form.get('assetName')
@@ -44,10 +44,17 @@ Class NFT(Resource):
         print(f"Asset: {assetname} with amount:{assetamount} costs {mintingcost} ADA with addr:{recvaddr}")
         
         #Now we can call the phase A to create a new entry for this customer
-        a = Actions(nft.MUUID)
+        uuid = cnt.MUUID
+        a = Actions(uuid)
         payment_addr = a.phase_A(assetname, assetamount, mintingcost, recvaddr, url)
-        print("payment address created is:{payment_addr}")
+        print(f"payment address created is:{payment_addr}")
+
+        #Now push the values to the queue so that it can be picked by the monitoring task
+
+        q = qt.Queue()
+        q.queue(uuid, payment_addr)
         
+        return {"payment_addr":payment_addr, "uuid":uuid}
         
 ##
 ## Actually setup the Api resource routing here
