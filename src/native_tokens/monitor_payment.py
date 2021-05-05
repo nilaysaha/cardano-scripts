@@ -13,6 +13,8 @@ import colorama
 import time
 from colorama import Fore, Back, Style
 
+import queue_task as qt
+
 HEARTBEAT_INTERVAL = 10
 ADA2LOVELACE=1000000
 
@@ -87,15 +89,41 @@ class Monitor:
             a.main()            
         except:
             logging.exception("Could not complete all the post payment steps")
+
+    def main(self):
+        self.heartbeat()
+        self.post_payment_steps()
+
             
+    
+class Worker:
+    def __init__(self, uuid):
+        self.num_worker = MAX_NUM_WORKERS
+        self.qin  = qt.Queue(PLIST)
+        self.qout = qt.Queue(PROCESSING_LIST)
 
-def main(uuid):
-    a = Monitor(uuid)
-    a.heartbeat()
-    a.post_payment_steps()
+    def init_task(self, uuid):
+        t = Monitor(uuid)
+        t.main()
+        self._unschedule() #Question: What ID should be used ?
+        
+    def _unschedule(self, uuid):
+        #remove the items from the processing queue.
+        pass
+        
+    def schedule(self):
+        clen = self.qin.len() 
+        plen = self.qout.len()
 
-
-
+        #While length of process queue is less than max_num_worker queue pls
+        while plen < MAX_NUM_WORKERS:
+            item_to_queue = self.qin.fetch()
+            #Now we need to start job execution (monitoring of payment etc.)
+            self.init_task(item_to_queue["uuid"])
+            self.qout.queue(item_to_queue["uuid"], item_to_queue["addr"])
+    
+            
+            
 if __name__ == "__main__":
 
     import argparse

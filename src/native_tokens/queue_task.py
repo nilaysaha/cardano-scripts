@@ -2,28 +2,35 @@
 
 import redis, json
 
-LIST='PAYMENT'
+PLIST='PAYMENT'
+MAX_NUM_WORKERS=3
+PROCESSING_LIST='PROCESS'
 
 class Queue:
-    def __init__(self):
+    def __init__(self,queue_name):
         self.r = redis.Redis(host='localhost', port=6379, db=0)
+        self.name = queue_name
         
     def queue(self, uuid, qaddr):
         item = json.dumps({"uuid": uuid, "addr": qaddr}, separators=(',', ':'))
-        self.r.lpush(LIST, item )
+        self.r.lpush(self.name, item )
         
     def fetch(self):
-        if self.r.llen(LIST) > 0:
-            return self.r.lpop(LIST)
+        if self.r.llen(self.name) > 0:
+            return json.loads(self.r.lpop(self.name))
         else:
             print(f"No more items to return. Hence returning None")
             return None
 
     def show(self):
-        for item in self.r.lrange(LIST, 0, -1):
+        for item in self.r.lrange(self.name, 0, -1):
             print(item)
-        
 
+    def len(self):
+        return self.r.llen(self.name)
+            
+        
+            
 if __name__ == "__main__":
 
     import argparse
