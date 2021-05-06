@@ -10,4 +10,5 @@ if [ $# -ne 1 ]; then
     exit 1
 fi
 
+echo "The payment address is:"`cat $PAY_FILE`
 cardano-cli query utxo --address `cat $PAY_FILE` --testnet-magic ${TESTNET_MAGIC}

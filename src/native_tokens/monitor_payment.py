@@ -15,7 +15,7 @@ from colorama import Fore, Back, Style
 
 import queue_task as qt
 
-HEARTBEAT_INTERVAL = 10
+HEARTBEAT_INTERVAL = 5 #waiting time in seconds
 ADA2LOVELACE=1000000
 
 os.environ["CHAIN"] = "testnet"
@@ -97,44 +97,51 @@ class Monitor:
             
     
 class Worker:
-    def __init__(self, uuid):
-        self.num_worker = MAX_NUM_WORKERS
-        self.qin  = qt.Queue(PLIST)
-        self.qout = qt.Queue(PROCESSING_LIST)
+    def __init__(self):
+        self.num_worker = qt.MAX_NUM_WORKERS
+        self.qin  = qt.Queue(qt.PLIST)
+        self.qout = qt.Queue(qt.PROCESSING_LIST)
 
     def init_task(self, uuid):
         t = Monitor(uuid)
         t.main()
-        self._unschedule() #Question: What ID should be used ?
+        self._unschedule(uuid) #Question: What ID should be used ?
         
     def _unschedule(self, uuid):
         #remove the items from the processing queue.
-        pass
+        self.qout.lrem(uuid)
         
     def schedule(self):
         clen = self.qin.len() 
-        plen = self.qout.len()
 
-        #While length of process queue is less than max_num_worker queue pls
-        while plen < MAX_NUM_WORKERS:
-            item_to_queue = self.qin.fetch()
-            #Now we need to start job execution (monitoring of payment etc.)
-            self.init_task(item_to_queue["uuid"])
-            self.qout.queue(item_to_queue["uuid"], item_to_queue["addr"])
-    
-            
+        #While length of process queue is less than max_num_worker queue and inut queue is not empty
+
+        if clen > 0:
+            plen = self.qout.len()
+            while plen < qt.MAX_NUM_WORKERS:
+                uuid = self.qin.fetch()
+                #Now we need to start job execution (monitoring of payment etc.)
+                self.init_task(uuid)
+                self.qout.queue(uuid)
+                plen = self.qout.len()
+        else:
+            print("No input jobs available still. Will wait and then monitor again")
+            time.sleep(HEARTBEAT_INTERVAL)
+            self.schedule()
             
 if __name__ == "__main__":
 
     import argparse
 
     parser = argparse.ArgumentParser()
-    
+    parser.add_argument('--run', dest='run', action="store_true", help="Start monitoring the queue and take action if needed")
     parser.add_argument('--uuid', dest='uuid', help="This customer uuid being assigned")
-
     args = parser.parse_args()
 
     if args.uuid != None:
-        main(args.uuid)
-    else:
-        print(f"Missed minimum input params. For help: python3 monitory_payment.py --help")
+        a = Monitor(args.uuid)
+        a.main()
+    elif args.run:
+        print("Ok. Now you want to start the daemon mode. Let's go for it.")
+        a = Worker()
+        a.schedule()
