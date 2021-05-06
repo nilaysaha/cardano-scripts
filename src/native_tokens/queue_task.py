@@ -27,7 +27,12 @@ class Queue:
 
     def len(self):
         return self.r.llen(self.name)
-            
+
+    def remove(self,uuid):
+        """
+        remove the first instance of uuid from the queue
+        """
+        self.r.lrem(self.name, 1, uuid)
         
             
 if __name__ == "__main__":

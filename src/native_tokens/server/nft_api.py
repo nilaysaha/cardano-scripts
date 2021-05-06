@@ -51,7 +51,7 @@ class NFT(Resource):
         #Now push the values to the queue so that it can be picked by the monitoring task
 
         q = qt.Queue(qt.PLIST)
-        q.queue(uuid, payment_addr)
+        q.queue(uuid)
         
         return {"payment_addr":payment_addr, "uuid":uuid}
         

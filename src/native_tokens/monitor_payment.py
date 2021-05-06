@@ -16,6 +16,7 @@ from colorama import Fore, Back, Style
 import queue_task as qt
 
 HEARTBEAT_INTERVAL = 5 #waiting time in seconds
+MINTING_WAITING_PERIOD=50 #waiting time in seconds
 ADA2LOVELACE=1000000
 
 os.environ["CHAIN"] = "testnet"
@@ -84,12 +85,17 @@ class Monitor:
             #Step 1: Minting of the tokens
             nft.main_phase_B(self.session)
 
-            #Step 2: Transfer of minted tokens to target address            
+            #Now wait for some time, till the above process is complete. Otherwise transfer will fail.
+            print(f"Now waiting {MINTING_WAITING_PERIOD} for minting to be completed.")
+            time.sleep(MINTING_WAITING_PERIOD)
+
+            #Step 2: Transfer of minted tokens to target address.
             a = ta.Transfer(uuid=self.session, amount=inputs["amount"], policyid=policy_id, coin_name=inputs["name"], output_addr=inputs["dest_addr"])
             a.main()            
         except:
             logging.exception("Could not complete all the post payment steps")
-
+            
+            
     def main(self):
         self.heartbeat()
         self.post_payment_steps()
@@ -105,25 +111,31 @@ class Worker:
     def init_task(self, uuid):
         t = Monitor(uuid)
         t.main()
-        self._unschedule(uuid) #Question: What ID should be used ?
+        self._unschedule(uuid)
         
     def _unschedule(self, uuid):
         #remove the items from the processing queue.
-        self.qout.lrem(uuid)
+        self.qout.remove(uuid)
         
     def schedule(self):
         clen = self.qin.len() 
 
         #While length of process queue is less than max_num_worker queue and inut queue is not empty
-
         if clen > 0:
             plen = self.qout.len()
-            while plen < qt.MAX_NUM_WORKERS:
+            
+            while plen < qt.MAX_NUM_WORKERS and plen > 0: 
                 uuid = self.qin.fetch()
+
                 #Now we need to start job execution (monitoring of payment etc.)
-                self.init_task(uuid)
-                self.qout.queue(uuid)
-                plen = self.qout.len()
+
+                if uuid != None:
+                    self.init_task(uuid)
+                    self.qout.queue(uuid)
+                    plen = self.qout.len()
+                else:
+                    print(f"uuid returned was None. Hence skipping!")
+                    break
         else:
             print("No input jobs available still. Will wait and then monitor again")
             time.sleep(HEARTBEAT_INTERVAL)
