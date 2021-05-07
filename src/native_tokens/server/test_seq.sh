@@ -17,7 +17,6 @@ ASSETAMOUNT=${2:-$DEFAULTAMOUNT}
 ASSETRECVADDR=${3:-$DEFAULTADDR}
 
 
-
 help()
 {
     echo "Please input the following parameters if you want to modify the defaults: ./test_seq.sh ASSETNAME ASSETAMOUNT ASSETRECVADDR"
@@ -36,7 +35,8 @@ send_req()
     command='curl -X post localhost:5000/nft \
 	   -d "assetName=${ASSETNAME}&assetAmount=${ASSETAMOUNT}&mintingCost=${DEFAULTCOST}&recvAddr=${DEFAULTADDR}&url=${DEFAULTURL}"'
     echo "Running command: ${command}"
-    eval $command
+    output=$(eval $command)
+    return `echo $output|jq "payment_addr"`
 }
 
 start_api_server()
@@ -47,8 +47,10 @@ start_api_server()
 }
 
 
-send_payment_for_processing(outputAddr, amount)
+send_payment_for_processing()
 {
+    outputAddr=$1
+    amount=$2
     #First transfer keys and protocol to /trans directory. Source of test funds
     cp ../sessions/$DEFAULTFUNDUUID/pay.skey ../../trans/.
     cp ../sessions/$DEFAULTFUNDUUID/protocol.json ../../trans/.
@@ -65,11 +67,13 @@ main()
     start_api_server
 
     #Then send a dummy request
-    send_req
+    outputAddr=$(send_req)
 
     #Then send payment for issuing and transferring the token to the owner
-    send_payment_for_processing    
+    send_payment_for_processing   $outputAddr, $DEFAULTCOST
 }
 
+
+main
 
 
