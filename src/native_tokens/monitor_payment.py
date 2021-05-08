@@ -86,9 +86,11 @@ class Monitor:
             nft.main_phase_B(self.session)
 
             #Now wait for some time, till the above process is complete. Otherwise transfer will fail.
-            print(f"Now waiting {MINTING_WAITING_PERIOD} for minting to be completed.")
+            print(f"Now waiting {MINTING_WAITING_PERIOD}s for minting to be completed.")            
             time.sleep(MINTING_WAITING_PERIOD)
 
+            
+            
             #Step 2: Transfer of minted tokens to target address.
             a = ta.Transfer(uuid=self.session, amount=inputs["amount"], policyid=policy_id, coin_name=inputs["name"], output_addr=inputs["dest_addr"])
             a.main()            
@@ -108,7 +110,7 @@ class Worker:
         self.qin  = qt.Queue(qt.PLIST)
         self.qout = qt.Queue(qt.PROCESSING_LIST)
 
-    def init_task(self, uuid):
+    def task(self, uuid):
         t = Monitor(uuid)
         t.main()
         self._unschedule(uuid)
@@ -116,31 +118,25 @@ class Worker:
     def _unschedule(self, uuid):
         #remove the items from the processing queue.
         self.qout.remove(uuid)
-        
-    def schedule(self):
-        clen = self.qin.len() 
 
-        #While length of process queue is less than max_num_worker queue and inut queue is not empty
-        if clen > 0:
-            plen = self.qout.len()
+    def schedule_smart(self):
+        while True:
+            # try to fetch a job id from "<all_queue>:jobs"
+            # and push it to "<processing_queue>:jobs"
+            job_id = qt.r.lmove(qt.PLIST, qt.PROCESSING_LIST,RIGHT,LEFT)
+            if not job_id:
+                continue
+
+            # process the job
+            self.task(job_id)
+
+            # cleanup the job information from redis
+            qt.r.lrem(qt.PROCESSING_LIST, 1, job_id)
+
+        #TO DO: NOW MONITOR THE PROCESSING LIST IF THERE ARE LONG STANDING TASK AND THEN PUSH THEM
+        #BACK TO THE qt.PLIST
             
-            while plen < qt.MAX_NUM_WORKERS and plen > 0: 
-                uuid = self.qin.fetch()
-
-                #Now we need to start job execution (monitoring of payment etc.)
-
-                if uuid != None:
-                    self.init_task(uuid)
-                    self.qout.queue(uuid)
-                    plen = self.qout.len()
-                else:
-                    print(f"uuid returned was None. Hence skipping!")
-                    break
-        else:
-            print("No input jobs available still. Will wait and then monitor again")
-            time.sleep(HEARTBEAT_INTERVAL)
-            self.schedule()
-            
+                
 if __name__ == "__main__":
 
     import argparse

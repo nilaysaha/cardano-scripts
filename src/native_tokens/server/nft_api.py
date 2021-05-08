@@ -26,6 +26,8 @@ class Actions:
                 "url": url
             }
         }
+
+        print(f"For phase A we have the input params:{sinput}")
         
         output = cnt.main_phase_A(self.uuid, sinput)
         return output["addr"]
@@ -49,7 +51,6 @@ class NFT(Resource):
         print(f"payment address created is:{payment_addr}")
 
         #Now push the values to the queue so that it can be picked by the monitoring task
-
         q = qt.Queue(qt.PLIST)
         q.queue(uuid)
         
