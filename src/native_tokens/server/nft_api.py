@@ -9,6 +9,9 @@ api = Api(app)
 
 NFTData = {}
 
+LOCALHOST="127.0.0.1"
+PORT=3134
+
 class Actions:
     def __init__(self, uuid):
         self.uuid = uuid    
@@ -62,4 +65,4 @@ class NFT(Resource):
 api.add_resource(NFT, '/nft')
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, host=LOCALHOST, port=PORT)
