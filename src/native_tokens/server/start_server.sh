@@ -1,5 +1,7 @@
 #!/bin/sh
 
+SERVER_OPTION=$1
+
 # To test the entire backend sequence this script can be modified and used
 
 start_backend_process()
@@ -31,6 +33,16 @@ main_server()
     start_api_server
 }
 
+echo $SERVER_OPTION
 
-main_server
+if [ $SERVER_OPTION =  "API" ]
+then
+    echo "We need to start the NFT API server"
+    start_api_server
+fi
 
+if [ $SERVER_OPTION =  "MONITOR" ]
+then
+    echo "We need to start the Payment Monitoring server"
+    start_backend_process
+fi

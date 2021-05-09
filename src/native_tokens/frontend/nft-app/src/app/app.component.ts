@@ -7,4 +7,6 @@ import { Component } from '@angular/core';
 })
 export class AppComponent {
   title = 'NFT Minting App on Cardano';
+  // private apiUrl="https://oef.io:8080/url"
+
 }
