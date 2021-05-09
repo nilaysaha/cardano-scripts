@@ -2,37 +2,40 @@
 
 import redis, json
 
-PLIST='PAYMENT'
+PLIST='QUEUE'
 MAX_NUM_WORKERS=3
 PROCESSING_LIST='PROCESS'
 
+rhost = redis.Redis(host='localhost', port=6379, db=0)
+
 class Queue:
     def __init__(self,queue_name):
-        self.r = redis.Redis(host='localhost', port=6379, db=0)
         self.name = queue_name
         
     def queue(self, uuid):
-        self.r.lpush(self.name, uuid)
+        rhost.lpush(self.name, uuid)
         
     def fetch(self):
-        if self.r.llen(self.name) > 0:
-            return self.r.lpop(self.name).decode('utf-8')
+        if rhost.llen(self.name) > 0:
+            return rhost.lpop(self.name).decode('utf-8')
         else:
             print(f"No more items to return. Hence returning None")
             return None
 
     def show(self):
-        for item in self.r.lrange(self.name, 0, -1):
+        for item in rhost.lrange(self.name, 0, -1):
             print(item)
 
     def len(self):
-        return self.r.llen(self.name)
+        return rhost.llen(self.name)
 
     def remove(self,uuid):
         """
         remove the first instance of uuid from the queue
         """
-        self.r.lrem(self.name, 1, uuid)
+        
+        rhost.lrem(self.name, 1, uuid)
+        
         
             
 if __name__ == "__main__":

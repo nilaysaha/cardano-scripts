@@ -109,6 +109,7 @@ class Worker:
         self.num_worker = qt.MAX_NUM_WORKERS
         self.qin  = qt.Queue(qt.PLIST)
         self.qout = qt.Queue(qt.PROCESSING_LIST)
+        self.qhost = qt.rhost
 
     def task(self, uuid):
         t = Monitor(uuid)
@@ -119,19 +120,17 @@ class Worker:
         #remove the items from the processing queue.
         self.qout.remove(uuid)
 
-    def schedule_smart(self):
+    def schedule(self):
         while True:
-            # try to fetch a job id from "<all_queue>:jobs"
-            # and push it to "<processing_queue>:jobs"
-            job_id = qt.r.lmove(qt.PLIST, qt.PROCESSING_LIST,RIGHT,LEFT)
+            job_id = self.qhost.brpoplpush(qt.PLIST, qt.PROCESSING_LIST).decode('utf-8')
             if not job_id:
                 continue
-
+            
             # process the job
             self.task(job_id)
 
             # cleanup the job information from redis
-            qt.r.lrem(qt.PROCESSING_LIST, 1, job_id)
+            self.qhost.lrem(qt.PROCESSING_LIST, 1, job_id)
 
         #TO DO: NOW MONITOR THE PROCESSING LIST IF THERE ARE LONG STANDING TASK AND THEN PUSH THEM
         #BACK TO THE qt.PLIST
