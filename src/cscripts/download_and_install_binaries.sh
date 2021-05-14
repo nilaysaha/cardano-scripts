@@ -31,7 +31,7 @@ mv $BASE_BINARY_DIR/* $BACKUP_BIN_DIR/.
 mv $STORAGE_DIR/* $BASE_BINARY_DIR/.
 for i in `ls $BASE_BINARY_DIR`
 do
-    chmod +x $i
+    chmod +x $BASE_BINARY_DIR/$i
 done
     
 
