@@ -1,0 +1,17 @@
+[Unit]
+Description=NFT API
+
+[Service]
+User=nsaha
+Group=nsaha
+TimeoutStartSec=0
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/home/nsaha/project/cardano-scripts/src/native_tokens/server
+ExecStart=/home/nsaha/project/cardano-scripts/src/native_tokens/server/start_server.sh API
+ExecStop=/usr/bin/kill -l 9 $(/usr/bin/pgrep -f nft_api.py)
+KillMode=process
+Restart=on-failure
+
+[Install]
+WantedBy=default.target

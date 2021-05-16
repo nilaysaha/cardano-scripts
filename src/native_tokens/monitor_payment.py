@@ -57,12 +57,16 @@ class Monitor:
         """
         returns the funds in the pay.addr for that session uuid.
         """
-        fund = pc.get_total_fund_in_utx0(self.payment_addr)
-        print(f"fund in the payment address :{self.payment_addr} is {fund}")        
-        status = int(fund) >= int(self.payment_amount)
-        print(f"payment status is:{status}")
-        return status
-
+        try:
+            fund = pc.get_total_fund_in_utx0(self.payment_addr)
+            print(f"fund in the payment address :{self.payment_addr} is {fund}")        
+            status = int(fund) >= int(self.payment_amount)
+            print(f"payment status is:{status}")
+            return status
+        except:
+            logging.exception(f"Failed to check payments")
+            sys.exit(1)
+        
     def post_payment_steps(self):
         """
         Now we trigger minting and transfer of the minted tokens.
@@ -99,9 +103,12 @@ class Monitor:
             
             
     def main(self):
-        self.heartbeat()
-        self.post_payment_steps()
-
+        try:
+            self.heartbeat()
+            self.post_payment_steps()
+        except:
+            logging.exception(f"Could not complete all the monitoring steps")
+            sys.exit(1)
             
     
 class Worker:
@@ -112,10 +119,14 @@ class Worker:
         self.qhost = qt.rhost
 
     def task(self, uuid):
-        t = Monitor(uuid)
-        t.main()
-        self._unschedule(uuid)
-        
+        try:
+            t = Monitor(uuid)
+            t.main()
+            self._unschedule(uuid)
+        except:
+            logging.exception(f"Failed to execute task with uuid:{uuid}")            
+            sys.exit(1)
+            
     def _unschedule(self, uuid):
         #remove the items from the processing queue.
         self.qout.remove(uuid)
