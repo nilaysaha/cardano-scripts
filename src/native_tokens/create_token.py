@@ -39,10 +39,10 @@ TOKEN_MAX_AMOUNT="45000000000"
 
 def mint_new_asset(policy_file=FILES['policy']['script']):
     """
-        ./cardano-cli transaction policyid --script-file ./policy/policy.script 
+        ./cardano-cli transaction policyid --auxiliary-script-file ./policy/policy.script 
     """
     try:
-        command = ["cardano-cli", "transaction", "policyid", "--script-file", policy_file]
+        command = ["cardano-cli", "transaction", "policyid", "--auxiliary-script-file", policy_file]
         s = subprocess.check_output(command, stderr=True, universal_newlines=True)
         print(f"Successful: Output of command {command} is:{s}")
         return s.split("\n")[0]
@@ -284,7 +284,7 @@ class Transaction:
         ./cardano-cli transaction sign \
 	     --signing-key-file pay.skey \
 	     --signing-key-file policy/policy.skey \
-	     --script-file policy/policy.script \
+	     --auxiliary-script-file policy/policy.script \
 	     --testnet-magic 3 \
 	     --tx-body-file matx.raw \
              --out-file matx.signed
@@ -293,7 +293,7 @@ class Transaction:
             command = ["cardano-cli", "transaction", "sign",
                        "--signing-key-file", FILES['policy']['signature'],
                        "--signing-key-file", FILES['payment']['signature'],
-                       "--script-file", FILES['policy']['script'],
+                       "--auxiliary-script-file", FILES['policy']['script'],
                        "--mainnet",
                        "--tx-body-file", FILES['transaction']['raw'],
                        '--out-file', FILES['transaction']['signed']]

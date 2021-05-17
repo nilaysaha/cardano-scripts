@@ -376,6 +376,7 @@ class Transaction(CreateToken):
                 328a60495759e0d8e244eca5b85b2467d142c8a755d6cd0592dff47b.melcoin" \
              --tx-out <recipient_addr>+<MINIMUM_ADA>+"1 <policyid>.<coinname>"
              --mint="1000000000 328a60495759e0d8e244eca5b85b2467d142c8a755d6cd0592dff47b.melcoin" \
+             --minting-script-file ${policyname}.policy.script
              --out-file matx.raw
         """        
         try:
@@ -403,6 +404,7 @@ class Transaction(CreateToken):
                         
             command=["cardano-cli", "transaction", "build-raw",
                      "--mint", new_coin_mint_str,
+                     "--minting-script-file", self.s.sdir(FILES['policy']['script']),
                      "--fee", str(fees),
                      "--metadata-json-file", metadata_file,
                      "--invalid-before",str(min_slot_id),
@@ -457,7 +459,7 @@ class Transaction(CreateToken):
         ./cardano-cli transaction sign \
 	     --signing-key-file pay.skey \
 	     --signing-key-file policy/policy.skey \
-	     --script-file policy/policy.script \
+	     --auxiliary-script-file policy/policy.script \
 	     --testnet-magic 3 \
 	     --tx-body-file matx.raw \
              --out-file matx.signed
@@ -466,7 +468,7 @@ class Transaction(CreateToken):
             command = ["cardano-cli", "transaction", "sign",
                        "--signing-key-file", self.s.sdir(FILES['policy']['signature']),
                        "--signing-key-file", self.s.sdir(FILES['payment']['signature']),
-                       "--script-file", self.s.sdir(FILES['policy']['script']),
+                       "--auxiliary-script-file", self.s.sdir(FILES['policy']['script']),
                        "--testnet-magic", os.environ["MAGIC"],
                        "--tx-body-file", self.s.sdir(FILES['transaction']['raw']),
                        '--out-file', self.s.sdir(FILES['transaction']['signed'])]
@@ -494,11 +496,11 @@ class Transaction(CreateToken):
 
     def mint_new_asset(self):
         """
-        ./cardano-cli transaction policyid --script-file ./policy/policy.script 
+        ./cardano-cli transaction policyid --auxiliary-script-file ./policy/policy.script 
         """        
         try:
             policy_file=self.s.sdir(FILES['policy']['script'])
-            command = ["cardano-cli", "transaction", "policyid", "--script-file", policy_file]
+            command = ["cardano-cli", "transaction", "policyid", "--auxiliary-script-file", policy_file]
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
             print(f"Successful: Output of command {command} is:{s}")
             return s.split("\n")[0]
@@ -585,7 +587,7 @@ def main_phase_B(uuid):
         else:
             print('STEP 3 also has been completed earlier!')
     except:
-        logging.exception(f"Could not mint the :{name} with amount:{amount}")
+        logging.exception(f"Could not mint in phase_B")
         sys.exit(1)
         
 
