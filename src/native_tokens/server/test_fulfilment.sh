@@ -4,7 +4,7 @@
 #Then send a request to the api server to execute a NFT CREATION request using curl
 DEFAULTASSET="NFT1"
 DEFAULTAMOUNT=10
-DEFAULTADDR=addr_test1vryumnwqqqqjsc85fewhtse767r64fm5uru0pnfnthuwpscknn4z8
+DEFAULTADDR="addr_test1vpyk92350x8gajyefdr44lk5jmjn9f8y4udfxw34pka5pvgjqxw4j"
 DEFAULTCOST=100
 DEFAULTURL="/ipfs/testing"
 DEFAULTFUNDUUID="598f0f56-6291-4ebc-bbbf-77f111bf8703"
@@ -18,7 +18,7 @@ ASSETRECVADDR=${3:-$DEFAULTADDR}
 
 send_req()
 {
-    command="curl -k -X post $SERVER_URL -d assetName=$ASSETNAME -d assetAmount=$ASSETAMOUNT -d mintingCost=$DEFAULTCOST -d recvAddr=$DEFAULTADDR -d url=$DEFAULTURL"
+    command="curl -k -X POST $SERVER_URL -d assetName=$ASSETNAME -d assetAmount=$ASSETAMOUNT -d mintingCost=$DEFAULTCOST -d recvAddr=$DEFAULTADDR -d url=$DEFAULTURL"
     echo "Running command: ${command}"
     output=$(eval $command)
     echo $output

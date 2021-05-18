@@ -21,6 +21,9 @@ os.environ["MAGIC"] = "1097911063"
 
 
 FILES={
+    "status":{
+      'phase_final':'phase_transfer'  
+    },
     "recieve":{
         "transaction": {
             "raw":"recv_token.raw",
@@ -46,6 +49,8 @@ def run_command(command):
     rc = process.poll()
     return rc
 
+
+
 class Transfer:
     def __init__(self, uuid, amount, policyid, coin_name,  output_addr):
         self.amount = amount
@@ -56,6 +61,7 @@ class Transfer:
         self.payment_addr = pc.content(fetch_file(nft.FILES['payment']['address'], uuid))
         self.utx0   = pc.get_payment_utx0_with_native_tokens(self.payment_addr)
         self.s = nft.Session(uuid)
+        print(f"Request for {self.amount} to to be transferref from {self.uuid} the policyid-coin:{policyid} name-coin:{coin_name} to output addr:{output_addr} ")
         
     def _generate_tx_in(self):
         try:
@@ -74,6 +80,21 @@ class Transfer:
     def _generate_dest_addr_str(self):
         return "testing "+self.dest_addr+"+"+self.amount+'{}'
 
+    def check_status(self,phase_id):
+        print(Fore.GREEN + f"Executing check status")            
+        return  os.path.exists(self.s.sdir(FILES['status'][phase_id]))
+    
+    
+    def create_status_file(self,phase_id):
+        """
+        create file
+        """
+        print(Fore.GREEN + f"Executing status file")            
+        from pathlib import Path
+        Path(self.s.sdir(FILES['status'][phase_id])).touch()
+
+    
+        
     def calculate_native_token_count(self):
         try:
             payment_addr = pc.content(self.s.sdir(nft.FILES['payment']['address']))
@@ -158,7 +179,7 @@ class Transfer:
 	     --signing-key-file pay.skey \
 	     --testnet-magic 3 \
 	     --tx-body-file rec_matx.raw \
-         --out-file rec_matx.signed
+             --out-file rec_matx.signed
 
         """
         try:
@@ -192,11 +213,15 @@ class Transfer:
             sys.exit(1)
 
     def main(self):
-        self.raw_trans(0)
-        min_fees = self.calculate_min_fees()
-        self.raw_trans(min_fees)
-        self.sign_trans()
-        self.submit_trans()
+        try:
+            self.raw_trans(0)
+            min_fees = self.calculate_min_fees()
+            self.raw_trans(min_fees)
+            self.sign_trans()
+            self.submit_trans()
+            self.create_status_file('phase_final')
+        except:
+            logging.exception("Failed in transferring")
 
 
 if __name__ == "__main__":

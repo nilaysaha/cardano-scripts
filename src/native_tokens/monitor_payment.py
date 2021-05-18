@@ -66,7 +66,24 @@ class Monitor:
         except:
             logging.exception(f"Failed to check payments")
             sys.exit(1)
-        
+
+    def _transfer_minted_tokens(self):
+        try:
+            print(f"Now waiting {MINTING_WAITING_PERIOD}s for minting to be completed.")            
+            time.sleep(MINTING_WAITING_PERIOD)
+            #Step 2: Transfer of minted tokens to target address.
+            a = ta.Transfer(uuid=self.session, amount=inputs["amount"], policyid=policy_id, coin_name=inputs["name"], output_addr=inputs["dest_addr"])
+            if not self.check_status('phase_final'):
+                a.main()
+        except:
+            logging.exception("could not transfer minted tokens. Now trying again")
+        finally:
+            if not self.check_status('phase_final'):
+                self._transfer_minted_tokens()
+            else:
+                print(f"Seems like the transfer has been completed. Hence skipping ...")
+                
+            
     def post_payment_steps(self):
         """
         Now we trigger minting and transfer of the minted tokens.
@@ -90,14 +107,6 @@ class Monitor:
             nft.main_phase_B(self.session)
 
             #Now wait for some time, till the above process is complete. Otherwise transfer will fail.
-            print(f"Now waiting {MINTING_WAITING_PERIOD}s for minting to be completed.")            
-            time.sleep(MINTING_WAITING_PERIOD)
-
-            
-            
-            #Step 2: Transfer of minted tokens to target address.
-            a = ta.Transfer(uuid=self.session, amount=inputs["amount"], policyid=policy_id, coin_name=inputs["name"], output_addr=inputs["dest_addr"])
-            a.main()            
         except:
             logging.exception("Could not complete all the post payment steps")
             

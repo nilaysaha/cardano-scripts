@@ -17,6 +17,7 @@ TOKEN_NAME=UUID(MUUID).hex
 TOKEN_MAX_AMOUNT="1"
 MIN_NFT_SLOT_OFFSET=0
 MAX_NFT_SLOT_OFFSET=200
+DEFAULT_DEST_ADDR="addr_test1vpyk92350x8gajyefdr44lk5jmjn9f8y4udfxw34pka5pvgjqxw4j"
 
 DEFAULT_URL="/ipfs/QmYypFZyFUwo4WNKzumg9FJbw836bZTbguqeLaazKmiHjb"
 
@@ -28,7 +29,7 @@ DEFAULT_INPUT={
     "amount": "1",
     "payment": "100",
     "tags": "music, sunday",
-    "dest_addr": "addr_test1vzrdjqr3yup52hq5dp6ctv32q4t425mth595gge0sfarjzsapqtg", 
+    "dest_addr": DEFAULT_DEST_ADDR, 
     "metadata": {
 	"url":"/ipfs/QmYypFZyFUwo4WNKzumg9FJbw836bZTbguqeLaazKmiHjb?filename=Screenshot%202021-03-18%20at%2007.33.06.png"
     }
@@ -459,7 +460,7 @@ class Transaction(CreateToken):
         ./cardano-cli transaction sign \
 	     --signing-key-file pay.skey \
 	     --signing-key-file policy/policy.skey \
-	     --auxiliary-script-file policy/policy.script \
+	     --auxiliary-script-file policy/policy.script \ REMOVED IN 1.27.0
 	     --testnet-magic 3 \
 	     --tx-body-file matx.raw \
              --out-file matx.signed
@@ -468,7 +469,6 @@ class Transaction(CreateToken):
             command = ["cardano-cli", "transaction", "sign",
                        "--signing-key-file", self.s.sdir(FILES['policy']['signature']),
                        "--signing-key-file", self.s.sdir(FILES['payment']['signature']),
-                       "--auxiliary-script-file", self.s.sdir(FILES['policy']['script']),
                        "--testnet-magic", os.environ["MAGIC"],
                        "--tx-body-file", self.s.sdir(FILES['transaction']['raw']),
                        '--out-file', self.s.sdir(FILES['transaction']['signed'])]
@@ -500,7 +500,7 @@ class Transaction(CreateToken):
         """        
         try:
             policy_file=self.s.sdir(FILES['policy']['script'])
-            command = ["cardano-cli", "transaction", "policyid", "--auxiliary-script-file", policy_file]
+            command = ["cardano-cli", "transaction", "policyid", "--script-file", policy_file]
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
             print(f"Successful: Output of command {command} is:{s}")
             return s.split("\n")[0]
