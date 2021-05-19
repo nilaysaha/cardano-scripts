@@ -41,7 +41,7 @@ DEFAULT_INPUT={
 
 FILES={
     'payment':{
-        'verification': 'pay.vkey',
+        'verification':'pay.vkey',
         'signature':'pay.skey',
         'address':'pay.addr'
     },

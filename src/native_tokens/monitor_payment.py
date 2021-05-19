@@ -11,6 +11,7 @@ import subprocess, json, os, sys, shlex
 import process_certs as pc
 import create_nft_token as nft
 import transfer_native_asset as ta
+import transfer_ada as tada
 import logging
 import colorama
 import time
@@ -21,9 +22,31 @@ import queue_task as qt
 HEARTBEAT_INTERVAL = 5 #waiting time in seconds
 MINTING_WAITING_PERIOD=50 #waiting time in seconds
 ADA2LOVELACE=1000000
+TRANSACTION_COST=1000 #in lovelace. Just keeping some margin. Normally under 1 ADA. 
 
 os.environ["CHAIN"] = "testnet"
 os.environ["MAGIC"] = "1097911063"
+
+
+DEFAULT_TREASURY_ADDRESS="addr_test1vpyk92350x8gajyefdr44lk5jmjn9f8y4udfxw34pka5pvgjqxw4j"
+
+class Treasury:
+    """
+    This is meant to collect all the funds gained via the NFT minting. This for example can be a stake pool pay.addr so that 
+    stake pools can later host this, and lead to decentralize the minting process. And later via smart contract we can detect this software and 
+    direct decentralized minting.
+    """
+    def __init__(self, dest_address=DEFAULT_TREASURY_ADDRESS):
+        self.dest_address = dest_address
+
+    def transfer(self, amount, source_address, pay_skey_file, protocol_file):
+        try:
+            a = tada.Transfer(source_address, amount*ta.ADA2LOVELACE, self.dest_addr)
+            a.set_payment_and_protocol(pay_skey_file, protocol_file)
+            a.main()
+        except:
+            logging.exception(f"Could not transfer {amount} to {source_address}")
+
 
 class Monitor:
     def __init__(self, session_uuid):
@@ -84,6 +107,18 @@ class Monitor:
             logging.exception("could not transfer minted tokens even after they have arrived at payment address")
             sys.exit(1)
                 
+
+    def transfer_NFT_ADA_reward(self):
+        try:
+            lovelace_to_transfer = self.payment_amount - TRANSACTION_COST
+            source_address = pc.content(self.s.sdir(nft.FILES['payment']['address']))
+            pay_skey_file = self.s.sdir(nft.FILES['payment']['signature'])
+            protocol_file = self.s.sdir(nft.FILES['protocol'])
+            
+            t1 = Treasury()
+            t1.transfer(lovelace_to_transfer, source_address, pay_skey_file, protocol_file)
+        except:
+            logging.exception("Could not transfer rewards NFT")
             
     def post_payment_steps(self):
         """
@@ -107,8 +142,11 @@ class Monitor:
             #Step 1: Minting of the tokens
             nft.main_phase_B(self.session)
 
-            #Now wait for some time, till the above process is complete. Otherwise transfer will fail.
+            #Step 2: Now transfer the minted tokens
             self.transfer_minted_tokens(inputs["amount"], policy_id, inputs["name"])
+
+            #Step 3: Now transfer the ADA to the treasury.
+            self.transfer_NFT_ADA_reward()            
         except:
             logging.exception("Could not complete all the post payment steps")
             

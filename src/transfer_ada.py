@@ -7,8 +7,6 @@ precondition to using this script:
   - Run the command.
 """
 
-sys.path.append('..')
-
 import subprocess, json, os, sys, shlex
 import process_certs as pc
 import native_tokens.create_nft_token as nft
@@ -51,6 +49,9 @@ class Transfer:
         self.dest_addr = output_addr
         self.payment_addr = input_addr
         self.utx0   = pc.get_payment_utx0_with_native_tokens(input_addr)
+        self.pay_skey = FILES['payment']['signature']
+        self.protocol_file = FILES['protocol']
+                   
         
     def _generate_tx_in(self):
         try:
@@ -65,7 +66,14 @@ class Transfer:
         except:
             logging.exception(f"Failed to generate_tx_in")
             sys.exit(1)            
-        
+
+    def set_payment_and_protocol(self, pay_skey=None, protocol_json=None):
+        if pay_skey != None:
+            self.pay_skey = pay_skey
+            
+        if protocol_json != None:
+            self.protocol_file = protocol_json
+            
     
     def remaining_fund_lovelace(self, fees=0, native_token_fees=MINIMUM_TOKEN_AMOUNT_ACCOMPANYING_TRANSFER):
         total_funds = pc.get_total_fund_in_utx0_with_native_tokens(self.payment_addr)
@@ -196,11 +204,17 @@ if __name__ == "__main__":
     parser.add_argument('--inputAddr', dest='inputAddr', help="Payment address where funds originate from. This can also have other native tokens at the same utxo.  ")
     parser.add_argument('--amount', dest='amount', help="Amount of ADA to be transferred")
     parser.add_argument('--outputAddr', dest='outputAddr', help="Destination address where ADA needs to be transferred to.")
-
+    parser.add_argument('--payskey', dest='pay_skey', help="Payment signature file required to sent a transaction from an address")
+    parser.add_argument('--protocol', dest="protocol", help="Protocol.json file also required for sending payment from an address")
+    
     args = parser.parse_args()
-
+    
     if (args.inputAddr != None) and (args.amount != None) and (args.outputAddr != None) :
         a = Transfer(args.inputAddr, int(args.amount)*ADA2LOVELACE,args.outputAddr)
+
+        if (args.payskey != None) or (args.protocol != None):
+            a.set_payment_and_protocol(args.payskey, args.protocol)
+            
         a.main()
     else:
         print("Not sufficient params. To see help: python3 transfer_ada.py --help")
