@@ -1,3 +1,7 @@
+import sys, os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+
+
 from flask import Flask, request, jsonify
 from flask_restful import Resource, Api, abort
 
@@ -5,6 +9,8 @@ import uuid
 import create_nft_token as cnt
 import queue_task as qt
 from waitress import serve
+
+
 
 app = Flask(__name__)
 api = Api(app)

@@ -3,9 +3,10 @@
 """
 Steps from:https://developers.cardano.org/en/development-environments/native-tokens/working-with-multi-asset-tokens/
 Goal: to withdraw the native tokens to the Daedalus wallet (or backed by hardware wallet)
-
-
 """
+
+import sys
+sys.path.append('..')
 
 import subprocess, json, os, sys, shlex
 import process_certs as pc

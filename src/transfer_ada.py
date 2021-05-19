@@ -7,10 +7,11 @@ precondition to using this script:
   - Run the command.
 """
 
+sys.path.append('..')
 
 import subprocess, json, os, sys, shlex
 import process_certs as pc
-import create_nft_token as nft
+import native_tokens.create_nft_token as nft
 import logging
 import colorama
 from colorama import Fore, Back, Style

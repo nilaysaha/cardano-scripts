@@ -1,1 +1,0 @@
-../check_payment_arrival.py

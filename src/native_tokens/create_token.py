@@ -1,5 +1,8 @@
 #!/usr/bin/python3
 
+import sys
+sys.path.append('..')
+
 import subprocess, json
 import process_certs as pc;
 import sys, os
@@ -39,10 +42,10 @@ TOKEN_MAX_AMOUNT="45000000000"
 
 def mint_new_asset(policy_file=FILES['policy']['script']):
     """
-        ./cardano-cli transaction policyid --auxiliary-script-file ./policy/policy.script 
+        ./cardano-cli transaction policyid --script-file ./policy/policy.script 
     """
     try:
-        command = ["cardano-cli", "transaction", "policyid", "--auxiliary-script-file", policy_file]
+        command = ["cardano-cli", "transaction", "policyid", "--script-file", policy_file]
         s = subprocess.check_output(command, stderr=True, universal_newlines=True)
         print(f"Successful: Output of command {command} is:{s}")
         return s.split("\n")[0]
