@@ -138,9 +138,10 @@ class Transfer:
         """
         try:
             tx_body_file=FILES['transaction']['raw']
-            protocol_file=FILES['protocol']
+            protocol_file=self.protocol_file
             command=["cardano-cli", "transaction", "calculate-min-fee", "--tx-body-file",tx_body_file, "--tx-in-count", str(1),
-                     "--tx-out-count", str(2), "--witness-count", str(1), "--testnet-magic",os.environ["MAGIC"], "--protocol-params-file", protocol_file]
+                     "--tx-out-count", str(2), "--witness-count", str(1), "--testnet-magic",os.environ["MAGIC"],
+                     "--protocol-params-file", protocol_file]
             print(Fore.GREEN + f"Command is:{command}")
             s = subprocess.check_output(command, stderr=True,  universal_newlines=True)
             return s.split()[0]
@@ -159,7 +160,7 @@ class Transfer:
 
         """
         try:
-            pay_skey = FILES['payment']['signature']
+            pay_skey = self.pay_skey
             tx_raw_file=FILES['transaction']['raw']
             tx_raw_signed=FILES['transaction']['signed']
             command=["cardano-cli", "transaction", "sign", "--signing-key-file", pay_skey, "--testnet-magic",os.environ["MAGIC"],
@@ -189,11 +190,11 @@ class Transfer:
             sys.exit(1)
 
     def main(self):
-        a.raw_trans(0)
-        min_fees = a.calculate_min_fees()
-        a.raw_trans(min_fees)
-        a.sign_trans()
-        a.submit_trans()
+        self.raw_trans(0)
+        min_fees = self.calculate_min_fees()
+        self.raw_trans(min_fees)
+        self.sign_trans()
+        self.submit_trans()
 
 
 if __name__ == "__main__":
@@ -204,7 +205,7 @@ if __name__ == "__main__":
     parser.add_argument('--inputAddr', dest='inputAddr', help="Payment address where funds originate from. This can also have other native tokens at the same utxo.  ")
     parser.add_argument('--amount', dest='amount', help="Amount of ADA to be transferred")
     parser.add_argument('--outputAddr', dest='outputAddr', help="Destination address where ADA needs to be transferred to.")
-    parser.add_argument('--payskey', dest='pay_skey', help="Payment signature file required to sent a transaction from an address")
+    parser.add_argument('--payskey', dest='payskey', help="Payment signature file required to sent a transaction from an address")
     parser.add_argument('--protocol', dest="protocol", help="Protocol.json file also required for sending payment from an address")
     
     args = parser.parse_args()

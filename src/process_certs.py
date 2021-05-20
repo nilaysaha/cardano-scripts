@@ -26,6 +26,7 @@ CARDANO_CLI="/home/nsaha/.cabal/bin/cardano-cli"
 def content(fname):
     f = open(fname, "r")
     text = f.read()
+    f.close()
     return text
 
 

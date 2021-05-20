@@ -76,7 +76,7 @@ class Inputs:
     def buffer(self, input_obj):
         f = open(self.s.sdir(FILES['buffer']['input']), "w")
         json_obj = json.dumps(input_obj, indent=4)
-        f.write(json_obj)
+        f.write(json_obj)        
         f.close()
 
         
@@ -84,8 +84,9 @@ class Inputs:
         s = Session(self.uuid)
         fpath = s.sdir(FILES['buffer']['input'])
         f = open(fpath, 'r')
-        return json.load(f)    
-
+        json_struct = json.load(f)
+        f.close()
+        return  json_struct   
     
 def fetch_uuid_for_latest():
     try:

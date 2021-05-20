@@ -4,14 +4,16 @@
 This module is meant to monitor a session payment from the customer and then trigger the step 3: Minting of the tokens sign/commit + sending the token to the recv. address
 """
 
-import sys
-sys.path.append('..')
+import sys, os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
-import subprocess, json, os, sys, shlex
+
+import subprocess, json, shlex
 import process_certs as pc
 import create_nft_token as nft
-import transfer_native_asset as ta
+import transfer_native_asset as tna
 import transfer_ada as tada
+import check_payment_arrival as cpa
 import logging
 import colorama
 import time
@@ -41,7 +43,7 @@ class Treasury:
 
     def transfer(self, amount, source_address, pay_skey_file, protocol_file):
         try:
-            a = tada.Transfer(source_address, amount*ta.ADA2LOVELACE, self.dest_addr)
+            a = tada.Transfer(source_address, amount, self.dest_address)
             a.set_payment_and_protocol(pay_skey_file, protocol_file)
             a.main()
         except:
@@ -93,15 +95,19 @@ class Monitor:
             logging.exception(f"Failed to check payments")
             sys.exit(1)
 
-    def transfer_minted_tokens(self, amount, policy, name):
+    def transfer_minted_tokens(self, amount, policy, name, addr):
         try:
             #Step 1: Check if the minted tokens have arrived at payment addr.
             t = cpa.PayOrMint(amount)
             result = t.check_minted_tokens(policy, name, self.payment_addr)        
+
+            #Step 1a: Wait a bit and then transfer the minted tokens.
+            print(f"Now wait 5s and then proceed to transfer native assets: {policy}.{name} and amount:{amount} to addr:{addr}")
+            time.sleep(5)
             
             #Step 2: Transfer of minted tokens to target address.
-            if result and self.check_status('phase_final'): 
-                a = ta.Transfer(self.session, amount, policy, name, self.dest_addr)
+            a = tna.Transfer(self.session, amount, policy, name, addr)
+            if result and a.check_status('phase_final'): 
                 a.main()
         except:
             logging.exception("could not transfer minted tokens even after they have arrived at payment address")
@@ -143,7 +149,7 @@ class Monitor:
             nft.main_phase_B(self.session)
 
             #Step 2: Now transfer the minted tokens
-            self.transfer_minted_tokens(inputs["amount"], policy_id, inputs["name"])
+            self.transfer_minted_tokens(inputs["amount"], policy_id, inputs["name"], inputs["dest_addr"])
 
             #Step 3: Now transfer the ADA to the treasury.
             self.transfer_NFT_ADA_reward()            
