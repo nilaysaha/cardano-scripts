@@ -26,7 +26,7 @@ class Testing(unittest.TestCase):
 
     def test_monitor_nft_transfer(self):
         amount=1
-        policy="85f61a0e220421a4bc43ee91034644a7b8693599d5c4175308a8a00e"
+        policy="06ea4ed6efff368db49ea0c546a01ac12dc7c36ca15c6d6cd6de0744"
         name="NFT1"
         addr=BASE_ADDR
         a=mp.Monitor(REFERENCE_UUID)

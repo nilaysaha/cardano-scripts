@@ -62,7 +62,7 @@ class Transfer:
         self.payment_addr = pc.content(fetch_file(nft.FILES['payment']['address'], uuid))
         self.utx0   = pc.get_payment_utx0_with_native_tokens(self.payment_addr)
         self.s = nft.Session(uuid)
-        print(f"Request for {self.amount} to to be transferref from {self.uuid} the policyid-coin:{policyid} name-coin:{coin_name} to output addr:{output_addr} ")
+        print(f"Request for transfer from UUID:{self.uuid} of amount:{self.amount}  policyid-coin:{policyid} name-coin:{coin_name} to output addr:{output_addr} ")
         
     def _generate_tx_in(self):
         try:

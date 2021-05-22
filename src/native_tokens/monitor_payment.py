@@ -24,7 +24,7 @@ import queue_task as qt
 HEARTBEAT_INTERVAL = 5 #waiting time in seconds
 MINTING_WAITING_PERIOD=50 #waiting time in seconds
 ADA2LOVELACE=1000000
-TRANSACTION_COST=1000 #in lovelace. Just keeping some margin. Normally under 1 ADA. 
+TRANSACTION_COST=1000000 #in lovelace. Just keeping some margin. Normally under 1 ADA. 
 
 os.environ["CHAIN"] = "testnet"
 os.environ["MAGIC"] = "1097911063"
@@ -68,19 +68,6 @@ class Monitor:
         i =nft.Inputs(uuid)
         return i.fetch()
 
-        
-    def heartbeat(self):
-        """
-        check the balance every 200ms
-        """
-        payment_status = False
-        while not payment_status:            
-            payment_status = self.check_payment()
-            print(f"Next loop...Continue till the payment of {self.payment_amount} has arrived at {self.payment_addr}")
-            time.sleep(HEARTBEAT_INTERVAL)
-        print(f"Payment has been recieved. Now proceeding with post payment steps.")
-        return True
-        
     def check_payment(self):
         """
         returns the funds in the pay.addr for that session uuid.
@@ -94,37 +81,119 @@ class Monitor:
         except:
             logging.exception(f"Failed to check payments")
             sys.exit(1)
+   
 
+    def check_minted_tokens(self, amount, policy_id, coin_name):
+        try:
+            funds = pc.get_total_fund_in_utx0_with_native_tokens(self.payment_addr)
+            print(f"fund in the payment address :{self.payment_addr} is {funds}")
+            native_coin_name=f"{policy_id}.{coin_name}"
+            
+            if (native_coin_name in funds):
+                status = funds[native_coin_name] >= int(amount)
+                print(f"payment status is:{status}")
+                return status
+        except:
+            logging.exception(f"Failed to check minted tokens")
+            sys.exit(1)
+
+
+    def check_minted_tokens_transferred(self, policy_id, coin_name):
+        """
+        we want to check if all the minted coins are transferred out of the minted address
+        """
+        try:
+            funds = pc.get_total_fund_in_utx0_with_native_tokens(self.payment_addr)
+            print(f"fund in the payment address :{self.payment_addr} is {funds}")
+            native_coin_name=f"{policy_id}.{coin_name}"
+            
+            if (native_coin_name not in funds):
+                return True
+            else:
+                return False
+        except:
+            logging.exception(f"Failed to check minted tokens")
+            sys.exit(1)
+        
+            
+
+            
+    def heartbeat(self):
+        """
+        check the balance every 200ms
+        """
+        payment_status = False
+        while not payment_status:            
+            payment_status = self.check_payment()
+            print(f"Next loop...Continue till the payment of {self.payment_amount} has arrived at {self.payment_addr}")
+            time.sleep(HEARTBEAT_INTERVAL)
+        print(f"Payment has been recieved. Now proceeding with post payment steps.")
+        return True
+
+
+    def heartbeat_minting(self,amount,policy,name):
+        """
+        check whether minting is complete and NFT tokens are available at pay.addr
+        """
+        mint_status = False
+        while not mint_status:            
+            mint_status = self.check_minted_tokens(amount, policy, name)
+            print(f"Next loop...Continue till the minting at {self.payment_addr} of {policy}.{name} ")
+            time.sleep(HEARTBEAT_INTERVAL)
+        print(f"Minted tokens has arrived. Now proceeding with next  steps.")
+        return True
+
+
+    def heartbeat_minting_transfer(self, policy, name):
+        """
+        check whether transfer of the NFT minted tokens are complete so that rest of ADA can be transferred
+        """
+        transfer_status = False
+        while not transfer_status:            
+            transfer_status = self.check_minted_tokens_transferred(policy, name)
+            print(f"Next loop...Continue till the minted coins {policy}.{name} are transferred out of {self.payment_addr}")
+            time.sleep(HEARTBEAT_INTERVAL)
+        print(f"Minted tokens have been transferred to owner. Now proceeding with next steps.")
+        return True
+        
+            
     def transfer_minted_tokens(self, amount, policy, name, addr):
         try:
             #Step 1: Check if the minted tokens have arrived at payment addr.
-            t = cpa.PayOrMint(amount)
-            result = t.check_minted_tokens(policy, name, self.payment_addr)        
-
-            #Step 1a: Wait a bit and then transfer the minted tokens.
-            print(f"Now wait 5s and then proceed to transfer native assets: {policy}.{name} and amount:{amount} to addr:{addr}")
-            time.sleep(5)
+            self.heartbeat_minting(amount, policy, name)
             
             #Step 2: Transfer of minted tokens to target address.
             a = tna.Transfer(self.session, amount, policy, name, addr)
-            if result and a.check_status('phase_final'): 
-                a.main()
+            a.main()
         except:
             logging.exception("could not transfer minted tokens even after they have arrived at payment address")
             sys.exit(1)
                 
 
-    def transfer_NFT_ADA_reward(self):
+    def transfer_NFT_ADA_reward(self, policy, name):
+        """
+        We transfer the entire amount present in the address to the treasury address after NFT tokens are transferred out.
+        """
         try:
-            lovelace_to_transfer = self.payment_amount - TRANSACTION_COST
+
+            #first check if the last step of transferring minted coins is complete (as it impacts the amount of ADA present)
+            self.heartbeat_minting_transfer(policy, name)
+
+            #Then execute this.
             source_address = pc.content(self.s.sdir(nft.FILES['payment']['address']))
+            amount_to_transfer = pc.get_total_fund_in_utx0(source_address) - 3*TRANSACTION_COST
             pay_skey_file = self.s.sdir(nft.FILES['payment']['signature'])
             protocol_file = self.s.sdir(nft.FILES['protocol'])
             
             t1 = Treasury()
-            t1.transfer(lovelace_to_transfer, source_address, pay_skey_file, protocol_file)
+            t1.transfer(amount_to_transfer, source_address, pay_skey_file, protocol_file)
         except:
             logging.exception("Could not transfer rewards NFT")
+
+
+    def _print_divider(self, step_name, state):
+        print(Fore.GREEN + f"****=================================================={step_name}:{state}=================================================================****\n")
+        
             
     def post_payment_steps(self):
         """
@@ -147,12 +216,17 @@ class Monitor:
 
             #Step 1: Minting of the tokens
             nft.main_phase_B(self.session)
-
+            self._print_divider("Token Minting", "finish: Minting tokens")
+            
+            
             #Step 2: Now transfer the minted tokens
             self.transfer_minted_tokens(inputs["amount"], policy_id, inputs["name"], inputs["dest_addr"])
+            self._print_divider("Transfer Minted tokens", "finish")
 
             #Step 3: Now transfer the ADA to the treasury.
-            self.transfer_NFT_ADA_reward()            
+            self.transfer_NFT_ADA_reward(policy_id, inputs["name"])
+            self._print_divider("Transfer ADA FEES to treasure", "finish")
+            
         except:
             logging.exception("Could not complete all the post payment steps")
             
@@ -160,7 +234,7 @@ class Monitor:
     def main(self):
         try:
             self.heartbeat()
-            self.post_payment_steps()
+            self.post_payment_steps()            
         except:
             logging.exception(f"Could not complete all the monitoring steps")
             sys.exit(1)

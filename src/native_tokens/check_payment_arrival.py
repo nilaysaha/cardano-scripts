@@ -52,21 +52,30 @@ class PayOrMint:
             if (self.totalTimeSpent < MAX_WAITING_TIME):
                 print(Fore.GREEN + f"Checking whether amount {self.amount} for coin:{policy_id}.{coin_name} has arrived at {address}")
                 native_coin_name=f"{policy_id}.{coin_name}"
+
                 funds = pc.get_total_fund_in_utx0_with_native_tokens(address)
+                
                 if (native_coin_name in funds):
-                    if funds[native_coin_name] > int(self.amount):
-                        print(Fore.GREEN + f"#native token {policy_id}.{coin_name} now available at {address}: {funds[native_coin_name]}")
+                    coins_minted = funds[native_coin_name]
+                    coins_needed = int(self.amount)
+                    print(Fore.GREEN + f"Comparing {coins_minted} with {coins_needed}")
+
+                    print(f"type of coints minted: {type(coins_minted)}")
+                    print(f"type of coints minted: {type(coins_needed)}")
+                    
+                    if coins_minted >= coins_needed:
+                        print("NOW RETURNING TRUE AFTER MINTED TOKEN ARRIVAL")
                         return True
                 else:
-                    print(f"Sufficient coin has not yet arrived at the address. Keep on trying")
+                    print(f"Sufficient coin has not yet arrived at the address. Keep on trying....")
                     time.sleep(TINTERVAL)
                     self.totalTimeSpent += TINTERVAL
-                    self.check_minted_tokens(policy_id, coin_name, address)
+                    self.check_minted_tokens(policy_id, coin_name, address)                        
             else:                
                 print(f"Now quitting because max waiting time:{MAX_WAITING_TIME} has passed.")
                 return False
         except:
             logging.exception("Could not check amount in the address")    
-
+            sys.exit(1)
 
     

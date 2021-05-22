@@ -52,6 +52,16 @@ class Transfer:
         self.pay_skey = FILES['payment']['signature']
         self.protocol_file = FILES['protocol']
                    
+
+    def _ensure_path(self, fpath):
+        """
+        the directory containing the files should be present.
+        """
+        import os
+        directory = os.path.dirname(fpath)
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+        
         
     def _generate_tx_in(self):
         try:
@@ -111,6 +121,9 @@ class Transfer:
             
             tx_in_array = self._generate_tx_in()
 
+            #First ensure file dir exists
+            self._ensure_path(raw_trans_file)
+            
             command=["cardano-cli", "transaction", "build-raw",
                      "--fee", str(fees),
                      "--tx-out", self_pay_string,
@@ -163,6 +176,10 @@ class Transfer:
             pay_skey = self.pay_skey
             tx_raw_file=FILES['transaction']['raw']
             tx_raw_signed=FILES['transaction']['signed']
+
+            #First ensure file dir exists
+            self._ensure_path(tx_raw_signed)
+            
             command=["cardano-cli", "transaction", "sign", "--signing-key-file", pay_skey, "--testnet-magic",os.environ["MAGIC"],
                      "--tx-body-file", tx_raw_file,
                      "--out-file", tx_raw_signed]

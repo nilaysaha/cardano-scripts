@@ -2,7 +2,7 @@
 
 
 #Then send a request to the api server to execute a NFT CREATION request using curl
-DEFAULTASSET="NFT1"
+DEFAULTASSET="NFT4"
 DEFAULTAMOUNT=10
 DEFAULTADDR="addr_test1vpyk92350x8gajyefdr44lk5jmjn9f8y4udfxw34pka5pvgjqxw4j"
 DEFAULTCOST=100
