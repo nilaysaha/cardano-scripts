@@ -1,5 +1,5 @@
 #!/bin/sh
 
-ng build --prod
+ng build --configuration production
 sudo mkdir -p /var/www/html/nftapp
 sudo cp -a dist/. /var/www/html/nftapp

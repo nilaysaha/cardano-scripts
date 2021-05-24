@@ -10,21 +10,27 @@ import {MatDividerModule} from '@angular/material/divider';
 
 import {MatCardModule} from '@angular/material/card';
 import {MatButtonModule} from '@angular/material/button';
-
 import {MatGridListModule} from '@angular/material/grid-list';
+import { FormsModule } from '@angular/forms';
+
+import { RecaptchaModule } from "ng-recaptcha";
+import { GnftComponent } from './gnft/gnft.component'; 
 
 
 @NgModule({
   declarations: [
-    AppComponent
+      AppComponent,
+      GnftComponent
   ],
   imports: [
-    BrowserModule,
-    BrowserAnimationsModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatDividerModule,
-    MatButtonModule
+      BrowserModule,
+      BrowserAnimationsModule,
+      MatFormFieldModule,
+      MatInputModule,
+      MatDividerModule,
+      MatButtonModule,
+      RecaptchaModule,
+      FormsModule,
   ],
   providers: [],
   bootstrap: [AppComponent]

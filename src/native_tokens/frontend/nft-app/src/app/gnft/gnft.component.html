@@ -1,0 +1,45 @@
+{{diagnostic}}
+
+<div class="form-container">
+  <mat-form-field>
+    <input matInput name="nftName"  placeholder="Name of the NFT">
+    <mat-hint>Hint:This is the name of the token to be printed for this NFT</mat-hint>
+  </mat-form-field>
+
+  <mat-form-field>
+    <input matInput name="nftAmount" placeholder="Number of NFT to mint">
+    <mat-hint>Hint:Number of copies of this NFT to be printed</mat-hint>
+  </mat-form-field>
+
+  <mat-form-field>
+    <input matInput name="nftTags" placeholder="Tags">
+    <mat-hint>Hint:Tags or keyword to characterize the NFT being created.</mat-hint>
+  </mat-form-field>
+
+
+  <mat-form-field>
+    <input matInput name="nftDestAddr" placeholder="Destination Address">
+    <mat-hint>Hint:Carefully check the destination address to which you want to send the NFT</mat-hint>
+  </mat-form-field>
+
+
+  <br/>
+  <mat-divider></mat-divider>
+  <br/>
+
+  <re-captcha
+    (resolved)="resolved($event)"
+    (error)="onError($event)"
+    errorMode="handled"
+    siteKey="6Le8duQaAAAAAFOfEoncCKctnByqX1l47kbMEUnk">
+  </re-captcha>
+
+  <br/>
+  <mat-divider></mat-divider>
+  <br/>
+
+  <div class="example-button-row">
+    <button mat-raised-button color="warn" class="shift-left">Cancel</button>
+    <button mat-flat-button color="primary" class="shift-right">Submit</button>
+  </div>
+</div>
