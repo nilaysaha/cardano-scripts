@@ -1,5 +1,10 @@
 #!/bin/sh
 
+echo "Please note that this relies on having a cloned version of:https://github.com/DamjanOstrelic/cardano-leader-logs."
+echo "Then change the directory where this cloning is done into CARDANO_LLOG_EXEC parameter"
+echo "Also we need to have vrf.skey into the VRF_KEY_FILE parameter"
+
+
 SLOTLEADER_CONFIG="$HOME/projects/cardano-scripts/src/cscripts/slotLeaderconfig.json"
 LEDGER_FILE="/tmp/ledger.json"
 VRF_KEY_FILE="$HOME/projects/cardano-scripts/src/kaddr_run/vrf.skey"
