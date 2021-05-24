@@ -13,6 +13,8 @@ import {MatButtonModule} from '@angular/material/button';
 import {MatGridListModule} from '@angular/material/grid-list';
 import { FormsModule } from '@angular/forms';
 
+import { HttpClientModule } from '@angular/common/http';
+
 import { RecaptchaModule } from "ng-recaptcha";
 import { GnftComponent } from './gnft/gnft.component'; 
 
@@ -31,6 +33,7 @@ import { GnftComponent } from './gnft/gnft.component';
       MatButtonModule,
       RecaptchaModule,
       FormsModule,
+      HttpClientModule,
   ],
   providers: [],
   bootstrap: [AppComponent]
