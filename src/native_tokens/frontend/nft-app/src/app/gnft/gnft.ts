@@ -1,10 +1,12 @@
 export class NFT {
 
   constructor(
-    public amount: number,
-    public name: string,
-    public tags: string,
-    public destAddress: string
+      public assetName: string,
+      public assetAmount: number,
+      public mintingCost: number,
+      public tags: string,
+      public recvAddress: string,
+      public url: string
   ) {  }
 
 }

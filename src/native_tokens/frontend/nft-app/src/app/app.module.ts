@@ -18,6 +18,8 @@ import { HttpClientModule } from '@angular/common/http';
 import { RecaptchaModule } from "ng-recaptcha";
 import { GnftComponent } from './gnft/gnft.component'; 
 
+import { NftService } from './gnft/gnft.service';
+
 
 @NgModule({
   declarations: [

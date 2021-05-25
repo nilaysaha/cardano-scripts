@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { RecaptchaErrorParameters } from "ng-recaptcha";
 import { NFT } from './gnft';
+import { NftService } from './gnft.service';
 
 @Component({
   selector: 'app-gnft',
@@ -11,15 +12,21 @@ import { NFT } from './gnft';
 
 export class GnftComponent implements OnInit {
 
-    apiUrl="https://nft.oef.io/api"
-    model = new NFT(18, 'NFTS', "safety, loyalty", 'addr_test1vrsk2nj9dnxuawsf2x9j7e4salp2qw4zjrz98kadt5er69gxh0376');
+    model = new NFT('NFTS',10, 100, "safety, loyalty", 'addr_test1vpyk92350x8gajyefdr44lk5jmjn9f8y4udfxw34pka5pvgjqxw4j', '/ipfs/testing');
     buttonDisabled: boolean;
+    submitted: boolean = false;
     
-    constructor() {
-    }
+    constructor(private NftService: NftService) {}
     
     ngOnInit(): void {
 	this.buttonDisabled = true;
+    }
+
+    onSubmit(): void {
+	console.log(`Pressed submit for submitting`)
+	console.log(this.model)
+	this.submitted = true;
+	this.NftService.createNft(this.model)
     }
     
     // TODO: Remove this when we're done
@@ -27,11 +34,17 @@ export class GnftComponent implements OnInit {
 
     public resolved(captchaResponse: string): void {
 	console.log(`Resolved captcha with response: ${captchaResponse}`);
-	this.buttonDisabled = false;
+	if (captchaResponse != null){
+	    this.buttonDisabled = false;
+	}
+	else{
+	    this.buttonDisabled = true;
+	}
     }
 
     public onError(errorDetails: RecaptchaErrorParameters): void {
 	console.log(`reCAPTCHA error encountered; details:`, errorDetails);
+	this.buttonDisabled = true;
     }
 
 

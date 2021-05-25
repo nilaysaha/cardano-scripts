@@ -1,20 +1,28 @@
-import {Injectable} from '@angular/core';
+import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import {Observable} from 'rxjs/Observable';
+import { Observable, of } from 'rxjs';
  
 const httpOptions = {
     headers: new HttpHeaders({ 'Content-Type': 'application/json' })
 };
- 
-@Injectable()
-export class ApiService {
- 
-    constructor(private http:HttpClient) {}
 
+@Injectable({
+  providedIn: 'root'
+})
+
+
+
+export class NftService {
+
+    private ApiUrl: string = "https://nft.oef.io/api/nft";
+
+    constructor(private http:HttpClient) {}
+    
     createNft(nftModel) {
         let body = JSON.stringify(nftModel);
-        return this.http.post('/nft', body, httpOptions);
+	console.log("Now posting the data")
+	console.log(body)
+        return this.http.post(this.ApiUrl, body, httpOptions);
     }
 
-   
 }
