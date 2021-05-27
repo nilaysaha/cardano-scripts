@@ -12,7 +12,7 @@ import { NftService } from './gnft.service';
 
 export class GnftComponent implements OnInit {
 
-    model = new NFT('NFTS',10, 100, "safety, loyalty", 'addr_test1vpyk92350x8gajyefdr44lk5jmjn9f8y4udfxw34pka5pvgjqxw4j', '/ipfs/testing');
+    model: NFT = new NFT("NTFS", 10,100, "lasting value", 'addr_test1vpyk92350x8gajyefdr44lk5jmjn9f8y4udfxw34pka5pvgjqxw4j', "/ipfs/testing" );    
     buttonDisabled: boolean;
     submitted: boolean = false;
     

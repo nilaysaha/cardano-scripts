@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
- 
+import { NFT } from './gnft';
+
 const httpOptions = {
     headers: new HttpHeaders({ 'Content-Type': 'application/json' })
 };
@@ -11,18 +12,21 @@ const httpOptions = {
 })
 
 
-
 export class NftService {
 
     private ApiUrl: string = "https://nft.oef.io/api/nft";
 
-    constructor(private http:HttpClient) {}
+    constructor(private http:HttpClient) {
+	
+    }
     
-    createNft(nftModel) {
+    createNft(nftModel: NFT ) {
+	const headers = { 'content-type': 'application/json'}  
         let body = JSON.stringify(nftModel);
-	console.log("Now posting the data")
+	console.log(`Now posting to url:${this.ApiUrl} the data:`)
 	console.log(body)
-        return this.http.post(this.ApiUrl, body, httpOptions);
+	console.log(httpOptions)
+        return this.http.post(this.ApiUrl, body, {'headers':headers});
     }
 
 }
