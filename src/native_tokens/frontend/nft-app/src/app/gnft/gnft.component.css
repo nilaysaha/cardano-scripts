@@ -39,6 +39,14 @@ section {
   width: 100%;
 }
 
+.mat-stepper-vertical {
+  margin-top: 8px;
+}
+
+.mat-form-field {
+  margin-top: 16px;
+}
+
 ::ng-deep mat-form-field {
   color: black!important;
 }

@@ -7,6 +7,7 @@ DEFAULTAMOUNT=10
 DEFAULTADDR="addr_test1vpyk92350x8gajyefdr44lk5jmjn9f8y4udfxw34pka5pvgjqxw4j"
 DEFAULTCOST=100
 DEFAULTURL="/ipfs/testing"
+DEFAULTTAG="painting"
 DEFAULTFUNDUUID="598f0f56-6291-4ebc-bbbf-77f111bf8703"
 
 SERVER_URL="https://nft.oef.io/api/nft"
@@ -18,7 +19,7 @@ ASSETRECVADDR=${3:-$DEFAULTADDR}
 
 send_req()
 {
-    command="curl -k -X POST $SERVER_URL -d assetName=$ASSETNAME -d assetAmount=$ASSETAMOUNT -d mintingCost=$DEFAULTCOST -d recvAddr=$DEFAULTADDR -d url=$DEFAULTURL"
+    command="curl -k -X POST $SERVER_URL -d assetName=$ASSETNAME -d assetAmount=$ASSETAMOUNT -d recvAddr=$DEFAULTADDR -d url=$DEFAULTURL -d tags=$DEFAULTTAG"
     echo "Running command: ${command}"
     output=$(eval $command)
     echo $output

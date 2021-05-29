@@ -115,10 +115,8 @@ class Monitor:
             logging.exception(f"Failed to check minted tokens")
             sys.exit(1)
         
-            
-
-            
-    def heartbeat(self):
+                        
+    def heartbeat_check_payment(self):
         """
         check the balance every 200ms
         """
@@ -156,7 +154,27 @@ class Monitor:
         print(f"Minted tokens have been transferred to owner. Now proceeding with next steps.")
         return True
         
+
+    def mint_tokens_init(self):
+        try:
+            #Step 1: Check if the minted tokens have arrived at payment addr.
+            self.heartbeat_check_payment()
             
+            #Step 2: Mint tokens since payment has come            
+            a = nft.Inputs(self.session)
+            inputs = a.fetch()
+            print(f"fetched the inputs for this run:{inputs}")
+            
+            t = nft.Transaction(self.session, inputs["name"], inputs["amount"], inputs["metadata"])
+            policy_id = t.mint_new_asset() #generates the policyid
+            nft.main_phase_B(self.session) #uses the policyid for minting 
+
+            return policy_id
+        except:
+            logging.exception("could not transfer minted tokens even after they have arrived at payment address")
+            sys.exit(1)
+
+        
     def transfer_minted_tokens(self, amount, policy, name, addr):
         try:
             #Step 1: Check if the minted tokens have arrived at payment addr.
@@ -193,9 +211,15 @@ class Monitor:
 
     def _print_divider(self, step_name, state):
         print(Fore.GREEN + f"****=================================================={step_name}:{state}=================================================================****\n")
+
+
+    def publish_status_of_transaction(self, uuid, stage, status):
+        """
+        From here we publish the status of the transaction to the SQS.
+        """
         
-            
-    def post_payment_steps(self):
+        
+    def exec_steps(self):
         """
         Now we trigger minting and transfer of the minted tokens.
         step 1: mint the tokens
@@ -206,35 +230,24 @@ class Monitor:
                                   --outputAddr addr_test1vzlzqgcvehq56yd3aya69cyz8wsdu3deju8fsw2jwd0rrvgpwkw6x
         """
         try:
-            #Fetch the run parameters and store back the recv address of the customer
-            a = nft.Inputs(self.session)
-            inputs = a.fetch()
-            print(f"fetched the inputs for this run:{inputs}")
-            
-            t = nft.Transaction(self.session, inputs["name"], inputs["amount"], inputs["metadata"])
-            policy_id = t.mint_new_asset()
-
-            #Step 1: Minting of the tokens
-            nft.main_phase_B(self.session)
-            self._print_divider("Token Minting", "finish: Minting tokens")
-            
-            
+            #Step 1: Mint Tokens after receiving payment        
+            policy_id = self.mint_tokens_init()
+            self._print_divider("Token Minting", "Initiated")
+                        
             #Step 2: Now transfer the minted tokens
             self.transfer_minted_tokens(inputs["amount"], policy_id, inputs["name"], inputs["dest_addr"])
-            self._print_divider("Transfer Minted tokens", "finish")
+            self._print_divider("Transfer Minted tokens", "Initiated")
 
             #Step 3: Now transfer the ADA to the treasury.
             self.transfer_NFT_ADA_reward(policy_id, inputs["name"])
-            self._print_divider("Transfer ADA FEES to treasure", "finish")
-            
+            self._print_divider("Transfer ADA FEES to treasure", "Initiated")            
         except:
             logging.exception("Could not complete all the post payment steps")
             
             
     def main(self):
         try:
-            self.heartbeat()
-            self.post_payment_steps()            
+            self.exec_steps()            
         except:
             logging.exception(f"Could not complete all the monitoring steps")
             sys.exit(1)

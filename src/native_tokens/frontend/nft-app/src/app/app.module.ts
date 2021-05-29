@@ -15,9 +15,10 @@ import { FormsModule } from '@angular/forms';
 
 import { HttpClientModule } from '@angular/common/http';
 
+import {MatStepperModule} from '@angular/material/stepper';
+
 import { RecaptchaModule } from "ng-recaptcha";
 import { GnftComponent } from './gnft/gnft.component'; 
-
 import { NftService } from './gnft/gnft.service';
 
 
@@ -36,6 +37,7 @@ import { NftService } from './gnft/gnft.service';
       RecaptchaModule,
       FormsModule,
       HttpClientModule,
+      MatStepperModule
   ],
   providers: [],
   bootstrap: [AppComponent]

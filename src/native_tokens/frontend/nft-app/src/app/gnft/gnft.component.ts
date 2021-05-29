@@ -1,6 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { RecaptchaErrorParameters } from "ng-recaptcha";
+import {FormBuilder, FormGroup, Validators} from '@angular/forms';
 import { NFT } from './gnft';
+import { NFTPay } from './gnftPay';
 import { NftService } from './gnft.service';
 
 @Component({
@@ -12,21 +14,40 @@ import { NftService } from './gnft.service';
 
 export class GnftComponent implements OnInit {
 
-    model: NFT = new NFT("NTFS", 10,100, "lasting value", 'addr_test1vpyk92350x8gajyefdr44lk5jmjn9f8y4udfxw34pka5pvgjqxw4j', "/ipfs/testing" );    
+    model: NFT = new NFT("NTFS", 10, "lasting value", 'addr_test1vpyk92350x8gajyefdr44lk5jmjn9f8y4udfxw34pka5pvgjqxw4j(Dummy)', "/ipfs/testing" );    
+    payModel: NFTPay = new NFTPay("d848706c-bf23-11eb-82c2-31ea057735b4/ fdf66851-748a-4f9a-ac20-e0e13791c27a(Dummy)",100, "ADA",
+				  "addr_test1vpyk92350x8gajyefdr44lk5jmjn9f8y4udfxw34pka5pvgjqxw4j(Dummy)");
+
     buttonDisabled: boolean;
     submitted: boolean = false;
+    reqSucceeded: boolean = false;
     
     constructor(private NftService: NftService) {}
     
-    ngOnInit(): void {
-	this.buttonDisabled = true;
-    }
+    ngOnInit(): void {}
 
     onSubmit(): void {
 	console.log(`Pressed submit for submitting`)
 	console.log(this.model)
 	this.submitted = true;
 	this.NftService.createNft(this.model)
+	    .subscribe(
+		val => {
+		    console.log("POST call successful value returned in body", 	val);
+		    this.reqSucceeded = true;
+		    this.payModel.assetID = val.uuid;
+		    this.payModel.currency = val.currency;
+		    this.payModel.payAddr = val.payment_addr;
+		    this.payModel.mintingCost = val.mintingCost;
+		},
+		response => {
+		    console.log("POST call in error", response);
+		},
+		() => {
+		    console.log("The POST observable is now completed.");
+		}
+	    );	
+
     }
     
     // TODO: Remove this when we're done
@@ -47,5 +68,8 @@ export class GnftComponent implements OnInit {
 	this.buttonDisabled = true;
     }
 
+    public onLoad(): void {
+	console.log("recaptcha is loaded")
+    }
 
 }

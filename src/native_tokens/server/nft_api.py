@@ -19,12 +19,13 @@ NFTData = {}
 
 LOCALHOST="127.0.0.1"
 PORT=3134
+MINTING_COST=100
 
 class Actions:
     def __init__(self, uuid):
         self.uuid = uuid    
         
-    def phase_A(self, name, amount, cost, addr, url):
+    def phase_A(self, name, amount, cost, addr, url, tags):
         """
         output is: {"addr":"", "amount":50}
         """
@@ -34,7 +35,8 @@ class Actions:
             "payment": cost,
             "dest_addr": addr,
             "metadata":{
-                "url": url
+                "url": url,
+                "tags": tags
             }
         }
 
@@ -51,26 +53,52 @@ class Liveness(Resource):
 class NFT(Resource):    
     def post(self):
         try:
-            data = request.get_json()
-            assetname = request.form.get('assetName')
-            assetamount = request.form.get('assetAmount')
-            mintingcost = request.form.get("mintingCost")
-            recvaddr    = request.form.get("recvAddr")
-            url         = request.form.get("url")
-        
+            data = request.json
+            print(data)
+
+            data2 = request.get_json(force=True)
+            print(data2)
+            
+            if "assetName" in data:
+                assetname = data['assetName']
+                print(f"assetname:{assetname}")
+                
+            if "assetAmount" in data:
+                assetamount = data['assetAmount']
+                print(f"assetamount:{assetamount} " )
+                
+            if "recvAddr" in data:
+                recvaddr    = data["recvAddr"]
+                print(f"recvaddr: {recvaddr}" )
+            
+            if "url" in data:
+                url = data["url"]
+                print(f"url:{url}" )
+            else:
+                url = None
+            
+            if "tags" in data:
+                tags = data["tags"]
+                print(f"tags:{tags}" )
+            else:
+                tags = None
+
+            mintingcost = MINTING_COST  #THIS DOES NOT COME FROM THE CLIENT. WE SET THE PRICE !
+
             print(f"Asset: {assetname} with amount:{assetamount} costs {mintingcost} ADA with addr:{recvaddr}")
             
             #Now we can call the phase A to create a new entry for this customer
             uuid_str = str(uuid.uuid1())
             a = Actions(uuid_str)
-            payment_addr = a.phase_A(assetname, assetamount, mintingcost, recvaddr, url)
+            payment_addr = a.phase_A(assetname, assetamount, mintingcost, recvaddr, url, tags)
             print(f"payment address created is:{payment_addr}")
 
             #Now push the values to the queue so that it can be picked by the monitoring task
-            q = qt.Queue(qt.PLIST)
-            q.queue(uuid_str)
+            # Now we need to use SNS AWS to do this. Then we can have multiple subscribers to this event.
+            # q = qt.Queue(qt.PLIST)
+            # q.queue(uuid_str)
             
-            return {"payment_addr":payment_addr, "uuid":uuid_str}
+            return {"payment_addr":payment_addr, "uuid":uuid_str, "currency": "ADA", "mintingCost": mintingcost }
         except Exception as e:
             abort(400)
         
