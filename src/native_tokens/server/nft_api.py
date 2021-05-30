@@ -11,6 +11,8 @@ import queue_task as qt
 from waitress import serve
 
 
+import monitor_payment as mp
+
 
 app = Flask(__name__)
 api = Api(app)
@@ -49,6 +51,28 @@ class Actions:
 class Liveness(Resource):
     def get(self):
         return {"alive": True}
+
+
+class NftMonitor(Resource):
+    """
+    This is to start processing the different steps after payment is done.    
+    """
+    def post(self):
+        try:
+            data = request.json
+            print(data)
+
+            if "transactionUUID" in data:
+                uuid = data["transactionID"]
+                print(f"uuid:{uuid}")
+            
+                a = mp.Monitor(uuid)
+                a.main()
+            else:
+                abort(406, {'message': 'Could not find the uuid to process'})
+        except:
+            abort(400)
+
     
 class NFT(Resource):    
     def post(self):
@@ -87,15 +111,19 @@ class NFT(Resource):
             #Now we can call the phase A to create a new entry for this customer
             uuid_str = str(uuid.uuid1())
             a = Actions(uuid_str)
-            payment_addr = a.phase_A(assetname, assetamount, mintingcost, recvaddr, url, tags)
-            print(f"payment address created is:{payment_addr}")
 
-            #Now push the values to the queue so that it can be picked by the monitoring task
-            # Now we need to use SNS AWS to do this. Then we can have multiple subscribers to this event.
-            q = qt.Queue(qt.PLIST)
-            q.queue(uuid_str)
+            if (assetName != None and  assetAmount != None and recvAddr != None):
+                payment_addr = a.phase_A(assetname, assetamount, mintingcost, recvaddr, url, tags)
+                print(f"payment address created is:{payment_addr}")
+                
+                #Now push the values to the queue so that it can be picked by the monitoring task
+                # Now we need to use SNS AWS to do this. Then we can have multiple subscribers to this event.
+                q = qt.Queue(qt.PLIST)
+                q.queue(uuid_str)
             
-            return {"payment_addr":payment_addr, "uuid":uuid_str, "currency": "ADA", "mintingCost": mintingcost }
+                return {"payment_addr":payment_addr, "uuid":uuid_str, "currency": "ADA", "mintingCost": mintingcost }
+            else:
+                abort(406) #insufficient params.
         except Exception as e:
             abort(400)
         
@@ -104,6 +132,7 @@ class NFT(Resource):
 ##
 api.add_resource(Liveness, "/")
 api.add_resource(NFT, '/nft')
+api.add_resource(NftMonitor, '/nft/process')
 
 if __name__ == '__main__':
     #app.run(debug=True, host=LOCALHOST, port=PORT)
