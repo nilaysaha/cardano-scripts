@@ -20,6 +20,8 @@ import time
 from colorama import Fore, Back, Style
 
 import queue_task as qt
+from multiprocessing import Process
+
 
 HEARTBEAT_INTERVAL = 5 #waiting time in seconds
 MINTING_WAITING_PERIOD=50 #waiting time in seconds
@@ -30,7 +32,7 @@ os.environ["CHAIN"] = "testnet"
 os.environ["MAGIC"] = "1097911063"
 
 
-DEFAULT_TREASURY_ADDRESS="addr_test1vpyk92350x8gajyefdr44lk5jmjn9f8y4udfxw34pka5pvgjqxw4j"
+DEFAULT_TREASURY_ADDRESS="addr_test1vzezxpug0fuehlk4edj0chk4a7ehvkc704z7sr4mggc68uqccxdmq"
 
 class Treasury:
     """
@@ -68,6 +70,10 @@ class Monitor:
         i =nft.Inputs(uuid)
         return i.fetch()
 
+    def _check_if_minting_done(self):
+        c = nft.CreateToken(self.session)
+        return c.check_status('phase_3')
+    
     def check_payment(self):
         """
         returns the funds in the pay.addr for that session uuid.
@@ -120,7 +126,12 @@ class Monitor:
         """
         check the balance every 200ms
         """
-        payment_status = False
+        #Check is step_3 has been run. If yes, then payment_status=true
+        if self._check_if_minting_done():
+            payment_status = True
+        else:
+            payment_status = False
+            
         while not payment_status:            
             payment_status = self.check_payment()
             print(f"Next loop...Continue till the payment of {self.payment_amount} has arrived at {self.payment_addr}")
@@ -161,8 +172,7 @@ class Monitor:
             self.heartbeat_check_payment()
             
             #Step 2: Mint tokens since payment has come            
-            a = nft.Inputs(self.session)
-            inputs = a.fetch()
+            inputs = self._fetch_buffer(self.session)
             print(f"fetched the inputs for this run:{inputs}")
             
             t = nft.Transaction(self.session, inputs["name"], inputs["amount"], inputs["metadata"])
@@ -230,6 +240,8 @@ class Monitor:
                                   --outputAddr addr_test1vzlzqgcvehq56yd3aya69cyz8wsdu3deju8fsw2jwd0rrvgpwkw6x
         """
         try:
+            inputs = self._fetch_buffer(self.session)
+            
             #Step 1: Mint Tokens after receiving payment        
             policy_id = self.mint_tokens_init()
             self._print_divider("Token Minting", "Initiated")
@@ -240,14 +252,15 @@ class Monitor:
 
             #Step 3: Now transfer the ADA to the treasury.
             self.transfer_NFT_ADA_reward(policy_id, inputs["name"])
-            self._print_divider("Transfer ADA FEES to treasure", "Initiated")            
+            self._print_divider("Transfer ADA FEES to treasury", "Initiated")            
         except:
             logging.exception("Could not complete all the post payment steps")
             
             
     def main(self):
         try:
-            self.exec_steps()            
+            self.exec_steps()
+            self._print_divider("All steps have been completed", "Continue to scan ...")
         except:
             logging.exception(f"Could not complete all the monitoring steps")
             sys.exit(1)
@@ -264,7 +277,18 @@ class Worker:
         try:
             t = Monitor(uuid)
             t.main()
-            self._unschedule(uuid)
+        except:
+            logging.exception(f"Failed to execute task with uuid:{uuid}")            
+            sys.exit(1)
+
+    def process(self, uuid):
+        """
+        Meant to detach the process and run it separately as not to be blocking for next process
+        """
+        try:
+            pass
+            # p = Process(target=self.task, args=(uuid))
+            # p.start()
         except:
             logging.exception(f"Failed to execute task with uuid:{uuid}")            
             sys.exit(1)
@@ -280,11 +304,9 @@ class Worker:
                 continue
             
             # process the job
-            self.task(job_id)
-
-            # cleanup the job information from redis
-            self.qhost.lrem(qt.PROCESSING_LIST, 1, job_id)
-
+            if job_id:
+                self.task(job_id)
+                self._unschedule(job_id)
         #TO DO: NOW MONITOR THE PROCESSING LIST IF THERE ARE LONG STANDING TASK AND THEN PUSH THEM
         #BACK TO THE qt.PLIST
             

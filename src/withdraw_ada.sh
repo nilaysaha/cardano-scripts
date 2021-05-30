@@ -9,7 +9,7 @@ if [ "$#" -ne 2 ];then
 fi
 
    
-DEST_ADDR="addr_test1vpyk92350x8gajyefdr44lk5jmjn9f8y4udfxw34pka5pvgjqxw4j"
+DEST_ADDR="addr_test1vzezxpug0fuehlk4edj0chk4a7ehvkc704z7sr4mggc68uqccxdmq"
 SRC_ADDR=$(cat ./native_tokens/sessions/$SESSION/pay.addr)
 
 python3 transfer_ada.py --outputAddr $DEST_ADDR  --inputAddr $SRC_ADDR --payskey ./native_tokens/sessions/$SESSION/pay.skey --protocol ./native_tokens/sessions/$SESSION/protocol.json --amount $AMOUNT

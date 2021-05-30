@@ -56,9 +56,6 @@ class NFT(Resource):
             data = request.json
             print(data)
 
-            data2 = request.get_json(force=True)
-            print(data2)
-            
             if "assetName" in data:
                 assetname = data['assetName']
                 print(f"assetname:{assetname}")
@@ -95,8 +92,8 @@ class NFT(Resource):
 
             #Now push the values to the queue so that it can be picked by the monitoring task
             # Now we need to use SNS AWS to do this. Then we can have multiple subscribers to this event.
-            # q = qt.Queue(qt.PLIST)
-            # q.queue(uuid_str)
+            q = qt.Queue(qt.PLIST)
+            q.queue(uuid_str)
             
             return {"payment_addr":payment_addr, "uuid":uuid_str, "currency": "ADA", "mintingCost": mintingcost }
         except Exception as e:

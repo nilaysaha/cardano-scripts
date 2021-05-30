@@ -3,8 +3,8 @@
 DEST_ADDR=$1
 AMOUNT=$2
 
-SOURCE_UUID=e96efe6b-0d79-4200-a610-bf7250502ce0
-SOURCE_ADDR="addr_test1vpyk92350x8gajyefdr44lk5jmjn9f8y4udfxw34pka5pvgjqxw4j"
+SOURCE_UUID=5cbeadba-c0dd-11eb-82c2-31ea057735b4
+SOURCE_ADDR="addr_test1vzezxpug0fuehlk4edj0chk4a7ehvkc704z7sr4mggc68uqccxdmq"
 
 
 if [ $# -ne 2 ]; then
