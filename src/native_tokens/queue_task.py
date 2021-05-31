@@ -1,10 +1,16 @@
 #!/usr/bin/env python3
 
 import redis, json
+from rq import Connection, Worker
+from rq import Queue as Queue_RQ
+import monitor_payment as mp
 
 PLIST='QUEUE'
 MAX_NUM_WORKERS=3
 PROCESSING_LIST='PROCESS'
+
+DEFAULT_RQ_QUEUE_NAME='NftMinting'
+DEFAULT_NUM_WORKERS=1
 
 rhost = redis.Redis(host='localhost', port=6379, db=0)
 
@@ -36,8 +42,27 @@ class Queue:
         
         rhost.lrem(self.name, 1, uuid)
         
+
+
+class RQ:
+    def __init__(self, queue_name=DEFAULT_RQ_QUEUE_NAME):
+        self.q = Queue_RQ(queue_name, connection=rhost)
+        self.qname = queue_name
         
-            
+    def queue(self, task_id):
+        result = self.q.enqueue(mp.main_task, task_id)
+
+    def queue_with_retry(self, task_id, num_retry):
+        from rq import Retry
+        self.q.enqueue(mp.main_task, retry=Retry(max=num_retry))
+
+    def start_worker(self, num_workers=DEFAULT_NUM_WORKERS ):
+        # Start a worker with a custom name
+        for i in range(DEFAULT_NUM_WORKERS):
+            print(f"Now starting a redis worker for connecting to redis queue for monitoring payment")
+            worker = Worker([self.q], connection=rhost, name='rq_worker_'+str(i))
+        
+        
 if __name__ == "__main__":
 
     import argparse

@@ -10,9 +10,7 @@ import create_nft_token as cnt
 import queue_task as qt
 from waitress import serve
 
-
 import monitor_payment as mp
-
 
 app = Flask(__name__)
 api = Api(app)
@@ -117,8 +115,11 @@ class NFT(Resource):
                 print(f"payment address created is:{payment_addr}")
                 
                 #Now push the values to the queue so that it can be picked by the monitoring task
-                # Now we need to use SNS AWS to do this. Then we can have multiple subscribers to this event.
-                q = qt.Queue(qt.PLIST)
+                # q = qt.Queue(qt.PLIST)
+                # q.queue(uuid_str)
+
+                #Now we are shifting to using the RQ wrapper on redis to do stuff.
+                q = qt.RQ()
                 q.queue(uuid_str)
             
                 return {"payment_addr":payment_addr, "uuid":uuid_str, "currency": "ADA", "mintingCost": mintingcost }

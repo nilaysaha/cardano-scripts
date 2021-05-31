@@ -54,6 +54,7 @@ requests==2.22.0
 requests-toolbelt==0.9.1
 requests-unixsocket==0.2.0
 roman==2.0.0
+rq==1.8.1
 rsa==4.0
 s3transfer==0.3.3
 six==1.14.0
@@ -63,6 +64,7 @@ ubuntu-advantage-tools==20.3
 ufw==0.36
 unattended-upgrades==0.1
 urllib3==1.25.8
+waitress==2.0.0
 Werkzeug==1.0.1
 zipp==1.0.0
 zope.component==5.0.0

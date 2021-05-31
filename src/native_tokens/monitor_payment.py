@@ -19,9 +19,7 @@ import colorama
 import time
 from colorama import Fore, Back, Style
 
-import queue_task as qt
-from multiprocessing import Process
-
+import daemon
 
 HEARTBEAT_INTERVAL = 5 #waiting time in seconds
 MINTING_WAITING_PERIOD=50 #waiting time in seconds
@@ -264,55 +262,19 @@ class Monitor:
         except:
             logging.exception(f"Could not complete all the monitoring steps")
             sys.exit(1)
-            
-    
-class Worker:
-    def __init__(self):
-        self.num_worker = qt.MAX_NUM_WORKERS
-        self.qin  = qt.Queue(qt.PLIST)
-        self.qout = qt.Queue(qt.PROCESSING_LIST)
-        self.qhost = qt.rhost
 
-    def task(self, uuid):
-        try:
-            t = Monitor(uuid)
-            t.main()
-        except:
-            logging.exception(f"Failed to execute task with uuid:{uuid}")            
-            sys.exit(1)
 
-    def process(self, uuid):
-        """
-        Meant to detach the process and run it separately as not to be blocking for next process
-        """
-        try:
-            pass
-            # p = Process(target=self.task, args=(uuid))
-            # p.start()
-        except:
-            logging.exception(f"Failed to execute task with uuid:{uuid}")            
-            sys.exit(1)
-            
-    def _unschedule(self, uuid):
-        #remove the items from the processing queue.
-        self.qout.remove(uuid)
-
-    def schedule(self):
-        while True:
-            job_id = self.qhost.brpoplpush(qt.PLIST, qt.PROCESSING_LIST).decode('utf-8')
-            if not job_id:
-                continue
-            
-            # process the job
-            if job_id:
-                self.task(job_id)
-                self._unschedule(job_id)
-        #TO DO: NOW MONITOR THE PROCESSING LIST IF THERE ARE LONG STANDING TASK AND THEN PUSH THEM
-        #BACK TO THE qt.PLIST
+def main_task(uuid):
+    try:
+        t = Monitor(uuid)
+        t.main()
+    except:
+        logging.exception(f"Failed to execute task with uuid:{uuid}")            
+        sys.exit(1)
+                
             
                 
 if __name__ == "__main__":
-
     import argparse
 
     parser = argparse.ArgumentParser()
@@ -321,9 +283,12 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.uuid != None:
-        a = Monitor(args.uuid)
-        a.main()
+        main_task(args.uuid)
     elif args.run:
         print("Ok. Now you want to start the daemon mode. Let's go for it.")
-        a = Worker()
-        a.schedule()
+        # a = daemon.Daemon()
+        # a.schedule()
+
+        #Now we are shifting to use Python RQ wrapper to queue/exec jobs
+        a = daemon.Daemon_RQ()
+        
