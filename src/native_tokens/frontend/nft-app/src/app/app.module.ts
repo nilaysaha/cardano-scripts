@@ -11,6 +11,7 @@ import {MatDividerModule} from '@angular/material/divider';
 import {MatCardModule} from '@angular/material/card';
 import {MatButtonModule} from '@angular/material/button';
 import {MatGridListModule} from '@angular/material/grid-list';
+import {MatIconModule} from '@angular/material/icon';
 import { FormsModule } from '@angular/forms';
 
 import { HttpClientModule } from '@angular/common/http';
@@ -34,6 +35,7 @@ import { NftService } from './gnft/gnft.service';
       MatInputModule,
       MatDividerModule,
       MatButtonModule,
+      MatIconModule,
       RecaptchaModule,
       FormsModule,
       HttpClientModule,

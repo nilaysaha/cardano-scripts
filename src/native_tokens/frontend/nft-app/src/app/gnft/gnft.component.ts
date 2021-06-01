@@ -1,6 +1,5 @@
 import { Component, OnInit } from '@angular/core';
 import { RecaptchaErrorParameters } from "ng-recaptcha";
-import {FormBuilder, FormGroup, Validators} from '@angular/forms';
 import { NFT } from './gnft';
 import { NFTPay } from './gnftPay';
 import { NftService } from './gnft.service';
@@ -12,6 +11,7 @@ import { NftService } from './gnft.service';
 })
 
 
+
 export class GnftComponent implements OnInit {
 
     model: NFT = new NFT("NTFS", 10, "lasting value", 'addr_test1vzezxpug0fuehlk4edj0chk4a7ehvkc704z7sr4mggc68uqccxdmq', "/ipfs/testing" );    
@@ -21,10 +21,36 @@ export class GnftComponent implements OnInit {
     buttonDisabled: boolean;
     submitted: boolean = false;
     reqSucceeded: boolean = false;
+    fileName: string;
+
     
     constructor(private NftService: NftService) {}
     
     ngOnInit(): void {}
+
+    onFileSelected(event):void {
+	const file:File = event.target.files[0];
+
+	if (file) {
+	    this.fileName = file.name;
+	    
+	    this.NftService.uploadFile(file)
+		.subscribe(
+		    val => {
+			console.log("File upload successful")
+		    },
+		    response => {
+			console.log("POST call in error", response);
+		    },
+		    () => {
+		    console.log("The POST observable is now completed.");
+		    }
+		);
+
+	    
+	}
+    }
+
 
     onSubmit(): void {
 	console.log(`Pressed submit for submitting`)

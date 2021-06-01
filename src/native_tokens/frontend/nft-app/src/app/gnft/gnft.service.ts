@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
 import { Observable,  throwError } from 'rxjs';
 import { catchError, retry } from 'rxjs/operators';
+import {FormBuilder, FormGroup, Validators } from '@angular/forms';
 
 import { NFT } from './gnft';
 
@@ -16,7 +17,7 @@ const httpOptions = {
 
 export class NftService {
 
-    private ApiUrl: string = "https://nft.oef.io/api/nft";
+    private ApiUrl: string = "https://nft.oef.io/api";
     private nftID: any;
     
     constructor(private http:HttpClient) {
@@ -47,7 +48,16 @@ export class NftService {
 	console.log(body)
 	console.log(headers)
 
-        return this.http.post<any>(this.ApiUrl, nftModel, {'headers':headers})
+        return this.http.post<any>(this.ApiUrl+"/nft", nftModel, {'headers':headers})
+    }
+
+    uploadFile(file: File) {
+        if (file) {	    
+            const formData = new FormData();
+            formData.append("thumbnail", file);
+            return this.http.post(this.ApiUrl+"/nft/image-upload", formData);
+	}
+
     }
 
 }

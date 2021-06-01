@@ -1,8 +1,23 @@
 <mat-vertical-stepper>
   <mat-step>
     <ng-template matStepLabel>Step 1: Provide info for minting NFT</ng-template>                   
-    <form (ngSubmit)="onSubmit()" #nftForm="ngForm">
+    <form (ngSubmit)="onSubmit()" #nftForm="ngForm">      
       <div class="form-container">
+	
+	<input type="file" class="file-input"
+	       (change)="onFileSelected($event)" #fileUpload>
+	
+	<div class="file-upload">
+	  
+	  {{fileName || "No file uploaded yet."}}
+	  
+	  <button mat-mini-fab color="primary" class="upload-btn"
+		  (click)="fileUpload.click()">
+            <mat-icon>attach_file</mat-icon>
+	  </button>
+	</div>
+	<br/>
+	
 	<mat-form-field>
 	  <input matInput [(ngModel)]="model.assetName" name="assetName" type="text"  placeholder="Name of the NFT" disabled="{{reqSucceeded}}">
 	  <mat-hint>Hint:This is the name of the token to be printed for this NFT. No special characters and space allowed.</mat-hint>
