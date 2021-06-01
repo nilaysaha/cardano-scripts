@@ -22,7 +22,8 @@ export class GnftComponent implements OnInit {
     submitted: boolean = false;
     reqSucceeded: boolean = false;
     fileName: string;
-
+    msg: string;
+    url: any;
     
     constructor(private NftService: NftService) {}
     
@@ -33,19 +34,40 @@ export class GnftComponent implements OnInit {
 
 	if (file) {
 	    this.fileName = file.name;
+	    console.log(`value of reqSucceeded:${this.reqSucceeded}`)
+
+	    if(!event.target.files[0] || event.target.files[0].length == 0) {
+		this.msg = 'You must select an image';
+		return;
+	    }
+
+	    var mimeType = event.target.files[0].type;
+
+	    if (mimeType.match(/image\/*/) == null) {
+			this.msg = "Only images are supported";
+			return;
+	    }
+
+	    var reader = new FileReader();
+	    reader.readAsDataURL(event.target.files[0]);
+
+	    reader.onload = (_event) => {
+		this.msg = "";
+		this.url = reader.result; 
+	    }
 	    
-	    this.NftService.uploadFile(file)
-		.subscribe(
-		    val => {
-			console.log("File upload successful")
-		    },
-		    response => {
-			console.log("POST call in error", response);
-		    },
-		    () => {
-		    console.log("The POST observable is now completed.");
-		    }
-		);
+	    // this.NftService.uploadFile(file)
+	    // 	.subscribe(
+	    // 	    val => {
+	    // 		console.log("File upload successful")
+	    // 	    },
+	    // 	    response => {
+	    // 		console.log("POST call in error", response);
+	    // 	    },
+	    // 	    () => {
+	    // 	    console.log("The POST observable is now completed.");
+	    // 	    }
+	    // 	);
 
 	    
 	}

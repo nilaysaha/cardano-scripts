@@ -3,19 +3,9 @@
     <ng-template matStepLabel>Step 1: Provide info for minting NFT</ng-template>                   
     <form (ngSubmit)="onSubmit()" #nftForm="ngForm">      
       <div class="form-container">
-	
-	<input type="file" class="file-input"
-	       (change)="onFileSelected($event)" #fileUpload>
-	
-	<div class="file-upload">
-	  
-	  {{fileName || "No file uploaded yet."}}
-	  
-	  <button mat-mini-fab color="primary" class="upload-btn"
-		  (click)="fileUpload.click()">
-            <mat-icon>attach_file</mat-icon>
-	  </button>
-	</div>
+
+	<input type="file"  (change)="onFileSelected($event)" #fileUpload>
+	<div><img [src]="url" *ngIf="url"></div>
 	<br/>
 	
 	<mat-form-field>
@@ -66,27 +56,25 @@
   </mat-step>
   <mat-step>
     <ng-template matStepLabel>Step 2: Transfer Funds for Minting</ng-template>
-      <form (ngSubmit)="onSubmit()" #nftForm="ngForm">
-	<div class="form-container">
-	  <mat-form-field>
-	    <input matInput [(ngModel)]="payModel.assetID" name="assetID" type="text"  placeholder="Unique ID generated for this transaction" readonly="readonly">
-	    <mat-hint>Hint:This ID is unique and generated only for this transaction. Store it properly </mat-hint>
-	  </mat-form-field>
-	  <br/>
-	  
-	  <mat-form-field>
-	    <input matInput [(ngModel)]="payModel.mintingCost" name="mintingCost" placeholder="Cost of minting this NFT in ADA" readonly="readonly">
-	    <mat-hint>Hint:This is the cost of minting the NFT in {{payModel.currency}}</mat-hint>
-	  </mat-form-field>
-	  <br/>
-	  
-	  <mat-form-field>
-	    <input matInput [(ngModel)]="payModel.payAddr" name="payAddr" placeholder="Payment address to which minting cost should be sent to" readonly="readonly">
-	    <mat-hint>Hint:This is the address to which the NFT needs to be transferred</mat-hint>
-	  </mat-form-field>	  
-	</div>
-      </form>      
-      <button mat-button matStepperNext>Next</button>
+    <div class="form-container">
+      <mat-form-field>
+	<input matInput [(ngModel)]="payModel.assetID" name="assetID" type="text"  placeholder="Unique ID generated for this transaction" readonly="readonly">
+	<mat-hint>Hint:This ID is unique and generated only for this transaction. Store it properly </mat-hint>
+      </mat-form-field>
+      <br/>
+      
+      <mat-form-field>
+	<input matInput [(ngModel)]="payModel.mintingCost" name="mintingCost" placeholder="Cost of minting this NFT in ADA" readonly="readonly">
+	<mat-hint>Hint:This is the cost of minting the NFT in {{payModel.currency}}</mat-hint>
+      </mat-form-field>
+      <br/>
+      
+      <mat-form-field>
+	<input matInput [(ngModel)]="payModel.payAddr" name="payAddr" placeholder="Payment address to which minting cost should be sent to" readonly="readonly">
+	<mat-hint>Hint:This is the address to which the NFT needs to be transferred</mat-hint>
+      </mat-form-field>	  
+    </div>
+    <button mat-button matStepperNext>Next</button>
   </mat-step>
   <mat-step>
     <ng-template matStepLabel>Step 3: Received NFT tokens</ng-template>
