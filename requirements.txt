@@ -2,6 +2,7 @@ acme==1.15.0
 aniso8601==9.0.1
 attrs==19.3.0
 awscli==1.18.69
+base58==2.1.0
 blinker==1.4
 botocore==1.16.19
 certbot==1.15.0
@@ -24,6 +25,7 @@ Flask-SQLAlchemy==2.5.1
 greenlet==1.0.0
 idna==2.8
 importlib-metadata==1.5.0
+ipfshttpclient==0.7.0
 itsdangerous==1.1.0
 Jinja2==2.10.1
 jmespath==0.9.4
@@ -33,6 +35,8 @@ jsonpointer==2.0
 jsonschema==3.2.0
 MarkupSafe==1.1.0
 more-itertools==4.2.0
+multiaddr==0.0.9
+netaddr==0.8.0
 netifaces==0.10.4
 oauthlib==3.1.0
 parsedatetime==2.6
@@ -64,6 +68,7 @@ ubuntu-advantage-tools==20.3
 ufw==0.36
 unattended-upgrades==0.1
 urllib3==1.25.8
+varint==1.0.2
 waitress==2.0.0
 Werkzeug==1.0.1
 zipp==1.0.0

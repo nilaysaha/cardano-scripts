@@ -23,53 +23,46 @@ export class GnftComponent implements OnInit {
     reqSucceeded: boolean = false;
     fileName: string;
     msg: string;
-    url: any;
+    url: any = "https://plchldr.co/i/500x250?fc=111111&&text=Image placeholder"
+    ipfsLink: string;
     
     constructor(private NftService: NftService) {}
     
     ngOnInit(): void {}
 
+
+    _checkFile(event){
+	var mimeType = event.target.files[0].type;
+	
+	if(!event.target.files[0] || event.target.files[0].length == 0) {
+	    this.msg = 'You must select an image';
+	    return;
+	}
+	
+	if (mimeType.match(/image\/*/) == null) {
+	    this.msg = "Only images are supported";
+	    return;
+	}	
+    }
+    
     onFileSelected(event):void {
 	const file:File = event.target.files[0];
-
+	
 	if (file) {
 	    this.fileName = file.name;
 	    console.log(`value of reqSucceeded:${this.reqSucceeded}`)
 
-	    if(!event.target.files[0] || event.target.files[0].length == 0) {
-		this.msg = 'You must select an image';
-		return;
-	    }
+	    //This will later be extended for different kind of files to be uploaded
+	    this._checkFile(event)
 
-	    var mimeType = event.target.files[0].type;
-
-	    if (mimeType.match(/image\/*/) == null) {
-			this.msg = "Only images are supported";
-			return;
-	    }
-
+	    //this ensures we show the image
 	    var reader = new FileReader();
 	    reader.readAsDataURL(event.target.files[0]);
-
 	    reader.onload = (_event) => {
 		this.msg = "";
 		this.url = reader.result; 
 	    }
-	    
-	    // this.NftService.uploadFile(file)
-	    // 	.subscribe(
-	    // 	    val => {
-	    // 		console.log("File upload successful")
-	    // 	    },
-	    // 	    response => {
-	    // 		console.log("POST call in error", response);
-	    // 	    },
-	    // 	    () => {
-	    // 	    console.log("The POST observable is now completed.");
-	    // 	    }
-	    // 	);
 
-	    
 	}
     }
 

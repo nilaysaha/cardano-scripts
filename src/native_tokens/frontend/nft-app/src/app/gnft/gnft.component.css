@@ -70,3 +70,7 @@ section {
 .example-chip-list {
   width: 100%;
 }
+
+img {
+    max-height:500px;
+}

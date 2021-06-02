@@ -60,3 +60,9 @@ section {
 ::ng-deep mat-form-field .mat-form-field-ripple {
   background-color: #157cfc!important;
 }
+
+@media (min-width: 1200px) {
+    .container{
+        max-width: 1000px;
+    }
+}

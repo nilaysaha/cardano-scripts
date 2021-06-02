@@ -11,6 +11,8 @@ import queue_task as qt
 from waitress import serve
 
 import monitor_payment as mp
+import ipfshttpclient as ipfsc
+
 
 app = Flask(__name__)
 api = Api(app)
@@ -127,7 +129,25 @@ class NFT(Resource):
                 abort(406) #insufficient params.
         except Exception as e:
             abort(400)
+
+class NFTIpfs(Resource):
+    """
+    This is to upload the file to ipfs and return the url of the file in ipfs
+    """
+    def post(self):
+        data = request.json
+        print(data)
+
+        if "fname" in data:
+            fname=data["fname"]
+            print(f"Found file name:{fname} to be committed to ipfs")
+            
+        client = ipfshttpclient.connect()
+        res = client.add(fname)
+
         
+            
+            
 ##
 ## Actually setup the Api resource routing here
 ##
