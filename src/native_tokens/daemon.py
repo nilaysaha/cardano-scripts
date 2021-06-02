@@ -2,17 +2,20 @@
 
 import logging, sys
 import queue_task as qt
-import monitor_payment as mp
+import configparser
 
-MAX_WORKERS=10
+config = configparser.ConfigParser()
+config.read('./config.py')
+
+
 
 class Daemon:
-    def __init__(self):
+    def __init__(self, task):
         self.num_worker = qt.MAX_NUM_WORKERS
         self.qin  = qt.Queue(qt.PLIST)
         self.qout = qt.Queue(qt.PROCESSING_LIST)
         self.qhost = qt.rhost
-
+        self.task = task
 
     def _unschedule(self, uuid):
         #remove the items from the processing queue.
@@ -26,12 +29,12 @@ class Daemon:
             
             # process the job
             if job_id:
-                mp.main_task(job_id)
+                self.task(job_id)
                 self._unschedule(job_id)
 
 
 class Daemon_RQ:
-    def __init__(self, queue_name=qt.DEFAULT_RQ_QUEUE_NAME, num_workers=qt.DEFAULT_NUM_WORKERS):
+    def __init__(self, queue_name, num_workers):
         try:
             q = qt.RQ(queue_name)
             q.start_worker(num_workers)

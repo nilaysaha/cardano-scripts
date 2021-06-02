@@ -135,17 +135,21 @@ class NFTIpfs(Resource):
     This is to upload the file to ipfs and return the url of the file in ipfs
     """
     def post(self):
-        data = request.json
-        print(data)
-
-        if "fname" in data:
-            fname=data["fname"]
-            print(f"Found file name:{fname} to be committed to ipfs")
+        try:
+            data = request.json
+            print(data)
             
-        client = ipfshttpclient.connect()
-        res = client.add(fname)
-
-        
+            if "fname" in data:
+                fname=data["fname"]
+                print(f"Found file name:{fname} to be committed to ipfs")
+                
+                client = ipfshttpclient.connect()
+                res = client.add(fname)
+                return res
+            else:
+                abort(406)
+        except Exception as e:
+            abort(400)
             
             
 ##
@@ -153,6 +157,7 @@ class NFTIpfs(Resource):
 ##
 api.add_resource(Liveness, "/")
 api.add_resource(NFT, '/nft')
+api.add_resource(NFTIpfs, '/nft/uploadFile')
 api.add_resource(NftMonitor, '/nft/process')
 
 if __name__ == '__main__':

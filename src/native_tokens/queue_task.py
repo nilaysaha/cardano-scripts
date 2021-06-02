@@ -4,15 +4,12 @@ import redis, json
 from rq import Connection, Worker
 from rq import Queue as Queue_RQ
 import monitor_payment as mp
-
-PLIST='QUEUE'
-MAX_NUM_WORKERS=3
-PROCESSING_LIST='PROCESS'
-
-DEFAULT_RQ_QUEUE_NAME='NftMinting'
-DEFAULT_NUM_WORKERS=1
+import configparser
 
 rhost = redis.Redis(host='localhost', port=6379, db=0)
+
+config = configparser.ConfigParser()
+config.read('./config.py')
 
 class Queue:
     def __init__(self,queue_name):
@@ -45,7 +42,7 @@ class Queue:
 
 
 class RQ:
-    def __init__(self, queue_name=DEFAULT_RQ_QUEUE_NAME):
+    def __init__(self, queue_name=config['COMMON']['DEFAULT_RQ_QUEUE_NAME']):
         self.q = Queue_RQ(queue_name, connection=rhost)
         self.qname = queue_name
         
@@ -56,13 +53,49 @@ class RQ:
         from rq import Retry
         self.q.enqueue(mp.main_task, retry=Retry(max=num_retry))
 
-    def start_worker(self, num_workers=DEFAULT_NUM_WORKERS ):
+    def start_worker(self, num_workers=config['COMMON']['DEFAULT_NUM_WORKERS']):
         # Start a worker with a custom name
         for i in range(DEFAULT_NUM_WORKERS):
             print(f"Now starting a redis worker for connecting to redis queue for monitoring payment")
             worker = Worker([self.q], connection=rhost, name='rq_worker_'+str(i))
         
-        
+
+
+class Daemon:
+    def __init__(self, task):
+        self.num_worker = config['COMMON']['MAX_NUM_WORKERS']
+        self.qin  = Queue(config['COMMON']['PLIST'])
+        self.qout = Queue(config['PROCESSING_LIST'])
+        self.qhost = rhost
+        self.task = task
+
+    def _unschedule(self, uuid):
+        #remove the items from the processing queue.
+        self.qout.remove(uuid)
+
+    def schedule(self):
+        while True:
+            job_id = self.qhost.brpoplpush(config['COMMON']['PLIST'], config['COMMON']['PROCESSING_LIST']).decode('utf-8')
+            if not job_id:
+                continue
+            
+            # process the job
+            if job_id:
+                self.task(job_id)
+                self._unschedule(job_id)
+
+
+class Daemon_RQ:
+    def __init__(self, queue_name, num_workers):
+        try:
+            q = RQ(queue_name)
+            q.start_worker(num_workers)
+        except:
+            logging.exception("Something wrong with Redis RQ WORKERS. ")
+            sys.exit(1)
+
+
+            
 if __name__ == "__main__":
 
     import argparse
@@ -71,8 +104,11 @@ if __name__ == "__main__":
     
     parser.add_argument('--uuid', dest='uuid', help="This customer uuid being assigned")
     parser.add_argument('--list', dest='list', action='store_true')
-    args = parser.parse_args()
+    parser.add_argument('--run', dest='run', action="store_true", help="Start monitoring the queue and take action if needed")
+    parser.add_argument('--queuename', dest='queuename', help='Name of the queue that the RQ wrapper is using to push uuid into')
+    parser.add_argument('--numWorker', dest='numWorker', help='Number of workers to pick up task on redis via RQ wrapper')    
 
+    args = parser.parse_args()
     q = Queue()
     
     if args.uuid != None:
@@ -81,3 +117,19 @@ if __name__ == "__main__":
         print("Did not recieve any argument. See help. python3 queue_task.py --help")
     elif args.list:
         q.show()
+
+    if args.run:
+        if args.queuename == None:
+            qname = config['COMMON']['DEFAULT_RQ_QUEUE_NAME']
+        else:
+            qname = args.queuename
+            
+        if args.numWorker == None:
+            n = config['COMMON']['DEFAULT_NUM_WORKERS']
+        else:
+            n = args.numWorker
+            
+        #Now we are shifting to use Python RQ wrapper to queue/exec jobs
+        q.Daemon_RQ(qname, n)
+ 
+        

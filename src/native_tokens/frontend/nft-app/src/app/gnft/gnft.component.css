@@ -74,3 +74,19 @@ section {
 img {
     max-height:500px;
 }
+
+.custom-file-input.selected:lang(en)::after {
+  content: "" !important;
+}
+
+.custom-file {
+  overflow: hidden;
+}
+
+.custom-file-input {
+  white-space: nowrap;
+}
+
+.file-input {
+  display: none;
+}

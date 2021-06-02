@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python3
 
 """
@@ -19,7 +20,6 @@ import colorama
 import time
 from colorama import Fore, Back, Style
 
-import daemon
 
 HEARTBEAT_INTERVAL = 5 #waiting time in seconds
 MINTING_WAITING_PERIOD=50 #waiting time in seconds
@@ -278,17 +278,10 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--run', dest='run', action="store_true", help="Start monitoring the queue and take action if needed")
     parser.add_argument('--uuid', dest='uuid', help="This customer uuid being assigned")
     args = parser.parse_args()
 
     if args.uuid != None:
         main_task(args.uuid)
-    elif args.run:
-        print("Ok. Now you want to start the daemon mode. Let's go for it.")
-        # a = daemon.Daemon()
-        # a.schedule()
-
-        #Now we are shifting to use Python RQ wrapper to queue/exec jobs
-        a = daemon.Daemon_RQ()
         
+       

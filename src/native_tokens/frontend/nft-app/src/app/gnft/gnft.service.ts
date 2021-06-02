@@ -55,7 +55,7 @@ export class NftService {
         if (file) {	    
             const formData = new FormData();
             formData.append("thumbnail", file);
-            return this.http.post(this.ApiUrl+"/nft/image-upload", formData);
+            return this.http.post(this.ApiUrl+"/nft/uploadFile", formData);
 	}
 
     }
