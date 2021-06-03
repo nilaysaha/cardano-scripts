@@ -15,9 +15,8 @@ import { NftService } from './gnft.service';
 export class GnftComponent implements OnInit {
 
     model: NFT = new NFT("NTFS", 10, "lasting value", 'addr_test1vzezxpug0fuehlk4edj0chk4a7ehvkc704z7sr4mggc68uqccxdmq', "/ipfs/testing" );    
-    payModel: NFTPay = new NFTPay("fdf66851-748a-4f9a-ac20-e0e13791c27a(Dummy)",100, "ADA",
-				  "addr_test1vpyk92350x8gajyefdr44lk5jmjn9f8y4udfxw34pka5pvgjqxw4j(Dummy)");
-
+    payModel: NFTPay = new NFTPay("fdf66851-748a-4f9a-ac20-e0e13791c27a(Dummy)",100, "ADA", "addr_test1vpyk92350x8gajyefdr44lk5jmjn9f8y4udfxw34pka5pvgjqxw4j(Dummy)");
+    
     buttonDisabled: boolean;
     submitted: boolean = false;
     reqSucceeded: boolean = false;

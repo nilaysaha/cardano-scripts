@@ -46,7 +46,7 @@ import { RouterModule } from '@angular/router';
 	MatStepperModule,
 	MatGridListModule,
 	RouterModule.forRoot([
-      	    {path: 'introduction', component: IntroductionComponent},
+      	    {path: '', component: IntroductionComponent},
       	    {path: 'nft-issue', component: GnftComponent},
 	]),
     ],
