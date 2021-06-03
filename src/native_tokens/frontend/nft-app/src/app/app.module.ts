@@ -18,15 +18,18 @@ import { HttpClientModule } from '@angular/common/http';
 
 import {MatStepperModule} from '@angular/material/stepper';
 
+
 import { RecaptchaModule } from "ng-recaptcha";
 import { GnftComponent } from './gnft/gnft.component'; 
 import { NftService } from './gnft/gnft.service';
+import { IntroductionComponent } from './introduction/introduction.component';
 
 
 @NgModule({
   declarations: [
       AppComponent,
-      GnftComponent
+      GnftComponent,
+      IntroductionComponent
   ],
   imports: [
       BrowserModule,
@@ -39,7 +42,8 @@ import { NftService } from './gnft/gnft.service';
       RecaptchaModule,
       FormsModule,
       HttpClientModule,
-      MatStepperModule
+      MatStepperModule,
+      MatGridListModule
   ],
   providers: [],
   bootstrap: [AppComponent]

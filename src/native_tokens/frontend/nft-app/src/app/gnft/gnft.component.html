@@ -1,10 +1,11 @@
+<div class="container-fluid">
 <mat-vertical-stepper>
   <mat-step>
     <ng-template matStepLabel>Step 1: Provide info for minting NFT</ng-template>                   
     <form (ngSubmit)="onSubmit()" #nftForm="ngForm">      
       <div class="form-container">
 	<div><img [src]="url" class="img-fluid" id="imgupload" (click)="ImageClick()" *ngIf="url"></div>
-	<input type="file"  (change)="onFileSelected($event)"  #fileUpload>
+	<input type="file"  (change)="onFileSelected($event)" class="file-input" #fileUpload>
 	<div class="file-upload">
 	  {{fileName || "No file uploaded yet."}}	  
 	  <button mat-mini-fab color="primary" class="upload-btn"
@@ -95,3 +96,4 @@
     <button mat-button matStepperPrevious>Back</button>
   </mat-step>
 </mat-vertical-stepper>
+</div>

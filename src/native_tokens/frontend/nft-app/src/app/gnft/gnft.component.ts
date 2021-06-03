@@ -23,7 +23,7 @@ export class GnftComponent implements OnInit {
     reqSucceeded: boolean = false;
     fileName: string;
     msg: string;
-    url: any = "https://plchldr.co/i/500x250?fc=111111&&text=Image placeholder"
+    url: any = "https://plchldr.co/i/1000x500?fc=111111&&text=Image placeholder"
     ipfsLink: string;
     
     constructor(private NftService: NftService) {}
