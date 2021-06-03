@@ -24,29 +24,35 @@ import { GnftComponent } from './gnft/gnft.component';
 import { NftService } from './gnft/gnft.service';
 import { IntroductionComponent } from './introduction/introduction.component';
 
+import { RouterModule } from '@angular/router';
 
 @NgModule({
-  declarations: [
-      AppComponent,
-      GnftComponent,
-      IntroductionComponent
-  ],
-  imports: [
-      BrowserModule,
-      BrowserAnimationsModule,
-      MatFormFieldModule,
-      MatInputModule,
-      MatDividerModule,
-      MatButtonModule,
-      MatIconModule,
-      RecaptchaModule,
-      FormsModule,
-      HttpClientModule,
-      MatStepperModule,
-      MatGridListModule
-  ],
-  providers: [],
-  bootstrap: [AppComponent]
+    declarations: [
+	AppComponent,
+	GnftComponent,
+	IntroductionComponent,
+    ],
+    imports: [
+	BrowserModule,
+	BrowserAnimationsModule,
+	MatFormFieldModule,
+	MatInputModule,
+	MatDividerModule,
+	MatButtonModule,
+	MatIconModule,
+	RecaptchaModule,
+	FormsModule,
+	HttpClientModule,
+	MatStepperModule,
+	MatGridListModule,
+	RouterModule.forRoot([
+      	    {path: 'introduction', component: IntroductionComponent},
+      	    {path: 'nft-issue', component: GnftComponent},
+	]),
+    ],
+    exports: [RouterModule],
+    providers: [],
+    bootstrap: [AppComponent]
 })
 
 export class AppModule { }
