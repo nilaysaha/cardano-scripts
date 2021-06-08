@@ -25,12 +25,14 @@ import { NftService } from './gnft/gnft.service';
 import { IntroductionComponent } from './introduction/introduction.component';
 
 import { RouterModule } from '@angular/router';
+import { FaqComponent } from './faq/faq.component';
 
 @NgModule({
     declarations: [
 	AppComponent,
 	GnftComponent,
 	IntroductionComponent,
+ FaqComponent,
     ],
     imports: [
 	BrowserModule,
@@ -48,6 +50,7 @@ import { RouterModule } from '@angular/router';
 	RouterModule.forRoot([
       	    {path: '', component: IntroductionComponent},
       	    {path: 'nft-issue', component: GnftComponent},
+	    {path: 'faq', component: FaqComponent},
 	]),
     ],
     exports: [RouterModule],
