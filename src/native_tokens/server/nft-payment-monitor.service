@@ -1,5 +1,5 @@
 [Unit]
-Description=NFT API
+Description=NFT Payment monitor
 
 [Service]
 Environment="CARDANO_NODE_SOCKET_PATH=/home/nsaha/project/cardano-scripts/exec/state-node-shelly-testnet/node.socket"
@@ -8,10 +8,10 @@ User=nsaha
 Group=nsaha
 TimeoutStartSec=0
 Type=simple
-WorkingDirectory=/home/nsaha/project/cardano-scripts/src/native_tokens
-ExecStart=/home/nsaha/project/cardano-scripts/src/native_tokens/start_server.sh API
 KillMode=process
+WorkingDirectory=/home/nsaha/project/cardano-scripts/src/native_tokens
+ExecStart=/home/nsaha/project/cardano-scripts/src/native_tokens/start_server.sh MONITOR
 
 
 [Install]
-WantedBy=default.target
+WantedBy=multi-user.target

@@ -8,7 +8,7 @@ start_backend_process()
     full_path=$(realpath $0)
     echo $full_path
     dir_path=$(dirname $full_path)
-    python3 $dir_path/../queue_task.py --run &
+    python3 $dir_path/queue_task.py --run &
 }
 
 
@@ -18,7 +18,7 @@ start_api_server()
     full_path=$(realpath $0)
     echo $full_path
     dir_path=$(dirname $full_path)
-    python3 $dir_path/../nft_api.py&
+    python3 $dir_path/nft_api.py&
 }
 
 
