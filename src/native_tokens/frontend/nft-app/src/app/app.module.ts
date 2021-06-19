@@ -32,7 +32,7 @@ import { FaqComponent } from './faq/faq.component';
 	AppComponent,
 	GnftComponent,
 	IntroductionComponent,
- FaqComponent,
+	FaqComponent,
     ],
     imports: [
 	BrowserModule,

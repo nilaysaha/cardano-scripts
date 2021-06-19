@@ -4,6 +4,8 @@ import { NFT } from './gnft';
 import { NFTPay } from './gnftPay';
 import { NftService } from './gnft.service';
 
+import { onAuthUIStateChange, CognitoUserInterface, AuthState } from '@aws-amplify/ui-components';
+
 @Component({
   selector: 'app-gnft',
   templateUrl: './gnft.component.html',
