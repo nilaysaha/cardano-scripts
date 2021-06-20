@@ -31,6 +31,9 @@ import { IntroductionComponent } from './introduction/introduction.component';
 import { RouterModule } from '@angular/router';
 import { FaqComponent } from './faq/faq.component';
 import { AuthComponent } from './auth/auth.component';
+import { NavbarComponent } from './navbar/navbar.component';
+import { PagenotfoundComponent } from './pagenotfound/pagenotfound.component';
+import { FooterComponent } from './footer/footer.component';
 
 @NgModule({
     declarations: [
@@ -38,7 +41,10 @@ import { AuthComponent } from './auth/auth.component';
 	GnftComponent,
 	IntroductionComponent,
 	FaqComponent,
- AuthComponent,
+	AuthComponent,
+	NavbarComponent,
+	PagenotfoundComponent,
+ FooterComponent,
     ],
     imports: [
 	BrowserModule,
@@ -53,16 +59,16 @@ import { AuthComponent } from './auth/auth.component';
 	HttpClientModule,
 	MatStepperModule,
 	MatGridListModule,
-	// Import the module into the application, with configuration
 	AuthModule.forRoot({
 	    domain: 'nft-cardano.eu.auth0.com',
 	    clientId: 'h4YsBPze0ERS2X9uQmpS67XI22gzVuLM'
 	}),
 	RouterModule.forRoot([
-      	    {path: '', component: IntroductionComponent},
+      	    {path: '', redirectTo: 'home', pathMatch: 'full'},
+	    {path: 'home', component: IntroductionComponent},
       	    {path: 'nft-issue', component: GnftComponent},
 	    {path: 'faq', component: FaqComponent},
-	    {path: 'login', component: AuthComponent},
+	    {path: '**', component: PagenotfoundComponent}
 	]),
     ],
     exports: [RouterModule],
