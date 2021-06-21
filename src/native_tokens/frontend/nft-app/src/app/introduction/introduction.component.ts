@@ -10,13 +10,27 @@ import { DOCUMENT } from '@angular/common';
 })
 export class IntroductionComponent implements OnInit {
 
-    constructor(@Inject(DOCUMENT) public document: Document, public auth: AuthService) { }
-    
-    ngOnInit(): void {
-    }
+    buttonType: string
 
-    isLoggedIn(){
-	
-    }
+    
+    constructor(@Inject(DOCUMENT) public document: Document, public auth: AuthService) {}
+    
+    ngOnInit(): void {}
+
+    action():any {
+	console.log("Now doing action")
+	this.auth.isAuthenticated$.subscribe(data => {
+	    if (data){
+		console.log("Logging out the user")
+		this.auth.logout({ returnTo: window.top.location.origin })
+		console.log(`status of logout:${this.auth.isAuthenticated$}`)		
+	    }
+	    else
+	    {
+		console.log("Now trying to login the user")
+		this.auth.loginWithRedirect()
+	    }
+	})
+    }    
 
 }

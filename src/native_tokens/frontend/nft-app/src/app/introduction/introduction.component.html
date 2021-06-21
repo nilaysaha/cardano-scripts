@@ -27,11 +27,11 @@
 	  <li class="nav-item"><a class="nav-link link text-primary display-4" href="#form7-t" target="_blank">Contact</a></li>
 	</ul>
 	<form class="d-flex">
-	  <ng-container *ngIf="auth.isAuthenticated | async; else loggedOut">
-	    <button type="button" class="btn btn-danger" (click)="auth.logout({ returnTo: window.top.location.origin })">Logout</button>
+	  <ng-container *ngIf="auth.isAuthenticated$ | async; else loggedOut">
+	    <button type="button" class='btn btn-danger' (click)="auth.logout({ returnTo: document.location.origin })">Logout</button>
 	  </ng-container>
 	  <ng-template #loggedOut>
-	    <button type="button" class="btn btn-success" (click)="auth.loginWithRedirect()">Login</button>
+	    <button type="button" class='btn btn-success' (click)="auth.loginWithRedirect()">Login</button>
 	  </ng-template>
 	</form>
       </div>
