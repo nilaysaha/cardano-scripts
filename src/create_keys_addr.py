@@ -14,14 +14,21 @@ BASE_URL = 'https://hydra.iohk.io/job/Cardano/cardano-node/cardano-deployment/la
 CARDANO_CLI="/home/nsaha/.cabal/bin/cardano-cli"
 
 FILES={
-    'configurations':{
-        'config':os.path.join( CWD, 'tconfig/mainnet-config.json'),
-        'topology':os.path.join( CWD, 'tconfig/mainnet-topology.json'),
-        'shelley-genesis':os.path.join( CWD, 'tconfig/mainnet-shelley-genesis.json'),
-        'byron-genesis':os.path.join( CWD, 'tconfig/mainnet-byron-genesis.json'),
+    'configurations': {        
+        'mainnet':{
+            'config':os.path.join( CWD, 'tconfig/mainnet-config.json'),
+            'topology':os.path.join( CWD, 'tconfig/mainnet-topology.json'),
+            'shelley-genesis':os.path.join( CWD, 'tconfig/mainnet-shelley-genesis.json'),
+            'byron-genesis':os.path.join( CWD, 'tconfig/mainnet-byron-genesis.json'),
+        },
+        'testnet':{
+            'config':os.path.join( CWD, 'tconfig/testnet-config.json'),
+            'topology':os.path.join( CWD, 'tconfig/testnet-topology.json'),
+            'shelley-genesis':os.path.join( CWD, 'tconfig/testnet-shelley-genesis.json'),
+            'byron-genesis':os.path.join( CWD, 'tconfig/testnet-byron-genesis.json'),
+        }
     }
 }
-
 
 def create_dir(d):
     try:
@@ -44,13 +51,13 @@ def create_file(content, fpath):
         print(e)
         
         
-def fetch_init_files():
+def fetch_init_files(network='mainnet'):
     """
         fetch all the configuration files for the chain initialization
     """
     print(f"fetch_init_files")
     try:
-        fnames = ['mainnet-config.json', 'mainnet-topology.json', 'mainnet-shelley-genesis.json','mainnet-byron-genesis.json',  ]
+        fnames = [f'{network}-config.json', f'{network}-topology.json', f'{network}-shelley-genesis.json',f'{network}-byron-genesis.json',  ]
         for c in fnames:
             turl = BASE_URL+c
             r1 = requests.get(url = BASE_URL+c)
@@ -65,7 +72,7 @@ def fetch_init_files():
             else:
                 key=t[0].split('.')[0]
             print(f"key is {key}")
-            destination =  FILES['configurations'][key]
+            destination =  FILES['configurations'][network][key]
             print(f"destination is: {destination}")
             create_file(r1.text, destination)
             # If the response was successful, no Exception will be raised
@@ -173,6 +180,7 @@ if __name__ == "__main__":
     Options to download config files or to create keys etc.
     """
     parser = argparse.ArgumentParser(description=descr, formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument("--network", help="The network should be either 'mainnet' or 'testnet'", default="mainnet")
     parser.add_argument("--configs", help="Fetch the configs and store them in proper directory",action="store_true")
     parser.add_argument("--kaddr", help="Fetch the configs and store them in proper directory",action="store_true")
     args = parser.parse_args()
@@ -180,7 +188,9 @@ if __name__ == "__main__":
 
     try:
         if args.configs:
-            fetch_init_files()
+            print(args.network)
+            fetch_init_files(args.network)
+
             
         if args.kaddr:
             a = CreateKAddr()

@@ -1,0 +1,17 @@
+[Unit]
+Description=NFT API
+
+[Service]
+Environment="CARDANO_NODE_SOCKET_PATH=/home/nsaha/project/cardano-scripts/exec/state-node-shelly-testnet/node.socket"
+Environment="PATH=/home/nsaha/.cabal/bin:/home/nsaha/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:"
+User=nsaha
+Group=nsaha
+TimeoutStartSec=0
+Type=simple
+WorkingDirectory=/home/nsaha/project/cardano-scripts/src/native_tokens
+ExecStart=/home/nsaha/project/cardano-scripts/src/native_tokens/start_server.sh API
+KillMode=process
+
+
+[Install]
+WantedBy=default.target

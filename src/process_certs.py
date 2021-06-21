@@ -1,6 +1,15 @@
 #!/bin/python3
 
-import subprocess, sys, json
+import subprocess, sys, json, os
+import logging
+import colorama
+from colorama import Fore, Back, Style
+
+
+logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', datefmt='%d-%m-%y %H:%M:%S')
+colorama.init(autoreset=True)
+
+
 
 FILES={'stake': {'verify_key': "./kaddr/stake.vkey", 'addr': './kaddr/stake.addr', 'sign_key': './kaddr/stake.skey', 'cert': './kaddr/stake.cert' },
        'payment': {'verify_key': './kaddr/payment.vkey', 'addr': './kaddr/payment.addr', 'sign_key': './kaddr/payment.skey'},
@@ -17,16 +26,20 @@ CARDANO_CLI="/home/nsaha/.cabal/bin/cardano-cli"
 def content(fname):
     f = open(fname, "r")
     text = f.read()
+    f.close()
     return text
 
 
 def get_tip():
     try:
-        command = [CARDANO_CLI , "query" , "tip" ,"--mainnet"]
+        if os.environ["CHAIN"] == "testnet":
+            command=[CARDANO_CLI , 'query', 'tip','--testnet-magic', str(os.environ["MAGIC"])]
+        else:
+            command = [CARDANO_CLI , "query" , "tip" ,"--mainnet"]
         s =  subprocess.check_output(command, stderr=True, universal_newlines=True)
         print(s)
         s_package = json.loads(s)
-        return s_package["slotNo"]
+        return s_package["slot"]
     except:
         print("Oops!", sys.exc_info()[0], "occurred get ttl")
 
@@ -39,16 +52,15 @@ def get_ttl():
 def create_protocol():
     """
         cardano-cli query protocol-parameters \
-        --mary-era
         --testnet-magic ${NETWORK_MAGIC} \
         --out-file ./kaddr/protocol.json
     """
     try:
-        command = [ CARDANO_CLI, "query", "protocol-parameters",  "--mary-era" ,"--mainnet", "--out-file",
+        command = [ CARDANO_CLI, "query", "protocol-parameters", "--mainnet", "--out-file",
                     FILES['configs']['protocol']]
         s = subprocess.check_output(command)
     except:
-        print(f"Oops! Error occured during create_protocol: {sys.exc_info()[0]}")
+        logging.exception(f"Oops! Error occured during create_protocol")
 
 
 def _create_tx_in(tx_in):
@@ -66,7 +78,6 @@ def _create_tx_in(tx_in):
 def _draft_transaction(tx_in, tx_out):
     """
     cardano-cli transaction build-raw \
-    --mary-era \
     --tx-in 4e3a6e7fdcb0d0efa17bf79c13aed2b4cb9baf37fb1aa2e39553d5bd720c5c99#4 \
     --tx-out $(cat payment2.addr)+0 \
     --tx-out $(cat payment.addr)+0 \
@@ -78,13 +89,13 @@ def _draft_transaction(tx_in, tx_out):
         ttl = get_ttl()
         print(f"Inside draft transaction")
         tx_in_array=_create_tx_in(tx_in)
-        command = ["cardano-cli", "transaction", "build-raw", "--mary-era",
+        command = ["cardano-cli", "transaction", "build-raw",
                    "--tx-out",tx_out,  "--ttl", ttl,  "--fee", '0', '--out-file', FILES['transaction']['draft'] ] + tx_in_array
         print(command)
         s = subprocess.check_output(command)
         print(s)
     except:
-        print("Oops!", sys.exc_info(), "occurred in draft transaction")
+        logging.exception("failed to draft transaction")
         
 def calculate_min_fees(tx_in, ttl, options={"raw_transaction":False}):
     try:
@@ -124,42 +135,163 @@ def calculate_min_fees(tx_in, ttl, options={"raw_transaction":False}):
         min_fee = s.split(" ")[0]
         return min_fee
     except:
-        print("Oops!", sys.exc_info()[0], "occurred in calculate min fees")
+        logging.exception("Failed to calculate min fees")
         
 def get_payment_utx0(payment_addr=None):
     """
-    should be able to add all the utx0 to the address.
+    should be able to add all the utx0 to the address. Ugly way that we have to support two networks. 
     """
     try:
+        final_array = []
+        
         if payment_addr == None:
             payment_addr = content(FILES['payment']['addr'])
             
-        final_array = []
-                
-        command=[CARDANO_CLI , 'query', 'utxo', '--mary-era', '--address', payment_addr, '--mainnet']
+        if os.environ["CHAIN"] == "testnet":
+            command=[CARDANO_CLI , 'query', 'utxo', '--address', payment_addr, '--testnet-magic', str(os.environ["MAGIC"])]
+        else:
+            command=[CARDANO_CLI , 'query', 'utxo', '--address', payment_addr, '--mainnet']
+            
         s = subprocess.check_output(command)
         split_str=s.decode('UTF-8').split("\n")
         result = filter(lambda x: x != '', split_str) 
         farray = list(result)[2:]
         print(f"farray:{farray}")        
         for val in farray:
-            print(val)
-            (txHash, txtx, lovelace, dumbo) = val.split()
+            print(f"Now trying to split up :{val}\n")
+
+            #Now we have to distinguish the scenario of presence of native tokens as well.
+            #Scenario 1:'65fc4a7a2429e90b54848e9ceb24992bdf4a1dbd248259b9e91ff616df74aa22     0        1407406 lovelace + 2 6b8d07d69639e9413dd637a1a815a7323c69c86abbafb66dbfdb1aa7'
+            #Scenario 2:'bd46fa89a00ae1ae4629fe85557a1695dfbc760a5227008beb074dda3976e9ea     0        1000000000 lovelace'
+            
+            (txHash, txtx, lovelace) = val.split('lovelace')[0].split()
             final_array.append((txHash, txtx, lovelace))
         print(f"final array:{final_array}")
         return final_array
     except:
-        print("Oops!", sys.exc_info()[0], "occurred in get payment utx0")
+        logging.exception("Failed to get payment utx0")
 
-def get_total_fund_in_utx0(payment_addr=None):
-    if payment_addr == None:
-        payment_addr = content(FILES['payment']['addr'])
-    t = get_payment_utx0(payment_addr)
-    total_fund = 0
-    for val in t:
-        total_fund += int(val[2])
-    return total_fund
+
         
+def get_payment_utx0_with_native_tokens(payment_addr=None):
+    """
+    should be able to add all the utx0 to the address. Ugly way that we have to support two networks. 
+    """
+    try:
+        final_struct = {}
+        
+        #Final structure has to be like this:
+        # [
+        #     {
+        #         "hash": "1ff5efd94b1e537875477f0dd3ebc630b519f40771d13596270c910bf319ab0a",
+        #         "tx": "0",
+        #         "tokens": [
+        #             {
+        #                 "id": "lovelace",
+        #                 "count": "999808099"
+        #             },
+        #             {
+        #                 "id": "ad9f33675c1bfa3db8a1e3ed943a8e3ce1b077a00fbd9cbe26bf9e15.a0c3aa67533d405d92e262ece8ed4344",
+        #                 "count": "1"
+        #             }
+        #         ]
+        #     }
+        # ]
+
+        if payment_addr == None:
+            payment_addr = content(FILES['payment']['addr'])
+            
+        if os.environ["CHAIN"] == "testnet":
+            command=[CARDANO_CLI , 'query', 'utxo', '--address', payment_addr, '--testnet-magic', str(os.environ["MAGIC"])]
+        else:
+            command=[CARDANO_CLI , 'query', 'utxo', '--address', payment_addr, '--mainnet']
+            
+        s = subprocess.check_output(command)
+        split_str=s.decode('UTF-8').split("\n")
+        result = filter(lambda x: x != '', split_str) 
+        farray = list(result)[2:]
+        print(f"farray:{farray}")
+        futxo = []
+
+    
+        for val in farray:
+            
+            nt=[]
+            print(f"Now trying to split up :{val}\n")
+
+            #Now we have to distinguish the scenario of presence of native tokens as well.
+            #Scenario 1:'65fc4a7a2429e90b54848e9ceb24992bdf4a1dbd248259b9e91ff616df74aa22     0        1407406 lovelace + 2 6b8d07d69639e9413dd637a1a815a7323c69c86abbafb66dbfdb1aa7
+            #Scenario 2:'bd46fa89a00ae1ae4629fe85557a1695dfbc760a5227008beb074dda3976e9ea     0        1000000000 lovelace'    
+
+            (txHash, txtx, lovelace) = val.split('lovelace')[0].split()
+            
+            nt.append({"id":"lovelace", "count": lovelace})
+            
+            native_token_array = val.split("+")[1:]
+            
+            for t in native_token_array:
+                s = t.split()
+                nt.append({"id": s[1], "count": s[0]})
+
+            futxo.append(
+                {
+                    "hash": txHash,
+                    "tx": txtx,
+                    "tokens": nt
+                }
+            )
+
+        print(f"final array:{native_token_array}")
+        return futxo
+    except:
+        logging.exception("Failed to get payment utx0")
+
+
+def get_total_fund_in_utx0_with_native_tokens(payment_addr=None):
+    """
+    Output should be:{
+        "lovelace": amount_ADA,
+        "native_token_A": Amount_token_A ...
+    }
+    """
+    try:
+        print("Now trying to get total funds for all the tokens")
+        if payment_addr == None:
+            payment_addr = content(FILES['payment']['addr'])
+        t = get_payment_utx0_with_native_tokens(payment_addr)
+
+        val_obj={}
+
+        print(f"The utxo for the address:{payment_addr} is {t}")
+        for val in t:
+            for token in val["tokens"]:
+                print(f"token is:{token}")
+                if token["id"] in val_obj:
+                    val_obj[token["id"]] += int(token["count"])
+                else:
+                    val_obj[token["id"]] = int(token["count"])
+                print(val_obj)
+                
+        print(f"value object returned is:{val_obj}")
+        return val_obj                
+    except:
+        logging.exception("failed to get total funds")
+        
+        
+def get_total_fund_in_utx0(payment_addr=None):
+    try:
+        print(f"Now trying to get total funds in ADA in address:{payment_addr}")
+        if payment_addr == None:
+            payment_addr = content(FILES['payment']['addr'])
+        t = get_payment_utx0(payment_addr)
+        total_fund = 0
+        for val in t:
+            total_fund += int(val[2])
+        return total_fund
+    except:
+        logging.exception(f"Failed to get total fund in the utxo of address:{payment_addr}")
+    
+    
 def get_key_deposit_fee():
     import json
     s = json.loads(content(FILES['configs']['protocol']))    
@@ -186,7 +318,7 @@ def get_funds_via_faucet():
         r = requests.post(url = URL)
         return r.text #response text.
     except e:
-        print(e)
+        logging.exception("failed to get funds via faucet")
     
 
 class RegisterStake:
@@ -197,7 +329,6 @@ class RegisterStake:
         """
         reconstruct: 
            cardano-cli transaction build-raw \
-            --mary-era \
             --tx-in b64ae44e1195b04663ab863b62337e626c65b0c9855a9fbb9ef4458f81a6f5ee#1 \ (multiple values allowed)
             --tx-out $(cat payment.addr)+999428515 \
             --ttl 987654 \
@@ -218,7 +349,6 @@ class RegisterStake:
             payment_addr = content(FILES['payment']['addr'])
             tx_out = "{paddr}+{rfund}".format(paddr=payment_addr, rfund=remaining_fund)
             command = [CARDANO_CLI, "transaction", "build-raw",
-                       "--mary-era",
                        "--tx-out",tx_out,
                        "--ttl", ttl,
                        "--fee", min_fee,
@@ -228,7 +358,7 @@ class RegisterStake:
             s = subprocess.check_output(command)
             split_str=s.decode('UTF-8').split(" ")
         except:
-            print("Oops!", sys.exc_info()[0], "occurred in build transaction")
+            logging.exception("Failed to build transaction in registerstake")
 
     def sign_transaction(self):
         """
@@ -248,7 +378,7 @@ class RegisterStake:
             s = subprocess.check_output(command)
             print(s)
         except:
-            print("Oops!", sys.exc_info()[0], "occurred in sign transaction")
+            logging.exception("Failure in sign transaction")
 
 
     def submit_transaction(self):
@@ -264,7 +394,7 @@ class RegisterStake:
             s = subprocess.check_output(command)
             print("Submitted transaction for stake registration on chain usin: {command}. Result is: {s}")
         except:
-            print("Oops!", sys.exc_info()[0], "occurred in submit transaction")
+            logging.exception("Failed to submit transaction")
             
 def main():
     try:
@@ -290,7 +420,7 @@ def main():
         a.submit_transaction()       
  
     except:
-        print("Oops!", sys.exc_info()[0], "occurred in main")
+        logging.exception("Error in main function of process_certs.py")
         
 if __name__ == "__main__": 
     main()                       
