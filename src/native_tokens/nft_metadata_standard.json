@@ -1,0 +1,17 @@
+{
+  "721": {
+    "cbc34df5cb851e6fe5035a438d534ffffc87af012f3ff2d4db94288b": {
+      "nft0": {
+        "name": "NFT 0",
+        "image": "ipfs://ipfs/<IPFS_HASH>",
+        <other properties>
+      },
+      "nft1": {
+        "name": "NFT 1",
+        "image": "ipfs://ipfs/<IPFS_HASH>",
+        <other properties>
+      }
+      ...
+    }
+  }
+}

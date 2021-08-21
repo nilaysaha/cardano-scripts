@@ -35,6 +35,9 @@ import { NavbarComponent } from './navbar/navbar.component';
 import { PagenotfoundComponent } from './pagenotfound/pagenotfound.component';
 import { FooterComponent } from './footer/footer.component';
 
+// Import the authentication guard
+import { AuthGuard } from '@auth0/auth0-angular';
+
 @NgModule({
     declarations: [
 	AppComponent,
@@ -66,7 +69,7 @@ import { FooterComponent } from './footer/footer.component';
 	RouterModule.forRoot([
       	    {path: '', redirectTo: 'home', pathMatch: 'full'},
 	    {path: 'home', component: IntroductionComponent},
-      	    {path: 'nft-issue', component: GnftComponent},
+      	    {path: 'nft-issue', component: GnftComponent, canActivate: [AuthGuard]},
 	    {path: 'faq', component: FaqComponent},
 	    {path: '**', component: PagenotfoundComponent}
 	]),
