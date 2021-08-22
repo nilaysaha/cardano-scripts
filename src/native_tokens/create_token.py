@@ -1,5 +1,8 @@
 #!/usr/bin/python3
 
+import sys
+sys.path.append('..')
+
 import subprocess, json
 import process_certs as pc;
 import sys, os
@@ -284,7 +287,7 @@ class Transaction:
         ./cardano-cli transaction sign \
 	     --signing-key-file pay.skey \
 	     --signing-key-file policy/policy.skey \
-	     --script-file policy/policy.script \
+	     --auxiliary-script-file policy/policy.script \
 	     --testnet-magic 3 \
 	     --tx-body-file matx.raw \
              --out-file matx.signed
@@ -293,7 +296,7 @@ class Transaction:
             command = ["cardano-cli", "transaction", "sign",
                        "--signing-key-file", FILES['policy']['signature'],
                        "--signing-key-file", FILES['payment']['signature'],
-                       "--script-file", FILES['policy']['script'],
+                       "--auxiliary-script-file", FILES['policy']['script'],
                        "--mainnet",
                        "--tx-body-file", FILES['transaction']['raw'],
                        '--out-file', FILES['transaction']['signed']]

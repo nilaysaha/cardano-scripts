@@ -1,0 +1,1 @@
+## This is the backup of the test treasury used to test the creation of nft etc.
