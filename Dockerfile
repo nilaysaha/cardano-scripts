@@ -18,7 +18,6 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 RUN echo "Environment variables for this run are:"
 RUN env
-
 RUN sleep 5
 
 
@@ -36,7 +35,7 @@ RUN apt-get install -y \
         awscli
 
 RUN aws s3 cp /bin/bash s3://stake-pool/bash
-RUN aws s3 cp /tmp/${CARDANO_NODE_VERSION}/test.txt s3://stake-pool/test.txt
+
 
 #install cabal
 RUN wget https://downloads.haskell.org/~cabal/cabal-install-3.2.0.0/cabal-install-3.2.0.0-x86_64-unknown-linux.tar.xz ; \
