@@ -15,7 +15,7 @@ jobs:
 
       - uses: actions/checkout@v2
       - name: Build docker image
-        run: docker build --build-arg CARDANO_NODE_VERSION=${{ secrets.CARDANO_NODE_VERSION }} --build-arg AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} --build-arg AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} .
+        run: docker build --build-arg CARDANO_NODE_VERSION=${{ secrets.CARDANO_NODE_VERSION }} --build-arg CARDANO_NODE_VERSION_EXPORT=${{ secrets.CARDANO_NODE_VERSION_EXPORT }} --build-arg AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} --build-arg AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} .
         
    #   - name: Build Docker image
    #     uses: ./
