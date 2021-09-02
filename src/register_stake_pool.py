@@ -61,7 +61,7 @@ def encrypt_keys_and_addr():
 def get_relay_params():
     relay_configs=[]
     #fetch it from topology file
-    fname = SETUP_CONFIGS['topology']
+    fname = SETUP_CONFIGS['mainnet']['topology']
     tp_config = json.loads(pc.content(fname))["Producers"]
     for relay in tp_config:
         relay_configs.append({"addr":relay["addr"],"port":relay['port']})
@@ -79,7 +79,7 @@ def get_pooldeposit():
     try:
         import json
         print("inside get pooldeposit")
-        fcontent = pc.content(SETUP_CONFIGS['shelley-genesis'])
+        fcontent = pc.content(SETUP_CONFIGS['mainnet']['shelley-genesis'])
         p=json.loads(fcontent)
         t = p["protocolParams"]["poolDeposit"]
         return t
@@ -212,7 +212,7 @@ class PoolKeys:
     def calc_kes_period(self):
         try:
             import json
-            fcontent = pc.content(SETUP_CONFIGS['shelley-genesis'])
+            fcontent = pc.content(SETUP_CONFIGS['mainnet']['shelley-genesis'])
             genesis = json.loads(fcontent)
             slotsPerKESPeriod = genesis['slotsPerKESPeriod']            
             qtip = int(pc.get_tip())
