@@ -19,6 +19,7 @@ FILES={
         'topology':os.path.join( CWD, 'tconfig/mainnet-topology.json'),
         'shelley-genesis':os.path.join( CWD, 'tconfig/mainnet-shelley-genesis.json'),
         'byron-genesis':os.path.join( CWD, 'tconfig/mainnet-byron-genesis.json'),
+        'alonzo-genesis':os.path.join( CWD, 'tconfig/mainnet-alonzo-genesis.json'),
     }
 }
 
