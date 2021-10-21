@@ -72,7 +72,7 @@ if __name__=="__main__":
     We need to rotate after the kes expires.
     """
     parser = argparse.ArgumentParser(description=descr, formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument("--minKES", type=int, help="When the remaining kes is less than this we will update the kes keys and node.cert and restart process.")
+    parser.add_argument("--minKES", type=int, help="When the remaining kes is less than this we will update the kes keys and node.cert and restart process. Just check if you have set env: CHAIN as 'mainnet'. Other modules may require it")
     
     args = parser.parse_args()
     print(args)

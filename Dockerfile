@@ -4,15 +4,22 @@ FROM ubuntu:18.04
 SHELL ["/bin/bash", "-c"]
 
 ARG CARDANO_NODE_VERSION
+ARG CARDANO_NODE_VERSION_EXPORT
 ARG AWS_ACCESS_KEY_ID
 ARG AWS_SECRET_ACCESS_KEY
 
 ENV AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
 ENV AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+ENV CARDANO_NODE_VERSION=$CARDANO_NODE_VERSION
+ENV CARDANO_NODE_VERSION_EXPORT=$CARDANO_NODE_VERSION_EXPORT
 ENV AWS_STS_REGIONAL_ENDPOINTS="eu-central-1"
 ENV DEBIAN_FRONTEND=noninteractive
 
+
+RUN echo "Environment variables for this run are:"
 RUN env
+RUN sleep 5
+
 
 #refresh packages
 RUN apt-get update
@@ -28,6 +35,7 @@ RUN apt-get install -y \
         awscli
 
 RUN aws s3 cp /bin/bash s3://stake-pool/bash
+
 
 #install cabal
 RUN wget https://downloads.haskell.org/~cabal/cabal-install-3.2.0.0/cabal-install-3.2.0.0-x86_64-unknown-linux.tar.xz ; \
@@ -69,9 +77,9 @@ RUN git clone https://github.com/input-output-hk/cardano-node.git; \
 	git checkout ${CARDANO_NODE_VERSION} -b tag-${CARDANO_NODE_VERSION};\
 	cabal build all;
 
-ENV CARDANO_NODE_PATH="/cardano-node/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-node-${CARDANO_NODE_VERSION}/x/cardano-node/build/cardano-node/cardano-node"
-ENV CARDANO_CLI_PATH="/cardano-node/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-cli-${CARDANO_NODE_VERSION}/x/cardano-cli/build/cardano-cli/cardano-cli"
-ENV CARDANO_CHAIRMAN_PATH="/cardano-node/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-node-chairman-${CARDANO_NODE_VERSION}/x/cardano-node-chairman/build/cardano-node-chairman/cardano-node-chairman"
+ENV CARDANO_NODE_PATH="/cardano-node/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-node-${CARDANO_NODE_VERSION_EXPORT}/x/cardano-node/build/cardano-node/cardano-node"
+ENV CARDANO_CLI_PATH="/cardano-node/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-cli-${CARDANO_NODE_VERSION_EXPORT}/x/cardano-cli/build/cardano-cli/cardano-cli"
+ENV CARDANO_CHAIRMAN_PATH="/cardano-node/dist-newstyle/build/x86_64-linux/ghc-8.10.2/cardano-node-chairman-${CARDANO_NODE_VERSION_EXPORT}/x/cardano-node-chairman/build/cardano-node-chairman/cardano-node-chairman"
 
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
@@ -80,8 +88,4 @@ ENV LANG=C.UTF-8
 RUN aws s3 cp ${CARDANO_NODE_PATH} s3://stake-pool/"cardano-node-${CARDANO_NODE_VERSION}"
 RUN aws s3 cp ${CARDANO_CLI_PATH} s3://stake-pool/"cardano-cli-${CARDANO_NODE_VERSION}"
 RUN aws s3 cp ${CARDANO_CHAIRMAN_PATH} s3://stake-pool/"cardano-node-chairman-${CARDANO_NODE_VERSION}"
-
-#RUN cloudsmith push raw lkbhpool/cardano ${CARDANO_NODE_PATH} --tags ${CARDANO_NODE_VERSION} --version ${CARDANO_NODE_VERSION}
-#RUN cloudsmith push raw lkbhpool/cardano ${CARDANO_CLI_PATH} --tags ${CARDANO_NODE_VERSION} --version ${CARDANO_NODE_VERSION}
-#RUN cloudsmith push raw lkbhpool/cardano ${CARDANO_CHAIRMAN_PATH} --tags ${CARDANO_NODE_VERSION} --version ${CARDANO_NODE_VERSION}
 

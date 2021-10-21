@@ -1,0 +1,30 @@
+{
+    "721": {
+	{
+	    5534595a12198346446ca7be0a56548e7091c3f2126f360a5fd8fe2d: {
+		CardanoKidz0017FC051: {
+		    id: 51,
+		    image: "ipfs://ipfs/QmQoRnz21mU9TpR56jv2B4ekAYCona9mEqDJnfNZwHcciC",
+		    name: "Cardano Kidz NFT 0017 [051]"
+		},
+		CardanoKidz0017FC052: {
+		    id: 52,
+		    image: "ipfs://ipfs/QmQoRnz21mU9TpR56jv2B4ekAYCona9mEqDJnfNZwHcciC",
+		    name: "Cardano Kidz NFT 0017 [052]"
+		},
+		CardanoKidz0017FC053: {
+		    id: 53,
+		    image: "ipfs://ipfs/QmQoRnz21mU9TpR56jv2B4ekAYCona9mEqDJnfNZwHcciC",
+		    name: "Cardano Kidz NFT 0017 [053]"
+		},
+		CardanoKidz0017FC054: {
+		    id: 54,
+		    image: "ipfs://ipfs/QmQoRnz21mU9TpR56jv2B4ekAYCona9mEqDJnfNZwHcciC",
+		    name: "Cardano Kidz NFT 0017 [054]"
+		}
+	    },
+	    copyright: "Copyright kidz; All rights reserved",
+	    publisher: ["cnft.io"],
+	    version: 1
+	    
+}

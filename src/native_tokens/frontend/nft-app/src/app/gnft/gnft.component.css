@@ -1,0 +1,92 @@
+section {
+  display: table;
+}
+
+.example-label {
+  display: table-cell;
+  font-size: 14px;
+  margin-left: 8px;
+  min-width: 120px;
+}
+
+.example-button-row {
+  display: table-cell;
+  width: 490px;
+}
+
+.example-button-row .mat-button-base {
+  margin: 8px 8px 8px 0;
+}
+
+.example-flex-container {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.example-button-container {
+  display: flex;
+  justify-content: center;
+  width: 120px;
+}
+
+.form-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-container > * {
+  width: 100%;
+}
+
+.mat-stepper-vertical {
+  margin-top: 8px;
+}
+
+.mat-form-field {
+  margin-top: 16px;
+}
+
+::ng-deep mat-form-field {
+  color: black!important;
+}
+
+::ng-deep mat-form-field  .mat-form-field-label {
+  color: black!important;
+}
+
+::ng-deep mat-form-field .mat-form-field-underline {
+  background-color: #868686!important;
+}
+
+::ng-deep mat-form-field .mat-input-element {
+  caret-color: #157cfc!important;
+}
+
+::ng-deep mat-form-field .mat-form-field-ripple {
+  background-color: #157cfc!important;
+}
+
+.example-chip-list {
+  width: 100%;
+}
+
+img {
+    max-height:500px;
+}
+
+.custom-file-input.selected:lang(en)::after {
+  content: "" !important;
+}
+
+.custom-file {
+  overflow: hidden;
+}
+
+.custom-file-input {
+  white-space: nowrap;
+}
+
+.file-input {
+  display: none;
+}

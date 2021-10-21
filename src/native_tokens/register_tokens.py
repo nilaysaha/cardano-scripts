@@ -1,5 +1,8 @@
 #!/bin/env python
 
+import sys
+sys.path.append('..')
+
 import subprocess, json
 import logging
 import create_token as ct

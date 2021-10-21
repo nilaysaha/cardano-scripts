@@ -36,9 +36,9 @@ done
     
 
 #Now restart the blockchain
-sudo systemctl stop shelly-cardano
-sudo systemctl start shelly-cardano
-systemctl status shelly-cardano
+sudo systemctl stop shelley-cardano
+sudo systemctl start shelley-cardano
+systemctl status shelley-cardano
 
 echo "We have downloaded the binaries and restarted the chain"
 echo "Now run journalctl -u shelly-cardano -f to view the logs."
