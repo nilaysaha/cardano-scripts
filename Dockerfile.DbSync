@@ -1,0 +1,49 @@
+# Container image that runs your code
+FROM ubuntu:18.04
+
+SHELL ["/bin/bash", "-c"]
+
+ARG CARDANO_DB_SYNC_VERSION
+ARG AWS_ACCESS_KEY_ID
+ARG AWS_SECRET_ACCESS_KEY
+
+ENV CARDANO_DB_SYNC_VERSION=$CARDANO_DB_SYNC_VERSION
+ENV AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+ENV AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+ENV AWS_STS_REGIONAL_ENDPOINTS="eu-central-1"
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN env
+
+#refresh packages
+RUN apt-get update
+RUN apt-get install -y \
+	python3 \
+	python3-pip \
+	git automake build-essential pkg-config \
+	libffi-dev libgmp-dev libssl-dev \
+	libtinfo-dev libsystemd-dev \
+	zlib1g-dev make g++ tmux git \
+	jq wget libncursesw5 \
+	libtool autoconf curl \
+        awscli
+
+
+#install nix
+RUN sudo rm -rf /etc/nix /nix /root/.nix-profile /root/.nix-defexpr /root/.nix-channels /home/nsaha/.nix-profile /home/nsaha/.nix-defexpr /home/nsaha/.nix-channels
+RUN sudo curl -L https://nixos.org/nix/install | sh
+
+
+#import git repo & build
+RUN git clone https://github.com/input-output-hk/cardano-db-sync.git; \
+	cd cardano-db-sync; \
+        git fetch -all --tags; \
+	git checkout ${CARDANO_DB_SYNC_VERSION} -b tag-${CARDANO_DB_SYNC_VERSION}; \
+	nix-build -A cardano-db-sync -o db-sync-node;
+
+	
+#now identify binary to export
+ENV DB_SYNC_NODE_PATH="db-sync-node/bin/cardano-db-sync"
+
+#Upload using api
+RUN aws s3 cp ${DB_SYNC_NODE_PATH} s3://stake-pool/"cardano-db-sync-${CARDANO_DB_SYNC_VERSION}"

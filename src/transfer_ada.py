@@ -17,8 +17,8 @@ from colorama import Fore, Back, Style
 MINIMUM_TOKEN_AMOUNT_ACCOMPANYING_TRANSFER=str(10000000)
 ADA2LOVELACE=1000000
 
-os.environ["CHAIN"] = "testnet"
-os.environ["MAGIC"] = "1097911063"
+os.environ["CHAIN"] = "mainnet"
+os.environ["MAGIC"] = ""
 
 
 FILES={
@@ -152,9 +152,16 @@ class Transfer:
         try:
             tx_body_file=FILES['transaction']['raw']
             protocol_file=self.protocol_file
-            command=["cardano-cli", "transaction", "calculate-min-fee", "--tx-body-file",tx_body_file, "--tx-in-count", str(1),
-                     "--tx-out-count", str(2), "--witness-count", str(1), "--testnet-magic",os.environ["MAGIC"],
-                     "--protocol-params-file", protocol_file]
+
+            if os.environ["CHAIN"] == "testnet":
+                command=["cardano-cli", "transaction", "calculate-min-fee", "--tx-body-file",tx_body_file, "--tx-in-count", str(1),
+                         "--tx-out-count", str(2), "--witness-count", str(1), "--testnet-magic",os.environ["MAGIC"],
+                         "--protocol-params-file", protocol_file]
+            else:
+                command=["cardano-cli", "transaction", "calculate-min-fee", "--tx-body-file",tx_body_file, "--tx-in-count", str(1),
+                         "--tx-out-count", str(2), "--witness-count", str(1), "--mainnet",
+                         "--protocol-params-file", protocol_file]
+                
             print(Fore.GREEN + f"Command is:{command}")
             s = subprocess.check_output(command, stderr=True,  universal_newlines=True)
             return s.split()[0]
@@ -180,9 +187,15 @@ class Transfer:
             #First ensure file dir exists
             self._ensure_path(tx_raw_signed)
             
-            command=["cardano-cli", "transaction", "sign", "--signing-key-file", pay_skey, "--testnet-magic",os.environ["MAGIC"],
-                     "--tx-body-file", tx_raw_file,
-                     "--out-file", tx_raw_signed]
+            if os.environ["CHAIN"] == "testnet":
+                command=["cardano-cli", "transaction", "sign", "--signing-key-file", pay_skey, "--testnet-magic",os.environ["MAGIC"],
+                         "--tx-body-file", tx_raw_file,
+                         "--out-file", tx_raw_signed]
+            else:
+                command=["cardano-cli", "transaction", "sign", "--signing-key-file", pay_skey, "--mainnet",
+                         "--tx-body-file", tx_raw_file,
+                         "--out-file", tx_raw_signed]
+
             print(Fore.GREEN + f"Command is:{command}")
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
             print(Fore.GREEN + f"Successful:  Output is:{s}")
@@ -198,7 +211,11 @@ class Transfer:
         """
         try:
             tx_raw_signed=FILES['transaction']['signed']
-            command=["cardano-cli", "transaction", "submit", "--tx-file", tx_raw_signed, "--testnet-magic", os.environ["MAGIC"]]
+            if os.environ["CHAIN"] == "testnet":
+                command=["cardano-cli", "transaction", "submit", "--tx-file", tx_raw_signed, "--testnet-magic", os.environ["MAGIC"]]
+            else:
+                command=["cardano-cli", "transaction", "submit", "--tx-file", tx_raw_signed, "--mainnet"]
+                
             print(Fore.GREEN + f"Command is:{command}")
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
             print(f"Successful:  Output is:{s}")
@@ -228,7 +245,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     if (args.inputAddr != None) and (args.amount != None) and (args.outputAddr != None) :
-        a = Transfer(args.inputAddr, int(args.amount)*ADA2LOVELACE,args.outputAddr)
+        lovelace_amount = int(float(args.amount)*ADA2LOVELACE)
+        a = Transfer(args.inputAddr, lovelace_amount ,args.outputAddr)
 
         if (args.payskey != None) or (args.protocol != None):
             a.set_payment_and_protocol(args.payskey, args.protocol)
@@ -236,6 +254,3 @@ if __name__ == "__main__":
         a.main()
     else:
         print("Not sufficient params. To see help: python3 transfer_ada.py --help")
-        
-        
-        
