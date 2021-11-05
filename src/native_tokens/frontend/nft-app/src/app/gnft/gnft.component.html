@@ -10,13 +10,13 @@
   <div class="container-fluid">
     <mat-vertical-stepper>
       <mat-step>
-	<ng-template matStepLabel>Step 1: Provide info for minting NFT</ng-template>                   
-	<form (ngSubmit)="onSubmit()" #nftForm="ngForm">      
+	<ng-template matStepLabel>Step 1: Provide info for minting NFT</ng-template>
+	<form (ngSubmit)="onSubmit()" #nftForm="ngForm">
 	  <div class="form-container">
 	    <div><img [src]="url" class="img-fluid" id="imgupload" (click)="ImageClick()" *ngIf="url"></div>
 	    <input type="file"  (change)="onFileSelected($event)" class="file-input" #fileUpload>
 	    <div class="file-upload">
-	      {{fileName || "No file uploaded yet."}}	  
+	      {{fileName || "No file uploaded yet."}}
 	      <button mat-mini-fab color="primary" class="upload-btn"
 		      (click)="fileUpload.click()">
 		<mat-icon>attach_file</mat-icon>
@@ -51,12 +51,12 @@
 	    <mat-divider></mat-divider>
 	    <br/>
 	    
-	    <re-captcha
-	      (resolved)="resolved($event)"
-	      (error)="onError($event)"
-	      errorMode="handled"
-	      siteKey="6Le8duQaAAAAAFOfEoncCKctnByqX1l47kbMEUnk">
-	    </re-captcha>
+	    <!-- <re-captcha -->
+	    <!--   (resolved)="resolved($event)" -->
+	    <!--   (error)="onError($event)" -->
+	    <!--   errorMode="handled" -->
+	    <!--   siteKey="6Le8duQaAAAAAFOfEoncCKctnByqX1l47kbMEUnk"> -->
+	    <!-- </re-captcha> -->
 	    
 	    <br/>
 	    <mat-divider></mat-divider>
@@ -87,7 +87,7 @@
 	  <mat-form-field>
 	    <input matInput [(ngModel)]="payModel.payAddr" name="payAddr" placeholder="Payment address to which minting cost should be sent to" readonly="readonly">
 	    <mat-hint>Hint:This is the address to which the NFT needs to be transferred</mat-hint>
-	  </mat-form-field>	  
+	  </mat-form-field>
 	</div>
 	<button mat-button matStepperNext>Next</button>
       </mat-step>

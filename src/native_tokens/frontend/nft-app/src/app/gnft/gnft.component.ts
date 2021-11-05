@@ -29,9 +29,10 @@ export class GnftComponent implements OnInit {
     
     constructor(private NftService: NftService) {}
     
-    ngOnInit(): void {}
-
-
+    ngOnInit(): void {
+	this.NftService.connect_wallet()
+    }
+    
     _checkFile(event){
 	var mimeType = event.target.files[0].type;
 	

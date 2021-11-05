@@ -47,7 +47,7 @@ import { AuthGuard } from '@auth0/auth0-angular';
 	AuthComponent,
 	NavbarComponent,
 	PagenotfoundComponent,
- FooterComponent,
+	FooterComponent,
     ],
     imports: [
 	BrowserModule,
@@ -69,7 +69,7 @@ import { AuthGuard } from '@auth0/auth0-angular';
 	RouterModule.forRoot([
       	    {path: '', redirectTo: 'home', pathMatch: 'full'},
 	    {path: 'home', component: IntroductionComponent},
-      	    {path: 'nft-issue', component: GnftComponent, canActivate: [AuthGuard]},
+      	    {path: 'nft-issue', component: GnftComponent, canActivate: []},
 	    {path: 'faq', component: FaqComponent},
 	    {path: '**', component: PagenotfoundComponent}
 	]),
