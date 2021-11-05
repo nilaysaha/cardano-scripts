@@ -2,6 +2,7 @@
   <div class="container">
     <form>
       <b-button type="submit" @click="connect" variant="primary">{{ button.text }}</b-button>
+      <span>{{ balance.amount }}</span>
     </form>
   </div>
 </template>
@@ -12,20 +13,31 @@ export default {
     data: () => ({
 	button:{
 	    text: "Connect Wallet"
-	}	
+	},
+	balance:{
+	    amount: 0
+	}
     }),
     methods:{
-	connect(e){
+	async connect(e){
 	    e.preventDefault();
-	    console.log("Pressed connect wallet")
-	    cardano.enable()
 	    if (cardano.isEnabled()){
 		console.log("cardano wallet is enabled")
 		this.button.text = "Connected"
+		await this.fetchBalance()
+	    }
+	    else
+	    {
+		console.log("Pressed connect wallet")
+		cardano.enable()
+		connect(e)
 	    }	    
 	},
 	isEnabled(){
 	    console.log("Now checking if cardano wallet is connected")
+	},
+	async fetchBalance(){
+	    this.balance.amount = await cardano.getBalance()
 	}
     }
 }
