@@ -30,7 +30,6 @@ export class GnftComponent implements OnInit {
     constructor(private NftService: NftService) {}
     
     ngOnInit(): void {
-	this.NftService.connect_wallet()
     }
     
     _checkFile(event){

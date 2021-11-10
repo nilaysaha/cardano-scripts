@@ -1,8 +1,5 @@
 import { Component } from '@angular/core';
 
-// import the WindowRef provider
-import {WindowRef} from './windowref';
-
 
 @Component({
     selector: "app-root",
@@ -13,8 +10,7 @@ import {WindowRef} from './windowref';
 export class AppComponent {
     title = 'NFT Minting App on Cardano';
 
-    constructor(private winRef: WindowRef) {
+    constructor() {
 	var name = 'Angular4'	
-	console.log('Window object', winRef.nativeWindow);
   }
 }

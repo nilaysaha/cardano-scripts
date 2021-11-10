@@ -6,10 +6,6 @@ import {FormBuilder, FormGroup, Validators } from '@angular/forms';
 
 import { NFT } from './gnft';
 
-// import the WindowRef provider
-import {WindowRef} from '../windowref';
-
-
 const httpOptions = {
     headers: new HttpHeaders({ 'Content-Type': 'multipart/form-data' })
 };
@@ -24,19 +20,9 @@ export class NftService {
     private ApiUrl: string = "https://nft.oef.io/api";
     private nftID: any;
     
-    constructor(private http:HttpClient, private winRef: WindowRef) {	
+    constructor(private http:HttpClient) {	
     }
-
-    connect_wallet() {
-	return this.winRef.cardano.isEnabled()
-    }
-
-    getBalance(){
-	var t = this.winRef.cardano.getBalance()
-	console.log(`Amount in wallet is:${t}`)
-	return t
-    }
-    
+   
     private handleError(error: HttpErrorResponse) {
 	if (error.status === 0) {
 	    // A client-side or network error occurred. Handle it accordingly.
