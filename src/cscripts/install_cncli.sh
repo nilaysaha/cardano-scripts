@@ -10,4 +10,4 @@ if [ $# -ne 1 ]; then
     exit 1
 fi
 
-curl -sLJ https://github.com/AndrewWestberg/cncli/releases/download/v$VERSION_ID/cncli-$VERSION_ID-x86_64-unknown-linux-gnu.tar.gz -o /tmp/cncli-$VERSION_ID-x86_64-unknown-linux-gnu.tar.gz
+curl -sLJ "https://github.com/AndrewWestberg/cncli/releases/download/v$VERSION_ID/cncli-$VERSION_ID-x86_64-unknown-linux-gnu.tar.gz" -o /tmp/cncli-$VERSION_ID-x86_64-unknown-linux-gnu.tar.gz
