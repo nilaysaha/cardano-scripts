@@ -24,7 +24,7 @@ ensure_node_dir() {
 }
 
 stop() {
-    pkill -9 cardano-node
+    pkill -2 cardano-node
 }
 
 choice() { i=$1; shift; eval "echo \${$((i + 1))}"; }
