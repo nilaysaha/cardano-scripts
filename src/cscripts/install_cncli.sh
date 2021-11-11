@@ -2,6 +2,7 @@
 
 VERSION_ID=$1
 
+#refernce github: https://github.com/AndrewWestberg/cncli/blob/develop/INSTALL.md
 
 if [ $# -ne 1 ]; then
     echo "The number of arguments provided is incorrect. Please provide the release version to install"
