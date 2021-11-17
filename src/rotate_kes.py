@@ -1,9 +1,11 @@
 #!/usr/bin/python3
 
-import sys, subprocess
+import sys, subprocess, os
 import register_stake_pool as rsp
 
 MINM_KES_PERIOD_REMAINING=3
+
+os.environ['CHAIN'] = "mainnet"
 
 class ChainProcess:
     """
