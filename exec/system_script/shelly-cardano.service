@@ -4,7 +4,7 @@ Description=Shelly-mainnet cardano
 [Service]
 User=nsaha
 Group=nsaha
-TimeoutStartSec=0
+TimeoutStartSec=300
 Type=simple
 KillMode=process
 Environment=LD_LIBRARY_PATH="/usr/local/lib:$LD_LIBRARY_PATH":
