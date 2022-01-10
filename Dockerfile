@@ -47,7 +47,7 @@ RUN wget https://downloads.haskell.org/~cabal/cabal-install-3.2.0.0/cabal-instal
 ENV PATH="~/.local/bin:${PATH}"
 
 #install ghci
-RUN wget https://downloads.haskell.org/~ghc/8.10.7/ghc-8.10.7-x86_64-deb9-linux.tar.xz \
+RUN wget https://downloads.haskell.org/~ghc/8.10.7/ghc-8.10.7-x86_64-deb9-linux.tar.xz ; \
 	tar -xf ghc-8.10.7-x86_64-deb9-linux.tar.xz; \
 	rm ghc-8.10.7-x86_64-deb9-linux.tar.xz; \
 	cd ghc-8.10.7; \
