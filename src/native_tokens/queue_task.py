@@ -12,7 +12,9 @@ config = configparser.ConfigParser()
 config.read('./config.py')
 
 class Queue:
-    def __init__(self,queue_name):
+    def __init__(self,queue_name=None):
+        if queue_name == None:
+            queue_name = config['COMMON']['DEFAULT_RQ_QUEUE_NAME']
         self.name = queue_name
         
     def queue(self, uuid):
@@ -59,31 +61,6 @@ class RQ:
             print(f"Now starting a redis worker for connecting to redis queue for monitoring payment")
             worker = Worker([self.q], connection=rhost, name='rq_worker_'+str(i))
         
-
-
-class Daemon:
-    def __init__(self, task):
-        self.num_worker = config['COMMON']['MAX_NUM_WORKERS']
-        self.qin  = Queue(config['COMMON']['PLIST'])
-        self.qout = Queue(config['PROCESSING_LIST'])
-        self.qhost = rhost
-        self.task = task
-
-    def _unschedule(self, uuid):
-        #remove the items from the processing queue.
-        self.qout.remove(uuid)
-
-    def schedule(self):
-        while True:
-            job_id = self.qhost.brpoplpush(config['COMMON']['PLIST'], config['COMMON']['PROCESSING_LIST']).decode('utf-8')
-            if not job_id:
-                continue
-            
-            # process the job
-            if job_id:
-                self.task(job_id)
-                self._unschedule(job_id)
-
 
 class Daemon_RQ:
     def __init__(self, queue_name, num_workers):
