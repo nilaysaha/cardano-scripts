@@ -2,9 +2,9 @@
 
 SCRIPTDIR=`dirname "$BASH_SOURCE"`
 echo ${SCRIPTDIR}
-NODE_DIR="${SCRIPTDIR}/../state-node-shelly-testnet"
+NODE_DIR="${SCRIPTDIR}/../state-node-shelly-mainnet"
 
-BASE_CONFIG="${SCRIPTDIR}/../../src/tconfig/testnet-config.json"
+BASE_CONFIG="${SCRIPTDIR}/../../src/tconfig/mainnet-config.json"
 SOCKET="${NODE_DIR}/node.socket"
 HOST_IP="$(wget http://ipecho.net/plain -O - -q ; echo)"
 
