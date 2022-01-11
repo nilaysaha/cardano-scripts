@@ -4,7 +4,7 @@ WEEK=$(date +"%V")
 YEAR=$(date +"%Y")
 
 BACKUP_DIR="/tmp/"
-BACKUP_FILE="${BACKUP_DIR}/db-ff-$WEEK-$YEAR"
+BACKUP_FILE="${BACKUP_DIR}/db-ff-$WEEK-$YEAR.tgz"
 
 S3_BUCKET="stake-pool-backup"
 
