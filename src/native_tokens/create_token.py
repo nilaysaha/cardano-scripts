@@ -38,7 +38,7 @@ FILES={
 
 TOKEN_NAME="REIT"
 TOKEN_MAX_AMOUNT=str(45*pow(10,15))
-SLOT_OFFSET=10000
+SLOT_OFFSET=56216369
 
 def mint_new_asset(policy_file=FILES['policy']['script']):
     """
@@ -154,7 +154,7 @@ class CreateToken:
                 [
                     {
                         "type": "before",
-                        "slot": str(pc.get_tip()+SLOT_OFFSET)
+                        "slot": pc.get_tip()+SLOT_OFFSET
                     },
                     {
                         "type": "sig",
@@ -182,7 +182,7 @@ class CreateToken:
 
     def check_payment(self):
         """
-        ./cardano-cli query utxo --address `cat pay_bld.addr`   --mary-era --mainnet
+        ./cardano-cli query utxo --address `cat pay_bld.addr` --mainnet
         """
         try:
             payment_addr = pc.content(FILES['payment']['address'])
@@ -234,11 +234,16 @@ class Transaction:
         Input = binascii.hexlify(Input)
         return Input.decode()
 
-        
+    def get_slotNumber(self):
+        import json
+        with open(FILES["policy"]["script"]) as f:
+            data = json.load(f)
+        print("policy data read is:", data)
+        return data["scripts"][0]["slot"]
+            
     def create_raw_trans(self, fees, num_coins, coin_name, policy_id):
         """
         ./cardano-cli transaction build-raw \
-	     --mary-era \
              --fee 0 \
              --tx-in b1ddb0347fed2aecc7f00caabaaf2634f8e2d17541f6237bbed78e2092e1c414#0 \
              --tx-out addr_test1vqvlku0ytscqg32rpv660uu4sgxlje25s5xrpz7zjqsva3c8pfckz+1000000000+"1000000000
@@ -256,12 +261,15 @@ class Transaction:
                 tx_in_array.append('--tx-in')
                 tx_in_array.append(tx_in)
 
+            last_slot =self.get_slotNumber() 
             new_coin_mint_str = str(num_coins)+" "+policy_id+"."+coin_name_hex
             utx0_status = self._calculate_utx0_lovelace(fees) 
-            command=["cardano-cli", "transaction", "build-raw", "--mary-era",
+            command=["cardano-cli", "transaction", "build-raw",
                      "--fee", str(fees),
                      "--mint", new_coin_mint_str,
+                     "--minting-script-file",FILES["policy"]["script"],
                      "--tx-out", self.payment_addr+"+"+str(utx0_status["remaining_fund"])+"+"+new_coin_mint_str,
+                     "--invalid-hereafter", str(last_slot),
                      "--out-file", FILES['transaction']['raw']]+tx_in_array
             
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
@@ -313,7 +321,6 @@ class Transaction:
             command = ["cardano-cli", "transaction", "sign",
                        "--signing-key-file", FILES['policy']['signature'],
                        "--signing-key-file", FILES['payment']['signature'],
-                       "--auxiliary-script-file", FILES['policy']['script'],
                        "--mainnet",
                        "--tx-body-file", FILES['transaction']['raw'],
                        '--out-file', FILES['transaction']['signed']]
