@@ -15,30 +15,30 @@ colorama.init(autoreset=True)
 
 FILES={
     'payment':{
-        'verification': './kaddr_token/pay.vkey',
-        'signature':'./kaddr_token/pay.skey',
-        'address':'./kaddr_token/pay.addr'
+        'verification': './kaddr_new/pay.vkey',
+        'signature':'./kaddr_new/pay.skey',
+        'address':'./kaddr_new/pay.addr'
     },
     'policy':{
-        'verification': './kaddr_token/policy.vkey',
-        'signature': './kaddr_token/policy.skey',
-        'script': './kaddr_token/policy.script'
+        'verification': './kaddr_new/policy.vkey',
+        'signature': './kaddr_new/policy.skey',
+        'script': './kaddr_new/policy.script'
     },
-    'protocol':'./kaddr_token/protocol.json',
+    'protocol':'./kaddr_new/protocol.json',
     'transaction': {
-        'raw': './kaddr_token/t.raw',
-        'signed': "./kaddr_token/t.signed"
+        'raw': './kaddr_new/t.raw',
+        'signed': "./kaddr_new/t.signed"
     },
     'status':{
-        'phase_1':'./kaddr_token/phase_1',
-        'phase_2':'./kaddr_token/phase_2',
-        'phase_3':'./kaddr_token/phase_3',
+        'phase_1':'./kaddr_new/phase_1',
+        'phase_2':'./kaddr_new/phase_2',
+        'phase_3':'./kaddr_new/phase_3',
     }
 }
 
-TOKEN_NAME="LKBH"
-TOKEN_MAX_AMOUNT="45000000000"
-
+TOKEN_NAME="REIT"
+TOKEN_MAX_AMOUNT=str(45*pow(10,15))
+SLOT_OFFSET=10000
 
 def mint_new_asset(policy_file=FILES['policy']['script']):
     """
@@ -104,7 +104,7 @@ class CreateToken:
         """
 
         try:
-            command = ["cardano-cli", "query" , "protocol-parameters", "--mainnet", "--mary-era","--out-file", FILES['protocol']]
+            command = ["cardano-cli", "query" , "protocol-parameters", "--mainnet", "--out-file", FILES['protocol']]
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
             print(Fore.GREEN + f"Successful:Output of command {command} is:{s}")
         except:
@@ -148,11 +148,20 @@ class CreateToken:
         try:
             fname = FILES['policy']['script']
             f = open(fname, "w+")
-            policy_script = {
-                "keyHash": self._generate_keyhash_pkey(),
-                "type": "sig"
-            }
-
+            policy_script ={
+                "type": "all",
+                "scripts":
+                [
+                    {
+                        "type": "before",
+                        "slot": str(pc.get_tip()+SLOT_OFFSET)
+                    },
+                    {
+                        "type": "sig",
+                        "keyHash": self._generate_keyhash_pkey()
+                    }
+                ]
+            } 
             json_obj = json.dumps(policy_script, indent=4)
             f.write(json_obj)
             f.close()
@@ -217,7 +226,14 @@ class Transaction:
         n = a.check_payment()
         n["remaining_fund"] = n["amount"] -fees
         return n
-            
+
+    def convert_token_to_hex(self,tokenName):
+        import binascii
+        Input = tokenName
+        Input = str.encode(Input)
+        Input = binascii.hexlify(Input)
+        return Input.decode()
+
         
     def create_raw_trans(self, fees, num_coins, coin_name, policy_id):
         """
@@ -231,6 +247,7 @@ class Transaction:
              --out-file matx.raw
         """        
         try:
+            coin_name_hex = self.convert_token_to_hex(coin_name)
             tx_in_array = []
             for val in self.utx0:
                 print(f"inside build_transaction: val:{val}")
@@ -239,7 +256,7 @@ class Transaction:
                 tx_in_array.append('--tx-in')
                 tx_in_array.append(tx_in)
 
-            new_coin_mint_str = str(num_coins)+" "+policy_id+"."+coin_name
+            new_coin_mint_str = str(num_coins)+" "+policy_id+"."+coin_name_hex
             utx0_status = self._calculate_utx0_lovelace(fees) 
             command=["cardano-cli", "transaction", "build-raw", "--mary-era",
                      "--fee", str(fees),
@@ -337,7 +354,7 @@ class Transaction:
 
 
 if __name__ == "__main__":
-    num_coins = 45000000000
+    num_coins = 45*pow(10,15)
     coin_name = "REIT"
     
     c = CreateToken(coin_name)

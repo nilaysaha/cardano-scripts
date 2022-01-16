@@ -229,10 +229,13 @@ def get_payment_utx0_with_native_tokens(payment_addr=None):
             
             native_token_array = val.split("+")[1:]
             
-            for t in native_token_array:
+            for t in native_token_array:                
                 s = t.split()
-                nt.append({"id": s[1], "count": s[0]})
-
+                if (len(s) == 2):
+                    nt.append({"id": s[1], "count": s[0]})
+                else:
+                    print("Something wrong with this native token entry. Hence skipping", s)
+                    
             futxo.append(
                 {
                     "hash": txHash,

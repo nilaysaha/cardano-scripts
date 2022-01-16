@@ -8,18 +8,19 @@ Goal: to withdraw the native tokens to the Daedalus wallet (or backed by hardwar
 import sys
 sys.path.append('..')
 
-import subprocess, json, os, sys, shlex
+import subprocess, json, os, shlex, json
 import process_certs as pc
 import create_nft_token as nft
 import logging
 import colorama
 from colorama import Fore, Back, Style
 
-MINIMUM_TOKEN_AMOUNT_ACCOMPANYING_TRANSFER=str(10000000)
+MINIMUM_TOKEN_AMOUNT_ACCOMPANYING_TRANSFER=str(2000000)
 
-os.environ["CHAIN"] = "testnet"
-os.environ["MAGIC"] = "1097911063"
+#os.environ["CHAIN"] = "testnet"
+#os.environ["MAGIC"] = "1097911063"
 
+os.environ["CHAIN"]="mainnet"
 
 FILES={
     "status":{
@@ -54,12 +55,20 @@ def run_command(command):
 
 class Transfer:
     def __init__(self, uuid, amount, policyid, coin_name,  output_addr):
+        """
+        payment_addr: The address which should contain enough ADA to accompany transfer of native token
+        amount: Amount of native token to be sent to the wallet
+        policyid: Policyid of the token
+        coin_name: Name of the coin
+        output_addr: where the native tokens should be sent to
+        """
         self.amount = amount
         self.uuid   = uuid
         self.pid    = policyid
-        self.coin_name = coin_name
+        self.native_token_remaining_amount = self._calculate_remaining_native_tokens()
+        self.coin_name_hex = self.convert_token_to_hex(coin_name)
         self.dest_addr = output_addr
-        self.payment_addr = pc.content(fetch_file(nft.FILES['payment']['address'], uuid))
+        self.payment_addr =pc.content(fetch_file(nft.FILES['payment']['address'], uuid))
         self.utx0   = pc.get_payment_utx0_with_native_tokens(self.payment_addr)
         self.s = nft.Session(uuid)
         print(f"Request for transfer from UUID:{self.uuid} of amount:{self.amount}  policyid-coin:{policyid} name-coin:{coin_name} to output addr:{output_addr} ")
@@ -77,7 +86,12 @@ class Transfer:
         except:
             logging.exception(f"Failed to generate_tx_in")
             sys.exit(1)            
+
+
+    def _calculate_remaining_native_tokens(self):
+        utx0   = pc.get_payment_utx0_with_native_tokens(self.payment_addr)
         
+    
     def _generate_dest_addr_str(self):
         return "testing "+self.dest_addr+"+"+self.amount+'{}'
 
@@ -96,10 +110,49 @@ class Transfer:
 
     
         
-    def calculate_native_token_count(self):
+    def calculate_aggregated_token_out_str(self,fees):
         try:
             payment_addr = pc.content(self.s.sdir(nft.FILES['payment']['address']))
-            utx0 = pc.get_payment_utx0(payment_addr)        
+            utx0 = pc.get_payment_utx0_with_native_tokens(payment_addr)
+
+            tokens_remaining = {}
+
+            temp_aggregate = []
+
+            #Now iterate over the tokens
+            for i in utx0:
+                tokens = i["tokens"]
+                for j in tokens:
+                    temp_aggregate += j 
+
+            #Now condense into unique id values.
+            for i in temp_aggregate:
+                keys = tokens_remaining.keys()
+                k = i["id"]
+                if k in keys:
+                    tokens_remaining[k] += int(i["count"])
+
+            #Now create output string including multiple tokens
+            keys = tokens_remaining.keys()
+            for i in keys:
+                policyid = i.split(".")[0]
+                if (policyid == self.policyid):
+                    tokens_remaining[i] -= self.amount
+
+            #remove the lovelace because that is taken care of separately
+            del tokens_remaining_keys["lovelace"]
+            
+            #Now create the final string
+            fstr = ""
+            for i in keys:
+                tamount = str(tokens_remaining_dict[i])
+                fstr += f"{tamount i}"
+                                    
+            remaining_fund = str(self.remaining_fund(fees, MINIMUM_TOKEN_AMOUNT_ACCOMPANYING_TRANSFER))
+            tx_out_self_payment_addr = f"{self.payment_addr}+{remaining_fund} {fstr}"
+
+            return tx_out_self_payment_addr
+                    
         except:
             logging.exception("Unable to calculate native token count in payment address")
     
@@ -115,6 +168,14 @@ class Transfer:
     def remaining_native_tokens(self):
         rtokens = 0 #to be calculated. Till now no function to extract number available in payment address and substract self.amount
         return rtokens
+
+
+    def convert_token_to_hex(self,tokenName):
+        import binascii
+        Input = tokenName
+        Input = str.encode(Input)
+        Input = binascii.hexlify(Input)
+        return Input.decode()
     
     def raw_trans(self, fees):
         """
@@ -129,13 +190,12 @@ class Transfer:
              --out-file rec_matx.raw
         """
         try:
-            remaining_fund = str(self.remaining_fund(fees, MINIMUM_TOKEN_AMOUNT_ACCOMPANYING_TRANSFER))                
             raw_trans_file = self.s.sdir(FILES['recieve']['transaction']['raw'])
-            remaining_native_tokens = str(self.remaining_native_tokens())
-            tx_in_array = self._generate_tx_in()
-            tx_out_receiver = f"{self.dest_addr}+{MINIMUM_TOKEN_AMOUNT_ACCOMPANYING_TRANSFER}+'{self.amount}  {self.pid}.{self.coin_name}'"
-            tx_out_self_payment_addr = f"{self.payment_addr}+{remaining_fund}"
-
+            remaining_native_tokens = str(self.remaining_native_tokens())            
+            tx_in_array = self._generate_tx_in()            
+            tx_out_receiver = f'{self.dest_addr}+{MINIMUM_TOKEN_AMOUNT_ACCOMPANYING_TRANSFER}+"{self.amount}  {self.pid}.{self.coin_name_hex}"'
+            tx_out_self_payment_addr = self.calculate_aggregated_token_out_str(fees)
+            
             command=["cardano-cli", "transaction", "build-raw",
                      "--fee", str(fees),
                      "--tx-out", tx_out_self_payment_addr,
@@ -164,9 +224,14 @@ class Transfer:
         try:
             tx_body_file=self.s.sdir(FILES['recieve']['transaction']['raw'])
             protocol_file=self.s.sdir(nft.FILES['protocol'])
-            command=["cardano-cli", "transaction", "calculate-min-fee", "--tx-body-file",tx_body_file, "--tx-in-count", str(1),
-                     "--tx-out-count", str(2), "--witness-count", str(1), "--testnet-magic",os.environ["MAGIC"], "--protocol-params-file", protocol_file]
-            print(Fore.GREEN + f"Command is:{command}")
+            if os.environ["CHAIN"] == "testnet":
+                command=["cardano-cli", "transaction", "calculate-min-fee", "--tx-body-file",tx_body_file, "--tx-in-count", str(1),
+                         "--tx-out-count", str(2), "--witness-count", str(1), "--testnet-magic",os.environ["MAGIC"], "--protocol-params-file", protocol_file]
+            elif os.environ["CHAIN"] == "mainnet":
+                command=["cardano-cli", "transaction", "calculate-min-fee", "--tx-body-file",tx_body_file, "--tx-in-count", str(1),
+                         "--tx-out-count", str(2), "--witness-count", str(1), "--mainnet", "--protocol-params-file", protocol_file]
+                
+            print(Fore.GREEN + f"Command is:{command}")                
             s = subprocess.check_output(command, stderr=True,  universal_newlines=True)
             return s.split()[0]
             print(f"Successful:  Output is:{s}")
@@ -187,9 +252,14 @@ class Transfer:
             pay_skey = self.s.sdir(nft.FILES['payment']['signature'])
             tx_raw_file=self.s.sdir(FILES['recieve']['transaction']['raw'])
             tx_raw_signed=self.s.sdir(FILES['recieve']['transaction']['signed'])
-            command=["cardano-cli", "transaction", "sign", "--signing-key-file", pay_skey, "--testnet-magic",os.environ["MAGIC"],
-                     "--tx-body-file", tx_raw_file,
-                     "--out-file", tx_raw_signed]
+            if os.environ["CHAIN"] == "testnet":
+                command=["cardano-cli", "transaction", "sign", "--signing-key-file", pay_skey, "--testnet-magic",os.environ["MAGIC"],
+                         "--tx-body-file", tx_raw_file,
+                         "--out-file", tx_raw_signed]
+            elif os.environ["CHAIN"] == "mainnet":
+                command=["cardano-cli", "transaction", "sign", "--signing-key-file", pay_skey, "--mainnet",
+                         "--tx-body-file", tx_raw_file,
+                         "--out-file", tx_raw_signed]
             print(Fore.GREEN + f"Command is:{command}")
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
             print(Fore.GREEN + f"Successful:  Output is:{s}")
@@ -205,7 +275,10 @@ class Transfer:
         """
         try:
             tx_raw_signed=self.s.sdir(FILES['recieve']['transaction']['signed'])
-            command=["cardano-cli", "transaction", "submit", "--tx-file", tx_raw_signed, "--testnet-magic", os.environ["MAGIC"]]
+            if os.environ["CHAIN"] == "testnet":
+                command=["cardano-cli", "transaction", "submit", "--tx-file", tx_raw_signed, "--testnet-magic", os.environ["MAGIC"]]
+            elif os.environ["CHAIN"] == "mainnet":
+                command=["cardano-cli", "transaction", "submit", "--tx-file", tx_raw_signed, "--mainnet"]
             print(Fore.GREEN + f"Command is:{command}")
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
             print(f"Successful:  Output is:{s}")
@@ -225,6 +298,21 @@ class Transfer:
             logging.exception("Failed in transferring")
 
 
+def main():
+    import json
+    with open('tokeninput.json') as f:
+        data = json.load(f)
+    print("Config data read is:", data)
+    
+    keys = data.keys()
+    
+    if (("amount" in keys) and ("policyid" in keys) and ("coinname" in keys) and  ("outputAddr" in keys) and ("uuid" in keys)):        
+        a = Transfer(data["uuid"], data["amount"], data["policyid"], data["coinname"],  data["outputAddr"])
+        a.main()
+    else:
+        sys.exit("Missing one the following parameters in the input config file: amount, policyid, coinname or outputAddr")
+            
+
 if __name__ == "__main__":
     import argparse
     # create parser
@@ -235,12 +323,19 @@ if __name__ == "__main__":
     parser.add_argument('--policyid', dest='policyid')
     parser.add_argument('--coinname', dest='coinname')
     parser.add_argument('--outputAddr', dest='outputAddr')
-    parser.set_defaults(latest=True)
+    parser.add_argument('--config', dest='config', action='store_true')
+    parser.add_argument('--no-config', dest='config', action='store_false')
 
+    parser.set_defaults(config=True)    
+    parser.set_defaults(latest=True)
+    
     args = parser.parse_args()
 
-    a = Transfer(args.uuid, args.amount, args.policyid, args.coinname,  args.outputAddr)
-    a.main()
+    if (args.config == True):
+        main()
+    else:                    
+        a = Transfer(args.uuid, args.amount, args.policyid, args.coinname,  args.outputAddr)
+        a.main()
     
         
         

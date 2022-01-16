@@ -25,8 +25,10 @@ DEFAULT_DEST_ADDR="addr_test1vpyk92350x8gajyefdr44lk5jmjn9f8y4udfxw34pka5pvgjqxw
 
 DEFAULT_URL="/ipfs/QmYypFZyFUwo4WNKzumg9FJbw836bZTbguqeLaazKmiHjb"
 
-os.environ["CHAIN"] = "testnet"
-os.environ["MAGIC"] = "1097911063"
+# os.environ["CHAIN"] = "testnet"
+# os.environ["MAGIC"] = "1097911063"
+
+os.environ["CHAIN"] = "mainnet"
 
 DEFAULT_INPUT={
     "name": "NFT1",

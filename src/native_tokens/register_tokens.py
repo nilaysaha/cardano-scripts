@@ -24,10 +24,11 @@ FILES={
     "token":{
         "ticker": "REIT",
         "name": "REIT",
-        "description": "Real estate investment trust",
-        "url":"https://lkbh-pools.org",
+        "description": "A protocol to unlock value and trade verified real estate assets",
+        "url":"https://reitcircles.com",
         "logo":"",
-        "unit":"2, cents"
+        "unit":"2, cents",
+        "decimal":"6"
     }
 }
 
