@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/env/python
 
 import create_token as ct
 
