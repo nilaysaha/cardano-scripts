@@ -29,6 +29,10 @@ FILES={
         'raw': './kaddr_new/t.raw',
         'signed': "./kaddr_new/t.signed"
     },
+    'burn': {
+        'raw': './kaddr_new/burn.raw',
+        'signed': "./kaddr_new/burn.signed"
+    },
     'status':{
         'phase_1':'./kaddr_new/phase_1',
         'phase_2':'./kaddr_new/phase_2',
@@ -216,10 +220,15 @@ class CreateToken:
 
             
 class Transaction:
-    def __init__(self):
+    def __init__(self, burn=False):
         self.payment_addr = pc.content(FILES['payment']['address'])
         self.utx0 = pc.get_payment_utx0(self.payment_addr)        
-
+        if burn :
+            self.traw = FILES["burn"]["raw"]
+            self.tsigned = FILES["burn"]["signed"]
+        else:
+            self.traw = FILES["transaction"]["raw"]
+            self.tsigned = FILES["transaction"]["signed"]
 
     def _calculate_utx0_lovelace(self, fees):
         a = CreateToken()
@@ -270,7 +279,7 @@ class Transaction:
                      "--minting-script-file",FILES["policy"]["script"],
                      "--tx-out", self.payment_addr+"+"+str(utx0_status["remaining_fund"])+"+"+new_coin_mint_str,
                      "--invalid-hereafter", str(last_slot),
-                     "--out-file", FILES['transaction']['raw']]+tx_in_array
+                     "--out-file", self.traw]+tx_in_array
             
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
             print(Fore.GREEN + f"Output of command {command} is:{s}")
@@ -291,7 +300,7 @@ class Transaction:
         """
         try:
             command=[ "cardano-cli", "transaction", "calculate-min-fee",
-                      "--tx-body-file", FILES['transaction']['raw'],
+                      "--tx-body-file", self.traw,
                       "--tx-in-count",str(len(self.utx0)),
                       "--tx-out-count", '1',
                       "--witness-count", '2',
@@ -317,13 +326,13 @@ class Transaction:
 	     --tx-body-file matx.raw \
              --out-file matx.signed
         """
-        try:
+        try:                
             command = ["cardano-cli", "transaction", "sign",
                        "--signing-key-file", FILES['policy']['signature'],
                        "--signing-key-file", FILES['payment']['signature'],
                        "--mainnet",
-                       "--tx-body-file", FILES['transaction']['raw'],
-                       '--out-file', FILES['transaction']['signed']]
+                       "--tx-body-file", self.traw,
+                       '--out-file', self.tsigned]
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
             print(Fore.GREEN + f"Output of command {command} is:{s}")
         except:
@@ -336,7 +345,7 @@ class Transaction:
         ./cardano-cli transaction submit --tx-file  matx.signed --mainnet
         """
         try:
-            command = ["cardano-cli", "transaction", "submit", "--tx-file", FILES['transaction']['signed'] , "--mainnet"]
+            command = ["cardano-cli", "transaction", "submit", "--tx-file", self.tsigned , "--mainnet"]
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
             print(Fore.GREEN + f"Output of command {command} is:{s}")
         except:
