@@ -69,7 +69,7 @@ ufw==0.36
 unattended-upgrades==0.1
 urllib3>=1.26.5
 varint==1.0.2
-waitress==2.0.0
+waitress==2.1.1
 Werkzeug==1.0.1
 zipp==1.0.0
 zope.component==5.0.0
