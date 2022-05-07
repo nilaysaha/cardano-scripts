@@ -15,11 +15,7 @@ import { BootstrapVue, IconsPlugin } from 'bootstrap-vue'
 
 Vue.use(BootstrapVue)
 Vue.use(IconsPlugin)
-Vue.prototype.cardano = window.cardano.nami	
-
-
-import * as clib from "@emurgo/cardano-serialization-lib-asmjs"
-Object.defineProperty(Vue.prototype, '$cserialize', { value: clib });
+Object.defineProperty(Vue.prototype, 'cardano', { value: window.cardano.nami });
 
 
 new Vue({

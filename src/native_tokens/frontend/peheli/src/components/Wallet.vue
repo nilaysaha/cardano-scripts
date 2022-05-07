@@ -18,8 +18,10 @@ export default {
 	    amount: 0
 	},
 	state: {
+	    networkId: undefined,
+	    walletHandle: undefined,
             selectedTabId: "1",
-            whichWalletSelected: "ccvault",
+            whichWalletSelected: "nami",
             walletFound: false,
             walletIsEnabled: false,
             walletName: undefined,
@@ -68,18 +70,49 @@ export default {
 	async fetchBalance(){
 	    this.balance.amount = await cardano.getBalance()
 	},
+	async checkIfWalletFound(wallet_name){
+	    let walletfound = true
+	    	    
+	},
+	async checkIfWalletEnabled(){
+	    try{
+		return await window.cardano.nami.isEnabled();
+	    }
+	    catch(err){
+		console.log(err)
+	    }
+	},
 	async generateScriptAddress() {
 	    
 	},
-	async enableWallet(){
-	    
+	async enableWallet(wallet_name){
+	    try{
+		this.state.walletHandle =  await window.cardano.nami.enable()
+		this.checkIfWalletEnabled()
+	    }
+	    catch(err){
+		console.log(err)
+	    }
 	},
-	async getAPIVersion(){
+	async getWalletHandleVersion(){
 	    
 	},
 	async getWalletName(){
+	    return window.cardano.nami.name
 	},
-	async getUtxos() {	    
+	/*
+	 * Gets the UTXOs from the user's wallet and then
+	 * stores in an object in the state
+	 * @returns {Promise<void>}
+	 */
+	async getUtxos() {
+	    try{
+		const rawUtxos = await this.API.getUtxos();
+		console.log(rawUtxos)
+	    }
+	    catch(err){
+		console.log(err)
+	    }
 	},
 	async getCollateral() {
 	    
@@ -96,11 +129,19 @@ export default {
 	async getUsedAddresses(){
 	    
 	},
+	async getNetworkId(){
+	    try {
+		const networkId = await this.walletHandle.getNetworkId();
+		this.state.networkId = networkId		
+            } catch (err) {
+		console.log(err)
+            }
+	},  
 	async refreshData() => {
             this.generateScriptAddress()
 
             try{
-		const walletFound = this.checkIfWalletFound();
+		const walletFound = this.checkIfWalletFound(wallet_selected);
 		if (walletFound) {
                     await this.enableWallet();
                     await this.getAPIVersion();
