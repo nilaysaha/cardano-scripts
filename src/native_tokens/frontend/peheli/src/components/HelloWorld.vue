@@ -434,7 +434,6 @@ export default {
                 const raw = await cardano.getUsedAddresses();
                 const rawFirst = raw[0];
                 const usedAddress = Address.from_bytes(Buffer.from(rawFirst, "hex")).to_bech32()
-                // console.log(rewardAddress)
                 this.usedAddress = usedAddress                
             } catch (err) {
                 console.log(err)
