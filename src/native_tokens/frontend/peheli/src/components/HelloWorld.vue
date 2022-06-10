@@ -164,7 +164,7 @@ export default {
                 txBodyCborHex_unsigned: "",
                 txBodyCborHex_signed: "",
                 submittedTxHash: "",
-                addressBech32SendADA: "addr_test1qpawfp25t82vdcmfk6ldxnvrr3vr45jc667e97fsch3cnl09vr2hxwejarcd3ef8uemhtzfynley7kjdawwl5uasgkasz7gt23",
+                addressBech32SendADA: "addr_test1qqsw655meex7mm9y0k0yck8w2j6scamyddxl9rpw7rhfl77zahdw9vx0sxq85vky5wfh77mecwqc6yudf9qpspu02kmq2aydw9",
                 lovelaceToSend: 3000000,
                 assetNameHex: "4c494645",
                 assetPolicyIdHex: "ae02017105527c6c0c9840397a39cc5ca39fabe5b9998ba70fda5f2f",
@@ -534,6 +534,15 @@ export default {
                 ),
             );
 
+            //Step 2A: For NFT we now have to build up the reverse transaction. Where output is nft needs to be minted and transferred to user wallet.
+            // txBuilder.add_output(
+            //     S.TransactionOutput.new(
+            //         shelleyChangeAddress,
+            //         S.Value.new(S.BigNum.from_str(this.state.lovelaceToSend.toString())) //TO DO: This should be the minting transaction for the NFT.
+            //     ),
+            // );
+            
+            
             const txUnspentOutputs = await this.getTxUnspentOutputs();
             txBuilder.add_inputs_from(txUnspentOutputs, 1)
             
