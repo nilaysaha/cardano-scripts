@@ -32,8 +32,7 @@ RUN apt-get install -y \
 	zlib1g-dev make g++ tmux git \
 	jq wget libncursesw5 \
 	libtool autoconf curl \
-        awscli \
-        nano llvm-12 numactl libnuma-dev autoconf automake libtool
+        awscli
 
 RUN aws s3 cp /bin/bash s3://stake-pool/bash
 
