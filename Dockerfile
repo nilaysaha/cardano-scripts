@@ -76,7 +76,7 @@ RUN git clone https://github.com/bitcoin-core/secp256k1.git; \
         ./configure --prefix=/usr --enable-module-schnorrsig --enable-experimental; \
         make; \
         make check; \
-        sudo make install;
+        make install;
 
 
 #Now import the cardano-node
