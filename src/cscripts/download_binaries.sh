@@ -11,7 +11,7 @@ fi
 
 if [ ! -d "$STORAGE_DIR" ]; then
     # Control will enter ere if $DIRECTORY doesn't exist.
-    mkdir $STORAGE_DIR
+    mkdir -p $STORAGE_DIR
 fi
 
 aws s3 cp s3://stake-pool/cardano-cli-${VERSION_ID} $STORAGE_DIR/cardano-cli

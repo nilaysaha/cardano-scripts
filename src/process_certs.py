@@ -283,9 +283,10 @@ def get_total_fund_in_utx0_with_native_tokens(payment_addr=None):
         
 def get_total_fund_in_utx0(payment_addr=None):
     try:
-        print(f"Now trying to get total funds in ADA in address:{payment_addr}")
         if payment_addr == None:
             payment_addr = content(FILES['payment']['addr'])
+
+        print(f"Now trying to get total funds in ADA in address:{payment_addr}")
         t = get_payment_utx0(payment_addr)
         total_fund = 0
         for val in t:
@@ -298,12 +299,12 @@ def get_total_fund_in_utx0(payment_addr=None):
 def get_key_deposit_fee():
     import json
     s = json.loads(content(FILES['configs']['protocol']))    
-    return int(s['keyDeposit'])
+    return int(s['stakeAddressDeposit'])
 
 def get_pool_deposit_fee():
     import json
     s = json.loads(content(FILES['configs']['protocol']))    
-    return int(s['poolDeposit'])
+    return int(s['stakePoolDeposit'])
 
 
 def get_git_tag():

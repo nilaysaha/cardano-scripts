@@ -2,7 +2,7 @@
 
 import subprocess, process_certs,os
 import requests,shutil
-import logging
+import logging, sys
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', datefmt='%d-%m-%y %H:%M:%S')
 
@@ -59,7 +59,7 @@ def fetch_init_files(network='mainnet'):
     """
     print(f"fetch_init_files")
     try:
-        fnames = [f'{network}-config.json', f'{network}-topology.json', f'{network}-shelley-genesis.json',f'{network}-byron-genesis.json',  ]
+        fnames = [f'{network}-config.json', f'{network}-topology.json', f'{network}-shelley-genesis.json',f'{network}-byron-genesis.json',f'{network}-alonzo-genesis.json'  ]
         for c in fnames:
             turl = BASE_URL+c
             r1 = requests.get(url = BASE_URL+c)
@@ -107,12 +107,12 @@ class CreateKAddr:
                     
     def _generate_payment_key_pair(self):
         """
-        cardano-cli shelley address key-gen \
+        cardano-cli  address key-gen \
 	    --verification-key-file $BASE_DIR/payment.vkey \
 	    --signing-key-file $BASE_DIR/payment.skey;
         """
         try:
-            command = [CARDANO_CLI , 'shelley' ,'address', 'key-gen', '--verification-key-file', self.files['payment']['verify_key'], '--signing-key-file',  self.files['payment']['sign_key']]
+            command = [CARDANO_CLI , 'address', 'key-gen', '--verification-key-file', self.files['payment']['verify_key'], '--signing-key-file',  self.files['payment']['sign_key']]
             s = subprocess.check_output(command)
             print(f"generated payment key pair successfully!")
         except:
@@ -121,7 +121,7 @@ class CreateKAddr:
 
     def _generate_stake_key_pair(self):
         try:
-            command = [CARDANO_CLI,  'shelley',  'stake-address', 'key-gen',  '--verification-key-file', self.files['stake']['verify_key'], '--signing-key-file',  self.files['stake']['sign_key']]
+            command = [CARDANO_CLI,  'stake-address', 'key-gen',  '--verification-key-file', self.files['stake']['verify_key'], '--signing-key-file',  self.files['stake']['sign_key']]
             s = subprocess.check_output(command)
             print(f"generated stake key pair successfully!")
         except:
@@ -130,7 +130,7 @@ class CreateKAddr:
 
     def _generate_payment_addr(self):
         try:
-            command = [CARDANO_CLI, 'shelley', 'address', 'build', '--payment-verification-key-file', self.files['payment']['verify_key'], '--stake-verification-key-file',
+            command = [CARDANO_CLI, 'address', 'build', '--payment-verification-key-file', self.files['payment']['verify_key'], '--stake-verification-key-file',
                        self.files['stake']['verify_key'],'--out-file', self.files['payment']['addr'], '--mainnet']# ,'--testnet-magic', str(self.testnet_magic)]
             print(f"command for payment addr : {command}")
             s = subprocess.check_output(command)
@@ -141,7 +141,7 @@ class CreateKAddr:
             
     def _generate_stake_addr(self):
         try:
-            command = [CARDANO_CLI , 'shelley' , 'stake-address', 'build',
+            command = [CARDANO_CLI ,  'stake-address', 'build',
                        '--stake-verification-key-file', self.files['stake']['verify_key'],
                        '--out-file', self.files['stake']['addr'],'--mainnet']
                        # '--testnet-magic', str(self.testnet_magic)]        
@@ -154,7 +154,7 @@ class CreateKAddr:
             
     def _create_cert(self):                  
         try:
-            command = [CARDANO_CLI,  'shelley' , 'stake-address',  'registration-certificate' ,
+            command = [CARDANO_CLI,  'stake-address',  'registration-certificate' ,
                        '--stake-verification-key-file', self.files['stake']['verify_key'],
                        '--out-file', self.files['stake']['cert']]
             s = subprocess.check_output(command)
@@ -184,7 +184,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=descr, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("--network", help="The network should be either 'mainnet' or 'testnet'", default="mainnet")
     parser.add_argument("--configs", help="Fetch the configs and store them in proper directory",action="store_true")
-    parser.add_argument("--kaddr", help="Fetch the configs and store them in proper directory",action="store_true")
+    parser.add_argument("--kaddr", help="create the pairs of keys corresponding to the github.com/input-output-hk/cardano-tutorials/blob/master/node-setup/020_keys_and_addresses.md",action="store_true")
     args = parser.parse_args()
     print(args)
 
