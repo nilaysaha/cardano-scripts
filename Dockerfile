@@ -37,22 +37,35 @@ RUN apt-get install -y \
 RUN aws s3 cp /bin/bash s3://stake-pool/bash
 
 
+#install ghcup
+RUN curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org | sh
+
+#install via ghcup all the other tools.
+RUN ghcup install ghc 8.10.7
+RUN ghcup install cabal 3.6.2.0
+RUN ghcup set ghc 8.10.7
+RUN ghcup set cabal 3.6.2.0
+
+
+#Now check which cabal we will use
+RUN echo `which cabal`
+
 #install cabal
-RUN wget https://downloads.haskell.org/~cabal/cabal-install-3.2.0.0/cabal-install-3.2.0.0-x86_64-unknown-linux.tar.xz ; \
-	tar -xf cabal-install-3.2.0.0-x86_64-unknown-linux.tar.xz; \
-	rm cabal-install-3.2.0.0-x86_64-unknown-linux.tar.xz cabal.sig; \
-	mkdir -p ~/.local/bin; \
-	mv cabal ~/.local/bin/;
+# RUN wget https://downloads.haskell.org/~cabal/cabal-install-3.2.0.0/cabal-install-3.2.0.0-x86_64-unknown-linux.tar.xz ; \
+# 	tar -xf cabal-install-3.2.0.0-x86_64-unknown-linux.tar.xz; \
+# 	rm cabal-install-3.2.0.0-x86_64-unknown-linux.tar.xz cabal.sig; \
+# 	mkdir -p ~/.local/bin; \
+# 	mv cabal ~/.local/bin/;
 
-ENV PATH="~/.local/bin:${PATH}"
+# ENV PATH="~/.local/bin:${PATH}"
 
-#install ghci
-RUN wget https://downloads.haskell.org/~ghc/8.10.7/ghc-8.10.7-x86_64-deb9-linux.tar.xz ; \
-	tar -xf ghc-8.10.7-x86_64-deb9-linux.tar.xz; \
-	rm ghc-8.10.7-x86_64-deb9-linux.tar.xz; \
-	cd ghc-8.10.7; \
-	./configure; \
-	make install;
+# #install ghci
+# RUN wget https://downloads.haskell.org/~ghc/8.10.7/ghc-8.10.7-x86_64-deb9-linux.tar.xz ; \
+# 	tar -xf ghc-8.10.7-x86_64-deb9-linux.tar.xz; \
+# 	rm ghc-8.10.7-x86_64-deb9-linux.tar.xz; \
+# 	cd ghc-8.10.7; \
+# 	./configure; \
+# 	make install;
 
 
 #install libsodium
@@ -78,6 +91,8 @@ RUN git clone https://github.com/bitcoin-core/secp256k1.git; \
         make check; \
         make install;
 
+#Now force system to use proper version of cabal installed earlier. Otherwise it may default to system version.
+echo "with-compiler: ghc-8.10.7" >> cabal.project.local
 
 #Now import the cardano-node
 RUN git clone https://github.com/input-output-hk/cardano-node.git; \

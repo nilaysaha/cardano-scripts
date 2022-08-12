@@ -1,0 +1,22 @@
+# cat /etc/systemd/system/cardano-db-sync.service
+# The Cardano db-sync service (part of systemd)
+# file: /etc/systemd/system/cardano-db-sync.service
+
+[Unit]
+Description      = Cardano db-sync service
+Wants            = network-online.target
+After            = network-online.target
+
+[Service]
+User             = cardano
+Type             = simple
+WorkingDirectory = /home/cardano/cardano-node
+ExecStart        = /bin/bash -c '/home/cardano/cardano-node/bin/db-sync.sh'
+KillSignal       = SIGINT
+TimeoutStopSec   = 120
+LimitNOFILE      = 32768
+Restart          = always
+RestartSec       = 5
+
+[Install]
+WantedBy         = multi-user.target
