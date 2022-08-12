@@ -92,7 +92,7 @@ RUN git clone https://github.com/bitcoin-core/secp256k1.git; \
         make install;
 
 #Now force system to use proper version of cabal installed earlier. Otherwise it may default to system version.
-echo "with-compiler: ghc-8.10.7" >> cabal.project.local
+RUN echo "with-compiler: ghc-8.10.7" >> cabal.project.local
 
 #Now import the cardano-node
 RUN git clone https://github.com/input-output-hk/cardano-node.git; \
