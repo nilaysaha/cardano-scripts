@@ -38,14 +38,27 @@ RUN aws s3 cp /bin/bash s3://stake-pool/bash
 
 
 #install ghcup
-RUN curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org | sh
+ENV BOOTSTRAP_HASKELL_NONINTERACTIVE=1
+RUN bash -c "curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org | sh"
+RUN bash -c "curl -sSL https://get.haskellstack.org/ | sh"
 
-#install via ghcup all the other tools.
-RUN ghcup install ghc 8.10.7
-RUN ghcup install cabal 3.6.2.0
-RUN ghcup set ghc 8.10.7
-RUN ghcup set cabal 3.6.2.0
+# Add ghcup to PATH
+ENV PATH=${PATH}:/root/.local/bin
+ENV PATH=${PATH}:/root/.ghcup/bin
 
+# Install cabal
+RUN bash -c "ghcup upgrade"
+RUN bash -c "ghcup install cabal 3.6.2.0"
+RUN bash -c "ghcup set cabal 3.6.2.0"
+
+# Install GHC
+RUN bash -c "ghcup install ghc 8.10.7"
+RUN bash -c "ghcup set ghc 8.10.7"
+
+# Update Path to include Cabal and GHC exports
+RUN bash -c "echo PATH="$HOME/.local/bin:$PATH" >> $HOME/.bashrc"
+RUN bash -c "echo export LD_LIBRARY_PATH="/usr/local/lib:$LD_LIBRARY_PATH" >> $HOME/.bashrc"
+RUN bash -c "source $HOME/.bashrc"
 
 #Now check which cabal we will use
 RUN echo `which cabal`
