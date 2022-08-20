@@ -14,8 +14,8 @@ class BurnToken:
         t.create_raw_trans(min_fees, -self.burnamount, self.coinName, self.policyid)
         min_fees = t.calculate_min_fees()
         t.create_raw_trans(min_fees, -self.burnamount, self.coinName, self.policyid)
-        self.sign_transaction()
-        self.submit_transaction()
+        t.sign_transaction()
+        t.submit_transaction()
 
 
 if __name__ == "__main__":

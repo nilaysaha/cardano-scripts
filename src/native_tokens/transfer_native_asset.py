@@ -15,7 +15,8 @@ import logging
 import colorama
 from colorama import Fore, Back, Style
 
-MINIMUM_TOKEN_AMOUNT_ACCOMPANYING_TRANSFER=str(2000000)
+#MINIMUM_TOKEN_AMOUNT_ACCOMPANYING_TRANSFER=str(2000000)
+MINIMUM_TOKEN_AMOUNT_ACCOMPANYING_TRANSFER=str(0)
 
 #os.environ["CHAIN"] = "testnet"
 #os.environ["MAGIC"] = "1097911063"
@@ -149,24 +150,31 @@ class Transfer:
 
             #Now create output string including multiple tokens
             keys = tokens_remaining.keys()
-
             for i in keys:
                 policyid = i.split(".")[0]
                 print(policyid)
                 if (policyid == self.policyid):
                     print("Matched policyid hence subtracting native tokens of num:", self.amount)
                     tokens_remaining[i] -= int(self.amount)
-            
+
+            print("TOKENS REMAINING AFTER PROCESSING")
+            print(tokens_remaining)
+                    
             #Now create the final string
             fstr = ""
             for i in keys:
-                tamount = str(tokens_remaining[i])
-                fstr += f"{tamount} {i}"
+                if tokens_remaining[i] > 0:
+                    tamount = str(tokens_remaining[i])
+                    fstr += f"{tamount} {i}"
                                     
             remaining_fund = str(self.remaining_fund(fees, MINIMUM_TOKEN_AMOUNT_ACCOMPANYING_TRANSFER))
 
             print("remaining funds:", remaining_fund)
-            tx_out_self_payment_addr = f'{self.payment_addr}+{remaining_fund}+"{fstr}"'
+
+            if fstr=="":
+                tx_out_self_payment_addr = f'{self.payment_addr}+{remaining_fund}'
+            else:
+                tx_out_self_payment_addr = f'{self.payment_addr}+{remaining_fund}+"{fstr}"'
 
             return tx_out_self_payment_addr
                     

@@ -10,6 +10,8 @@ import logging
 import colorama
 from colorama import Fore, Back, Style
 
+import transfer_native_asset as tna
+
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', datefmt='%d-%m-%y %H:%M:%S')
 colorama.init(autoreset=True)
 
@@ -270,15 +272,28 @@ class Transaction:
                 tx_in_array.append('--tx-in')
                 tx_in_array.append(tx_in)
 
-            last_slot =self.get_slotNumber() 
+            # last_slot =self.get_slotNumber() 
             new_coin_mint_str = str(num_coins)+" "+policy_id+"."+coin_name_hex
-            utx0_status = self._calculate_utx0_lovelace(fees) 
+            utx0_status = self._calculate_utx0_lovelace(fees)
+            print(utx0_status)
+            tfund = utx0_status["remaining_fund"]
+
+
+            #Now determine the native tokens present  
+            t = tna.Transfer("kaddr_new", -num_coins, policy_id, coin_name, self.payment_addr)
+            if fees > 0:
+                tx_out_str = t.calculate_aggregated_token_out_str(fees)
+            else:
+                tx_out_str = f'{self.payment_addr}+0'
+
+            
             command=["cardano-cli", "transaction", "build-raw",
                      "--fee", str(fees),
                      "--mint", new_coin_mint_str,
                      "--minting-script-file",FILES["policy"]["script"],
-                     "--tx-out", self.payment_addr+"+"+str(utx0_status["remaining_fund"])+"+"+new_coin_mint_str,
-                     "--invalid-hereafter", str(last_slot),
+                     "--tx-out", tx_out_str,
+                     # "--tx-out", self.payment_addr+"+"+str(tfund)+"+"+new_coin_mint_str,
+                     # "--invalid-hereafter", str(last_slot), INTRODUCE THIS FOR TIME LIMITED TRANSACTION
                      "--out-file", self.traw]+tx_in_array
             
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
