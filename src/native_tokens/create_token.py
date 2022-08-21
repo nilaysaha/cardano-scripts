@@ -258,7 +258,7 @@ class Transaction:
 
             new_coin_mint_str = str(num_coins)+" "+policy_id+"."+coin_name_hex
             utx0_status = self._calculate_utx0_lovelace(fees) 
-            command=["cardano-cli", "transaction", "build-raw", "--mary-era",
+            command=["cardano-cli", "transaction", "build-raw",
                      "--fee", str(fees),
                      "--mint", new_coin_mint_str,
                      "--tx-out", self.payment_addr+"+"+str(utx0_status["remaining_fund"])+"+"+new_coin_mint_str,
