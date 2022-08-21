@@ -15,10 +15,14 @@ import { BootstrapVue, IconsPlugin } from 'bootstrap-vue'
 
 Vue.use(BootstrapVue)
 Vue.use(IconsPlugin)
+Object.defineProperty(Vue.prototype, 'cardano', { value: window.cardano.nami });
 
-Vue.prototype.cardano = window.cardano
 
 new Vue({
     render: h => h(App),
     methods:{}
-}).$mount('#app')
+}).$mount('#app')    
+
+    
+
+

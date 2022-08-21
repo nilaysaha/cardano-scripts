@@ -15,7 +15,8 @@ import logging
 import colorama
 from colorama import Fore, Back, Style
 
-MINIMUM_TOKEN_AMOUNT_ACCOMPANYING_TRANSFER=str(2000000)
+#MINIMUM_TOKEN_AMOUNT_ACCOMPANYING_TRANSFER=str(2000000)
+MINIMUM_TOKEN_AMOUNT_ACCOMPANYING_TRANSFER=str(0)
 
 #os.environ["CHAIN"] = "testnet"
 #os.environ["MAGIC"] = "1097911063"
@@ -63,9 +64,9 @@ class Transfer:
         output_addr: where the native tokens should be sent to
         """
         self.amount = amount
+        self.policyid = policyid
         self.uuid   = uuid
         self.pid    = policyid
-        self.native_token_remaining_amount = self._calculate_remaining_native_tokens()
         self.coin_name_hex = self.convert_token_to_hex(coin_name)
         self.dest_addr = output_addr
         self.payment_addr =pc.content(fetch_file(nft.FILES['payment']['address'], uuid))
@@ -115,41 +116,65 @@ class Transfer:
             payment_addr = pc.content(self.s.sdir(nft.FILES['payment']['address']))
             utx0 = pc.get_payment_utx0_with_native_tokens(payment_addr)
 
+            print(utx0)
+            
             tokens_remaining = {}
 
             temp_aggregate = []
 
             #Now iterate over the tokens
             for i in utx0:
-                tokens = i["tokens"]
-                for j in tokens:
-                    temp_aggregate += j 
+                temp_aggregate += i["tokens"]
 
+            print("temp_aggregate:",temp_aggregate)
+
+            
             #Now condense into unique id values.
+            #Sample temp_aggregate : [{'id': 'lovelace', 'count': '4817691'}, {'id': '1a49530b152d1e090a0242ecfe79a5b6b7d28e57f0d9d1b64f42eba4.52454954', 'count': '45000000000000000'}]
+
+            keys = []            
             for i in temp_aggregate:
-                keys = tokens_remaining.keys()
                 k = i["id"]
-                if k in keys:
-                    tokens_remaining[k] += int(i["count"])
+
+                if (k != "lovelace"):
+                    if (k not in keys):
+                        tokens_remaining[k] = int(i["count"])
+                        print(int(i["count"]))
+                    else:
+                        c = int(i["count"])
+                        print(c)
+                        tokens_remaining[k] += int(i["count"])
+                keys.append(k)
+
+            print(tokens_remaining)
 
             #Now create output string including multiple tokens
             keys = tokens_remaining.keys()
             for i in keys:
                 policyid = i.split(".")[0]
+                print(policyid)
                 if (policyid == self.policyid):
-                    tokens_remaining[i] -= self.amount
+                    print("Matched policyid hence subtracting native tokens of num:", self.amount)
+                    tokens_remaining[i] -= int(self.amount)
 
-            #remove the lovelace because that is taken care of separately
-            del tokens_remaining_keys["lovelace"]
-            
+            print("TOKENS REMAINING AFTER PROCESSING")
+            print(tokens_remaining)
+                    
             #Now create the final string
             fstr = ""
             for i in keys:
-                tamount = str(tokens_remaining_dict[i])
-                fstr += f"{tamount i}"
+                if tokens_remaining[i] > 0:
+                    tamount = str(tokens_remaining[i])
+                    fstr += f"{tamount} {i}"
                                     
             remaining_fund = str(self.remaining_fund(fees, MINIMUM_TOKEN_AMOUNT_ACCOMPANYING_TRANSFER))
-            tx_out_self_payment_addr = f"{self.payment_addr}+{remaining_fund} {fstr}"
+
+            print("remaining funds:", remaining_fund)
+
+            if fstr=="":
+                tx_out_self_payment_addr = f'{self.payment_addr}+{remaining_fund}'
+            else:
+                tx_out_self_payment_addr = f'{self.payment_addr}+{remaining_fund}+"{fstr}"'
 
             return tx_out_self_payment_addr
                     

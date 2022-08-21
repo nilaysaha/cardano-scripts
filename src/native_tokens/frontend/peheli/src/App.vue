@@ -27,7 +27,11 @@ export default {
 		await cardano.enable()
 		if (await cardano.isEnabled()){
 		    this.button_text = "SignOut"
+                    console.log("Attached Wallet")
 		}
+                else{
+                    throw new Error("Could not enable wallet")
+                }
 	    }			
 	    catch(e){
 		console.log("Failed to connect to wallet", e)

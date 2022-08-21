@@ -10,6 +10,8 @@ import logging
 import colorama
 from colorama import Fore, Back, Style
 
+import transfer_native_asset as tna
+
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(message)s', datefmt='%d-%m-%y %H:%M:%S')
 colorama.init(autoreset=True)
 
@@ -29,6 +31,10 @@ FILES={
         'raw': './kaddr_new/t.raw',
         'signed': "./kaddr_new/t.signed"
     },
+    'burn': {
+        'raw': './kaddr_new/burn.raw',
+        'signed': "./kaddr_new/burn.signed"
+    },
     'status':{
         'phase_1':'./kaddr_new/phase_1',
         'phase_2':'./kaddr_new/phase_2',
@@ -38,7 +44,7 @@ FILES={
 
 TOKEN_NAME="REIT"
 TOKEN_MAX_AMOUNT=str(45*pow(10,15))
-SLOT_OFFSET=10000
+SLOT_OFFSET=56216369
 
 def mint_new_asset(policy_file=FILES['policy']['script']):
     """
@@ -154,7 +160,7 @@ class CreateToken:
                 [
                     {
                         "type": "before",
-                        "slot": str(pc.get_tip()+SLOT_OFFSET)
+                        "slot": pc.get_tip()+SLOT_OFFSET
                     },
                     {
                         "type": "sig",
@@ -182,7 +188,7 @@ class CreateToken:
 
     def check_payment(self):
         """
-        ./cardano-cli query utxo --address `cat pay_bld.addr`   --mary-era --mainnet
+        ./cardano-cli query utxo --address `cat pay_bld.addr` --mainnet
         """
         try:
             payment_addr = pc.content(FILES['payment']['address'])
@@ -216,10 +222,15 @@ class CreateToken:
 
             
 class Transaction:
-    def __init__(self):
+    def __init__(self, burn=False):
         self.payment_addr = pc.content(FILES['payment']['address'])
         self.utx0 = pc.get_payment_utx0(self.payment_addr)        
-
+        if burn :
+            self.traw = FILES["burn"]["raw"]
+            self.tsigned = FILES["burn"]["signed"]
+        else:
+            self.traw = FILES["transaction"]["raw"]
+            self.tsigned = FILES["transaction"]["signed"]
 
     def _calculate_utx0_lovelace(self, fees):
         a = CreateToken()
@@ -234,11 +245,16 @@ class Transaction:
         Input = binascii.hexlify(Input)
         return Input.decode()
 
-        
+    def get_slotNumber(self):
+        import json
+        with open(FILES["policy"]["script"]) as f:
+            data = json.load(f)
+        print("policy data read is:", data)
+        return data["scripts"][0]["slot"]
+            
     def create_raw_trans(self, fees, num_coins, coin_name, policy_id):
         """
         ./cardano-cli transaction build-raw \
-	     --mary-era \
              --fee 0 \
              --tx-in b1ddb0347fed2aecc7f00caabaaf2634f8e2d17541f6237bbed78e2092e1c414#0 \
              --tx-out addr_test1vqvlku0ytscqg32rpv660uu4sgxlje25s5xrpz7zjqsva3c8pfckz+1000000000+"1000000000
@@ -256,13 +272,28 @@ class Transaction:
                 tx_in_array.append('--tx-in')
                 tx_in_array.append(tx_in)
 
+            # last_slot =self.get_slotNumber() 
             new_coin_mint_str = str(num_coins)+" "+policy_id+"."+coin_name_hex
-            utx0_status = self._calculate_utx0_lovelace(fees) 
+            utx0_status = self._calculate_utx0_lovelace(fees)
+            print(utx0_status)
+            tfund = utx0_status["remaining_fund"]
+
+
+            #Now determine the native tokens present  
+            t = tna.Transfer("kaddr_new", -num_coins, policy_id, coin_name, self.payment_addr)
+            if fees > 0:
+                tx_out_str = t.calculate_aggregated_token_out_str(fees)
+            else:
+                tx_out_str = f'{self.payment_addr}+0'
+        
             command=["cardano-cli", "transaction", "build-raw",
                      "--fee", str(fees),
                      "--mint", new_coin_mint_str,
-                     "--tx-out", self.payment_addr+"+"+str(utx0_status["remaining_fund"])+"+"+new_coin_mint_str,
-                     "--out-file", FILES['transaction']['raw']]+tx_in_array
+                     "--minting-script-file",FILES["policy"]["script"],
+                     "--tx-out", tx_out_str,
+                     # "--tx-out", self.payment_addr+"+"+str(tfund)+"+"+new_coin_mint_str,
+                     # "--invalid-hereafter", str(last_slot), INTRODUCE THIS FOR TIME LIMITED TRANSACTION
+                     "--out-file", self.traw]+tx_in_array
             
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
             print(Fore.GREEN + f"Output of command {command} is:{s}")
@@ -283,7 +314,7 @@ class Transaction:
         """
         try:
             command=[ "cardano-cli", "transaction", "calculate-min-fee",
-                      "--tx-body-file", FILES['transaction']['raw'],
+                      "--tx-body-file", self.traw,
                       "--tx-in-count",str(len(self.utx0)),
                       "--tx-out-count", '1',
                       "--witness-count", '2',
@@ -309,14 +340,13 @@ class Transaction:
 	     --tx-body-file matx.raw \
              --out-file matx.signed
         """
-        try:
+        try:                
             command = ["cardano-cli", "transaction", "sign",
                        "--signing-key-file", FILES['policy']['signature'],
                        "--signing-key-file", FILES['payment']['signature'],
-                       "--auxiliary-script-file", FILES['policy']['script'],
                        "--mainnet",
-                       "--tx-body-file", FILES['transaction']['raw'],
-                       '--out-file', FILES['transaction']['signed']]
+                       "--tx-body-file", self.traw,
+                       '--out-file', self.tsigned]
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
             print(Fore.GREEN + f"Output of command {command} is:{s}")
         except:
@@ -329,7 +359,7 @@ class Transaction:
         ./cardano-cli transaction submit --tx-file  matx.signed --mainnet
         """
         try:
-            command = ["cardano-cli", "transaction", "submit", "--tx-file", FILES['transaction']['signed'] , "--mainnet"]
+            command = ["cardano-cli", "transaction", "submit", "--tx-file", self.tsigned , "--mainnet"]
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
             print(Fore.GREEN + f"Output of command {command} is:{s}")
         except:

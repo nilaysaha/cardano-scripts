@@ -90,7 +90,7 @@ def _calc_min_fee():
     try:
         t = pc.get_payment_utx0()
         ttl = pc.get_ttl()
-        return pc.calculate_min_fees(t, ttl, {"raw_transaction": True})
+        return pc.calculate_min_fees(t, ttl, {"raw_transaction": False})
     except Exception as e:
         print(e)
     
@@ -159,6 +159,8 @@ def remaining_kes_period():
 class PoolKeys:
     def __init__(self):
         #create the directory to hold the keys and certs for the nodes
+        #when we are setting up a new node cardano-cli cannot call qtip and hence we need to use this value (obtained from relays)
+        KES_PERIOD=525
         pass
 
     def generate_cold_kc(self):
@@ -223,7 +225,8 @@ class PoolKeys:
         except Exception:
             print ("error in level argument",Exception)
 
-            
+
+                
     def generate_node_cert(self):
         """
         Ideally kesPeriod should be derived from genesis file. Here we will manually input it.
@@ -258,7 +261,7 @@ class PoolKeys:
 class RegisterStakePool:
     def __init__(self):
         self.POOL_META_URL="https://raw.githubusercontent.com/nilaysaha/cardano-scripts/master/src/config/pool_metadata.json"
-        self.SHORT_POOL_META_URL = "https://lkbh-pool.s3.eu-central-1.amazonaws.com/metadata.json"
+        self.SHORT_POOL_META_URL = "https://rcircle.s3.eu-central-1.amazonaws.com/pool_metadata.json"
     
     def _fetch_pool_metadata(self, outfile):
         try:
@@ -379,10 +382,9 @@ class SubmitStakePool:
         """
         reconstruct:
         cardano-cli  transaction build-raw \
-        --mary-era \
         --tx-in <UTXO>#<TxIx> \
         --tx-out $(cat payment.addr)+<CHANGE IN LOVELACE> \
-        --ttl <TTL> \
+        --invalid-hereafter <TTL> \
         --fee <FEE> \
         --out-file tx.raw \
         --certificate-file pool-registration.cert \
@@ -398,10 +400,9 @@ class SubmitStakePool:
             tx_out = f"{payment_addr}+{remaining_fund}"
             print(f"remaining_fund:{remaining_fund}")
             command = [CARDANO_CLI,  "transaction", "build-raw",
-                       "--mary-era",
                        "--tx-out",tx_out,
                        "--ttl", str(TTL),
-                       "--fee", fee,                       
+                       "--fee", str(fee),                       
                        "--out-file", FILES['pool']['transaction']['raw'],
                        '--certificate-file', FILES['pool']['cert']['registration'],
                        "--certificate-file", FILES['pool']['cert']['delegation']]+tx_in_array
@@ -553,7 +554,6 @@ def main(options):
         except Exception as e:
             print("Failed to submit the pool registration transaction")
             print(e)
-
 
             
 if __name__ == "__main__": 

@@ -22,79 +22,88 @@
       <!-- <br/>     -->
       <md-divider></md-divider>
       <md-steppers md-vertical>
-	<md-step id="first" md-label="Provide info for minting NFT">
-	  <div class="image-holder">
-	    <b-img-lazy	 :src="previewImage" class="image-holder" alt="Image Preview"></b-img-lazy>
-	  </div>
-	  <md-field>
-	    <label>Upload files</label>
-	    <md-file  @change=mediaUpload placeholder="A nice input placeholder" />
-	  </md-field>
-	  
-	  <md-field>
-	    <label>"Name of the NFT"</label>
-	    <md-input v-model="nft_name"></md-input>
-	  </md-field>
-	  
-	  <md-field>
-	    <label>Number of NFT to mint</label>
-	    <md-input v-model="nft_number" type="number"></md-input>
-	  </md-field>
-	  
-	  <md-chips v-model="nft_tags" md-placeholder="Add nft tags..."></md-chips>
-	  
-	  <md-field>
-	    <label>"recvAddr:Login to link your Nami wallet to this app"</label>
-	    <md-input v-on:click="fetchAddress" v-model="nft_recv_addr"></md-input>
-	  </md-field>
-	  
-	  <md-field>
-	    <label>Unique ID for this  transaction</label>
-	    <md-input v-model="uuid" readonly></md-input>
-	  </md-field>
+        <md-step id="first" md-label="Provide info for minting NFT">
+          <div class="image-holder">
+            <b-img-lazy          :src="previewImage" class="image-holder" alt="Image Preview"></b-img-lazy>
+          </div>
+          <md-field>
+            <label>Upload files</label>
+            <md-file  @change=mediaUpload placeholder="A nice input placeholder" />
+          </md-field>
+          
+          <md-field>
+            <label>"Name of the NFT"</label>
+            <md-input v-model="nft_name"></md-input>
+          </md-field>
+          
+          <md-field>
+            <label>Number of NFT to mint</label>
+            <md-input v-model="nft_number" type="number"></md-input>
+          </md-field>
+          
+          <md-chips v-model="nft_tags" md-placeholder="Add nft tags..."></md-chips>
+          
+          <md-field>
+            <label>"recvAddr:Login to link your Nami wallet to this app"</label>
+            <md-input v-on:click="fetchAddress" v-model="nft_recv_addr"></md-input>
+          </md-field>
+          
+          <md-field>
+            <label>Unique ID for this  transaction</label>
+            <md-input v-model="uuid" readonly></md-input>
+          </md-field>
 
-	  <md-field>
-	    <label>balance in wallet Address</label>
-	    <md-input v-on:click="fetchBalance" v-model="balance" readonly></md-input>
-	  </md-field>
+          <md-field>
+            <label>balance in wallet Address</label>
+            <md-input v-on:click="fetchBalance" v-model="balance" readonly></md-input>
+          </md-field>
 
-	  <md-field>
-	    <label>utxo</label>
-	    <md-input v-on:click="fetchUtxo" v-model="utxo" readonly></md-input>
-	  </md-field>
-	  
-	  <br/>
-	  <br/>	   
-	  <b-form @submit="onSubmit" @reset="onReset">
-	    <b-container class="bv-example-row">
-	      <b-row>
-		<b-col>
-		  <b-button type="submit" variant="danger">Cancel</b-button>
-		</b-col>
-		<b-col></b-col>
-		<b-col>
-		  <b-button type="reset" variant="primary">Submit</b-button>
-		</b-col>
-	      </b-row>
-	    </b-container>
-	  </b-form>
-	</md-step>
-	
-	<md-step id="second" md-label="Transfer Funds for Minting">
-	  <md-field>
-	    <label>"Unique ID for this transaction"</label>
-	    <md-input v-model="nft_uuid"></md-input>
-	  </md-field>	  
-	  <md-field>
-	    <label>"NFT Minting Cost"</label>
-	    <md-input v-model="nft_minting_cost" type="number"></md-input>
-	  </md-field>	  
-	  <md-field>
-	    <label>"Unique Payment Address"</label>
-	    <md-input v-model="nft_cost_payment_addr"></md-input>
-	  </md-field>	  
-	</md-step>
-      </md-steppers>	  
+          <md-field>
+            <label>utxo</label>
+            <md-input v-on:click="fetchUtxo" v-model="utxo" readonly></md-input>
+          </md-field>
+
+          <div>
+            <small>Flat</small>
+            <b-button class="md-primary padd" v-on:click="getCollateral">Collateral</b-button> &nbsp;&nbsp
+            <b-button class="md-primary padd" v-on:click="getRewardAddress">RewardAddress</b-button>  &nbsp;&nbsp
+            <b-button class="md-accent padd" v-on:click="getChangeAddress">ChangeAddress</b-button> &nbsp;&nbsp
+            <b-button class="md-accent padd" v-on:click="getUsedAddresses">UsedAddress</b-button> &nbsp;&nbsp
+            <b-button class="md-accent padd" v-on:click="buildSendADATransaction">BuildTransaction</b-button> &nbsp;&nbsp
+          </div>
+          
+          <br/>
+          <br/>            
+          <b-form @submit="onSubmit" @reset="onReset">
+            <b-container class="bv-example-row">
+              <b-row>
+                <b-col>
+                  <b-button type="submit" variant="danger">Cancel</b-button>
+                </b-col>
+                <b-col></b-col>
+                <b-col>
+                  <b-button type="reset" variant="primary">Submit</b-button>
+                </b-col>
+              </b-row>
+            </b-container>
+          </b-form>
+        </md-step>
+        
+        <md-step id="second" md-label="Transfer Funds for Minting">
+          <md-field>
+            <label>"Unique ID for this transaction"</label>
+            <md-input v-model="nft_uuid"></md-input>
+          </md-field>     
+          <md-field>
+            <label>"NFT Minting Cost"</label>
+            <md-input v-model="nft_minting_cost" type="number"></md-input>
+          </md-field>     
+          <md-field>
+            <label>"Unique Payment Address"</label>
+            <md-input v-model="nft_cost_payment_addr"></md-input>
+          </md-field>     
+        </md-step>
+      </md-steppers>      
     </form>
   </b-container>
 </div>
@@ -102,165 +111,476 @@
 
 <script>
 const uniqueId = require('uuid')
+import * as S from "@emurgo/cardano-serialization-lib-asmjs";
 
 
 export default {
     name: 'Intro',
     data: () => (
-	{
-	    nft_tags: [
-		"unique"
-	    ],
-	    uuid:"",
-	    button_text: "Sign In",
-	    balance: 1,
-	    network: "",
-	    address: "",
-	    rewardAddress: "",
-	    nft_name: "test nft",
-	    nft_number:1,
-	    nft_recv_addr: "",
-	    nft_uuid: "",
-	    nft_minting_cost: "",
-	    nft_cost_payment_addr: "",
-	    previewImage: "",
-	    utxo:[],
-	    mainProps: {
-		center: true,
-		fluidGrow: true,
-		blank: true,
-		blankColor: '#bbb',
-		width: 600,
-		height: 400,
-		class: 'my-5'
-	    }
-	}
+        {
+            nft_tags: [
+                "unique"
+            ],
+            uuid:"",
+            button_text: "Sign In",
+            balance: 1,
+            network: "",
+            address: "",
+            rewardAddress: "",
+            nft_name: "test nft",
+            nft_number:1,
+            nft_recv_addr: "",
+            nft_uuid: "",
+            nft_minting_cost: "",
+            nft_cost_payment_addr: "",
+            previewImage: "",
+            utxo:[],
+            mainProps: {
+                center: true,
+                fluidGrow: true,
+                blank: true,
+                blankColor: '#bbb',
+                width: 600,
+                height: 400,
+                class: 'my-5'
+            },
+            state: {
+                walletHandle: undefined,
+                selectedTabId: "1",
+                whichWalletSelected: "nami",
+                walletFound: false,
+                walletIsEnabled: false,
+                walletName: undefined,
+                walletIcon: undefined,
+                walletAPIVersion: undefined,
+                networkId: undefined,
+                Utxos: undefined,
+                CollatUtxos: undefined,
+                balance: undefined,
+                changeAddress: undefined,
+                rewardAddress: undefined,
+                usedAddress: undefined,
+                txBody: undefined,
+                txBodyCborHex_unsigned: "",
+                txBodyCborHex_signed: "",
+                submittedTxHash: "",
+                addressBech32SendADA: "addr_test1qqsw655meex7mm9y0k0yck8w2j6scamyddxl9rpw7rhfl77zahdw9vx0sxq85vky5wfh77mecwqc6yudf9qpspu02kmq2aydw9",
+                lovelaceToSend: 3000000,
+                assetNameHex: "4c494645",
+                assetPolicyIdHex: "ae02017105527c6c0c9840397a39cc5ca39fabe5b9998ba70fda5f2f",
+                assetAmountToSend: 5,
+                addressScriptBech32: "addr_test1wpnlxv2xv9a9ucvnvzqakwepzl9ltx7jzgm53av2e9ncv4sysemm8",
+                datumStr: "12345678",
+                plutusScriptCborHex: "4e4d01000033222220051200120011",
+                transactionIdLocked: "",
+                transactionIndxLocked: 0,
+                lovelaceLocked: 3000000,
+                manualFee: 900000,
+            },
+            protocolParams: {
+                linearFee: {
+                    minFeeA: "44",
+                    minFeeB: "155381",
+                },
+                minUtxo: "34482",
+                poolDeposit: "500000000",
+                keyDeposit: "2000000",
+                maxValSize: 5000,
+                maxTxSize: 16384,
+                priceMem: 0.0577,
+                priceStep: 0.0000721,
+                coinsPerUtxoWord: "34482",
+            }   
+        }
     ),
     beforeMount(){
-	this.previewImage = this.getImageUrl(80)
-	this.uuid = uniqueId.v4()
+        this.previewImage = this.getImageUrl(80)
+        this.uuid = uniqueId.v4()
     },
     methods:{
-	onSubmit(event) {
-	    event.preventDefault()
-	},
-	onReset(event) {
-	    event.preventDefault()
-	},
-	getImageUrl(imageId) {
-	    const { width, height } = this.mainProps
-	    return `https://picsum.photos/${width}/${height}/?image=${imageId}`
-	},
-	mediaUpload(e){
-	    const image = e.target.files[0];
-	    const reader = new FileReader();
-	    reader.readAsDataURL(image);	    
-	    reader.onload = e =>{
-		this.previewImage = e.target.result;
-		console.log(this.previewImage);
-	    };
-	},
-	decodeHex(t){
-	    let cb = require('cborg')
-	    return cb["decode"](Buffer.from(t,'hex'))
-	},
-	async fetchBalance(e){
-	    console.log("Now fetching balance")
-	    e.preventDefault();
-	    try{
-		if (cardano.isEnabled()){
-		    var t = await cardano.getBalance()	
-		    this.balance = this.decodeHex(t)
-		    console.log("decoded wallet amount", this.balance)
-		    // const S = await import('@emurgo/cardano-serialization-lib-browser/cardano_serialization_lib.js')
-		    // this.balance =  S.BigNum.from_str(await cardano.getBalance())
-		}
-		else
-		{
-		    console.log("Wallet is not connected hence cannot fetch balance")
-		    this.balance = "unknown"
-		}		
-	    }
-	    catch(e) {
-		console.log("Failed to fetch balance", e)		
-	    }
+        onSubmit(event) {
+            event.preventDefault()
+        },
+        onReset(event) {
+            event.preventDefault()
+        },
+        getImageUrl(imageId) {
+            const { width, height } = this.mainProps
+            return `https://picsum.photos/${width}/${height}/?image=${imageId}`
+        },
+        mediaUpload(e){
+            const image = e.target.files[0];
+            const reader = new FileReader();
+            reader.readAsDataURL(image);            
+            reader.onload = e =>{
+                this.previewImage = e.target.result;
+                console.log(this.previewImage);
+            };
+        },
+        async decodeHex(t){
+            const Buffer = (await import('buffer/')).Buffer
+            
+            let cb = require('cborg')
+            return cb["decode"](Buffer.from(t,'hex'))
+        },
+        async fetchBalance(e){
+            console.log("Now fetching balance")
+            e.preventDefault();
+            try{
+                var t = await cardano.getBalance()  
+                this.balance = await this.decodeHex(t)
+                console.log("decoded wallet amount", this.balance)
+            }
+            catch(e) {
+                console.log("Failed to fetch balance", e)               
+            }
+            
+        },
+        async fetchNetwork(e){
+            e.preventDefault()
+            try{
+                var id = await cardano.getNetworkId()
+                if( id == 0){
+                    this.network = "Testnet"
+                }
+                else if(id == 1){
+                    this.network = "Mainnet"
+                }else {
+                    this.network = "Custom"
+                }           
+            }
+            catch(error){
+                console.log("Failed to fetch network id", error)
+            }
+        },
+        async fetchAddress(e){
+            const _Buffer = (await import('buffer/')).Buffer
+            e.preventDefault()
+            try{
+                var t  = await cardano.getChangeAddress()
+                this.nft_recv_addr = await S.Address.from_bytes(_Buffer.from(t, 'hex')).to_bech32()
+                console.log("Address associated with the wallet is:",this.nft_recv_addr )
+            }
+            catch(error){
+                console.log("Failed to fetch address", error)
+            }
+        },
+        
+        /**
+         * Gets the Network ID to which the wallet is connected
+         * 0 = testnet
+         * 1 = mainnet
+         * Then writes either 0 or 1 to state
+         * @returns {Promise<void>}
+         */
+        async getNetworkId(e){
+            try {
+                const networkId = await this.API.getNetworkId();
+                this.setState({networkId})
+                
+            } catch (err) {
+                console.log(err)
+            }
+        },       
+        
+        /**
+         * Checks if a connection has been established with
+         * the wallet
+         * @returns {Promise<boolean>}
+         */
+        async checkIfWalletEnabled(e){
+            
+            let walletIsEnabled = false;
+            
+            try {                
+                this.state.walletIsEnabled = await window.cardano.nami.isEnabled();                
+            } catch (err) {
+                console.log(err)
+            }
+            
+            return walletIsEnabled
+        },
+        
+        async enableWallet(e){
+            try {                                
+                await this.checkIfWalletEnabled();
+                await cardano.nami.enable();
+                await this.getNetworkId();
+                this.walletIsEnabled = true
+            }
+            catch (err) {
+                console.log(err)
+            }
+        },
+        
+        
+        async fetchUtxo(e){
+            const _Buffer = (await import('buffer/')).Buffer
+            
+            let wallet_utxos = []
+            e.preventDefault()
+            try{
+                let rawUtxo = await cardano.getUtxos()
+                console.log(rawUtxo)
+                rawUtxo.map(u => {
+                    const utxo = S.TransactionUnspentOutput.from_bytes(_Buffer.from(u, 'hex'))
+                    const input = utxo.input();
+                    const txid = _Buffer.from(input.transaction_id().to_bytes(), "utf8").toString("hex");
+                    const txindx = input.index();
+                    const output = utxo.output();
+                    const amount = output.amount().coin().to_str(); // ADA amount in lovelace
+                    const multiasset = output.amount().multiasset();
+                    let multiAssetStr = "";
+                    
+                    if (multiasset) {
+                        const keys = multiasset.keys() // policy Ids of thee multiasset
+                        console.log(keys)
+                        // keys.map(policyId => {
+                        //     const policyIdHex = _Buffer.from(policyId.to_bytes(), "utf8").toString("hex");
+                        //     const assets = multiasset.get(policyId)
+                        //     const assetNames = assets.keys();
+                        
+                        //     assetNames.map(assetName => {
+                        //         const assetNameString = Buffer.from(assetName.name(),"utf8").toString();
+                        //         const assetNameHex = Buffer.from(assetName.name(),"utf8").toString("hex")
+                        //         const multiassetAmt = multiasset.get_asset(policyId, assetName)
+                        //         multiAssetStr += `+ ${multiassetAmt.to_str()} + ${policyIdHex}.${assetNameHex} (${assetNameString})`
+                        //     })
+                        // })
+                    }
+                    
+                    const obj = {
+                        txid: txid,
+                        txindx: txindx,
+                        amount: amount,
+                        str: `${txid} #${txindx} = ${amount}`,
+                        multiAssetStr: multiAssetStr,
+                        TransactionUnspentOutput: utxo
+                    }
+                    
+                    console.log(obj)
+                    wallet_utxos.push(obj)
+                })
+                this.state.Utxos = wallet_utxos
+            }
+            catch(error){
+                console.log("failed to fetch utxo",error)
+            }           
+            
+        },
+        
+        /**
+         * The collateral is need for working with Plutus Scripts
+         * Essentially you need to provide collateral to pay for fees if the
+         * script execution fails after the script has been validated...
+         * this should be an uncommon occurrence and would suggest the smart contract
+         * would have been incorrectly written.
+         * The amount of collateral to use is set in the wallet
+         * @returns {Promise<void>}
+         */
+        async getCollateral(e){
+            
+            let CollatUtxos = [];
+            
+            try {
+                
+                let collateral = [];                
+                collateral = await cardano.getCollateral();
+                
+                for (const x of collateral) {
+                    const utxo = S.TransactionUnspentOutput.from_bytes(Buffer.from(x, "hex"));
+                    CollatUtxos.push(utxo)
+                    console.log(utxo)
+                }
+                this.state.CollatUtxos = CollatUtxos
+                
+            } catch (err) {
+                console.log(err)
+            }            
+        },
+        
+        /**
+         * Get the address from the wallet into which any spare UTXO should be sent
+         * as change when building transactions.
+         * @returns {Promise<void>}
+         */
+        async getChangeAddress(e){
+            try {
+                const raw = await cardano.getChangeAddress();
+                const changeAddress = S.Address.from_bytes(Buffer.from(raw, "hex")).to_bech32()
+                this.state.changeAddress = changeAddress
+            }
+            catch (err)
+            {
+                console.log(err)
+            }
+        },
+        
+        /**
+         * This is the Staking address into which rewards from staking get paid into
+         * @returns {Promise<void>}
+         */
+        async getRewardAddresses(e){
+            
+            try {
+                const raw = await cardano.getRewardAddresses();
+                const rawFirst = raw[0];
+                const rewardAddress = S.Address.from_bytes(Buffer.from(rawFirst, "hex")).to_bech32()
+                console.log(rewardAddress)
+                this.state.rewardAddress = rewardAddress                
+            } catch (err) {
+                console.log(err)
+            }
+        },
+        
+        /**
+         * Gets previsouly used addresses
+         * @returns {Promise<void>}
+         */
+        async getUsedAddresses(e){
+            
+            try {
+                const raw = await cardano.getUsedAddresses();
+                const rawFirst = raw[0];
+                const usedAddress = S.Address.from_bytes(Buffer.from(rawFirst, "hex")).to_bech32()
+                this.usedAddress = usedAddress
+                console.log(usedAddress)
+            } catch (err) {
+                console.log(err)
+            }
+        },
+        
+        /**
+         * Refresh all the data from the user's wallet
+         * @returns {Promise<void>}
+         */
+        async refreshData(e){
+            
+            //this.generateScriptAddress()
+            
+            try{
+                const walletFound = this.checkIfWalletFound();
+                if (walletFound) {
+                    await this.enableWallet();
+                    await this.getAPIVersion();
+                    await this.getWalletName();
+                    await this.getUtxos();
+                    await this.getCollateral();
+                    await this.getBalance();
+                    await this.getChangeAddress();
+                    await this.getRewardAddresses();
+                    await this.getUsedAddresses();
+                }
+            } catch (err) {
+                console.log(err)
+            }
+        },
+        
+        
+        async initTransactionBuilder(e){
+            console.log(S)
 
-	},
-	async fetchNetwork(e){
-	    e.preventDefault()
-	    try{
-		if (cardano.isEnabled()){
-		    var id = await cardano.getNetworkId()
-		    if( id == 0){
-			this.network = "Testnet"
-		    }
-		    else if(id == 1){
-			this.network = "Mainnet"
-		    }else {
-			this.network = "Custom"
-		    }
-		}
-	    }
-	    catch(error){
-		console.log("Failed to fetch network id", error)
-	    }
-	},
-	async fetchAddress(e){
-	    const S = await import('@emurgo/cardano-serialization-lib-browser/cardano_serialization_lib.js')
-	    const _Buffer = (await import('buffer/')).Buffer
+            const txBuilder = S.TransactionBuilder.new(
+            S.TransactionBuilderConfigBuilder.new()
+                .fee_algo(S.LinearFee.new(S.BigNum.from_str(this.protocolParams.linearFee.minFeeA), S.BigNum.from_str(this.protocolParams.linearFee.minFeeB)))
+                .pool_deposit(S.BigNum.from_str(this.protocolParams.poolDeposit))
+                .key_deposit(S.BigNum.from_str(this.protocolParams.keyDeposit))
+                .coins_per_utxo_word(S.BigNum.from_str(this.protocolParams.coinsPerUtxoWord))
+                .max_value_size(this.protocolParams.maxValSize)
+                .max_tx_size(this.protocolParams.maxTxSize)
+                .prefer_pure_change(true)
+                .build()
+            );
+                        
+            return txBuilder
+        },
+        
+        
+        /**
+         * Builds an object with all the UTXOs from the user's wallet
+         * @returns {Promise<TransactionUnspentOutputs>}
+         */
+        async getTxUnspentOutputs(e){
+            let txOutputs = S.TransactionUnspentOutputs.new()
+            for (const utxo of this.state.Utxos) {
+                txOutputs.add(utxo.TransactionUnspentOutput)
+            }
+            return txOutputs
+        },
+        
+        /**
+         * The transaction is build in 3 stages:
+         * 1 - initialize the Transaction Builder
+         * 2 - Add inputs and outputs
+         * 3 - Calculate the fee and how much change needs to be given
+         * 4 - Build the transaction body
+         * 5 - Sign it (at this point the user will be prompted for
+         * a password in his wallet)
+         * 6 - Send the transaction
+         * @returns {Promise<void>}
+         */
+        async buildSendADATransaction(e){
 
-	    e.preventDefault()
-	    try{
-		if (cardano.isEnabled()){
-		    var t  = await cardano.getChangeAddress()
-		    this.nft_recv_addr = S.Address.from_bytes(_Buffer.from(t, 'hex')).to_bech32()
-		    console.log("Address associated with the wallet is:",this.nft_recv_addr )
-		}
-	    }
-	    catch(error){
-		console.log("Failed to fetch address", error)
-	    }
-	},
-	async fetchRewardAddress(e){
-	    e.preventDefault()
-	    try{
-		if (cardano.isEnabled()){
-		    var t  = await cardano.getRewardAddress()
-		    this.rewardAddress = t
-		    console.log("Reward Address associated with the wallet is:", this.rewardAddress)
-		}
-	    }
-	    catch(error){
-		console.log("Failed to fetch of Reward address", e)
-	    }
-	},
-	async fetchUtxo(e){
-	    const S = await import('@emurgo/cardano-serialization-lib-browser/cardano_serialization_lib.js')
-	    const _Buffer = (await import('buffer/')).Buffer
+            //Step 1: Initialise the transaction
+            const txBuilder = await this.initTransactionBuilder(e);
+            const shelleyOutputAddress = S.Address.from_bech32(this.state.addressBech32SendADA);
+            const shelleyChangeAddress = S.Address.from_bech32(this.nft_recv_addr);
 
-	    let utxo = {}
-	    e.preventDefault()
-	    try{
-		if (cardano.isEnabled()){
-		    let rawUtxo = await cardano.getUtxos()
-		    console.log(rawUtxo)
-		    const utxos = rawUtxo.map(u => S.TransactionUnspentOutput.from_bytes(_Buffer.from(u, 'hex')))
-		    console.log(utxos)
-		    for (let i = 0; i < utxos.length; i++) {
-			const utxo = utxos[i];
-			console.log(utxo.output().address())
-			console.log(utxo.input())
-			console.log(utxo.output().amount())
-		    }
-		}		    
-	    }
-	    catch(error){
-		console.log("failed to fetch utxo",error)
-	    }		
-		
-	}
+            //Step 2: Add inputs and outputs
+            txBuilder.add_output(
+                S.TransactionOutput.new(
+                    shelleyOutputAddress,
+                    S.Value.new(S.BigNum.from_str(this.state.lovelaceToSend.toString()))
+                ),
+            );
 
-	
+            //Step 2A: For NFT we now have to build up the reverse transaction. Where output is nft needs to be minted and transferred to user wallet.
+            // txBuilder.add_output(
+            //     S.TransactionOutput.new(
+            //         shelleyChangeAddress,
+            //         S.Value.new(S.BigNum.from_str(this.state.lovelaceToSend.toString())) //TO DO: This should be the minting transaction for the NFT.
+            //     ),
+            // );
+            
+            
+            const txUnspentOutputs = await this.getTxUnspentOutputs();
+            txBuilder.add_inputs_from(txUnspentOutputs, 1)
+            
+            // Step 3: calculate the min fee required and send any change to an address
+            txBuilder.add_change_if_needed(shelleyChangeAddress)
+            
+            // Step 4: once the transaction is ready, we build it to get the tx body without witnesses
+            const txBody = txBuilder.build();
+            
+            const transactionWitnessSet = S.TransactionWitnessSet.new();
+            
+            const tx = S.Transaction.new(
+                txBody,
+                S.TransactionWitnessSet.from_bytes(transactionWitnessSet.to_bytes())
+            )
+            
+            let txVkeyWitnesses = await cardano.signTx(Buffer.from(tx.to_bytes(), "utf8").toString("hex"), true);
+            
+            console.log(txVkeyWitnesses)
+            
+            txVkeyWitnesses = S.TransactionWitnessSet.from_bytes(Buffer.from(txVkeyWitnesses, "hex"));
+            
+            transactionWitnessSet.set_vkeys(txVkeyWitnesses.vkeys());
+
+            //Step 5: Sign the transaction
+            
+            const signedTx = S.Transaction.new(
+                tx.body(),
+                transactionWitnessSet
+            );
+            
+
+            // Step 6: Submit transaction
+            const submittedTxHash = await cardano.submitTx(Buffer.from(signedTx.to_bytes(), "utf8").toString("hex"));
+            console.log(submittedTxHash)
+            //this.setState({submittedTxHash});
+        }
+        
     }
 }
 </script>

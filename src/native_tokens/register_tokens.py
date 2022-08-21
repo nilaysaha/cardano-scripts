@@ -15,21 +15,23 @@ colorama.init(autoreset=True)
 
 FILES={
     "policy": {
-        "signature":"./kaddr_token/policy.skey",
-        "script":"./kaddr_token/policy.json"        
+        "signature":"./kaddr_new/policy.skey",
+        "script":"./kaddr_new/policy.json"        
     },
     "logo":{
-        "img":"./kaddr_token/logo.png",
-    },
-    "token":{
-        "ticker": "REIT",
-        "name": "REIT",
-        "description": "A protocol to unlock value and trade verified real estate assets",
-        "url":"https://reitcircles.com",
-        "logo":"",
-        "unit":"2, cents",
-        "decimal":"6"
+        "img":"./kaddr_new/logo.png",
     }
+}
+
+METADATA = {
+    "subject":"1a49530b152d1e090a0242ecfe79a5b6b7d28e57f0d9d1b64f42eba452454954",
+    "name": "REIT",
+    "description": "A protocol to unlock value and trade verified real estate assets",
+    "policy":"1a49530b152d1e090a0242ecfe79a5b6b7d28e57f0d9d1b64f42eba4",
+    "ticker": "REIT",    
+    "url":"https://reitcircles.com",
+    "logo":"",
+    "decimals":"6"}
 }
 
 
