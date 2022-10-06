@@ -7,7 +7,7 @@
       </form>
     </b-navbar-brand>
   </b-navbar>
-  <HelloWorld name="Beautiful card"/>
+  <HelloWorld v-bind:API="API"/>
 </div>
 </template>
 
@@ -16,21 +16,35 @@ import HelloWorld from './components/HelloWorld.vue'
 
 export default {
     name: 'App',
-    data: () => ({
-	button_text: "Sign In",
-    }),
+    data: () => {
+        return {
+	    button_text: "Sign In",
+            chandle: window.cardano["nami"],
+            API: null
+        }
+    },
     methods:{
 	async connect(e){
 	    e.preventDefault();
 	    try{	
-		console.log("Pressed connect wallet")
-		await cardano.enable()
-		if (await cardano.isEnabled()){
+		console.log("Pressed connect wallet")                                
+
+                this.API = await this.chandle.enable()
+                
+		if (await this.$chandle.isEnabled())
+                {
 		    this.button_text = "SignOut"
                     console.log("Attached Wallet")
+
+                    console.log(this.chandle)
+                    console.log(this.API)
+                    
 		}
-                else{
-                    throw new Error("Could not enable wallet")
+                else
+                {
+                    console.log("retry")
+                    this.API = await this.$chandle.enable()
+                    throw new Error("Failed this.$chandle.isEnabled()")
                 }
 	    }			
 	    catch(e){

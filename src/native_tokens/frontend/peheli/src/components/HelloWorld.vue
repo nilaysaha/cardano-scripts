@@ -66,9 +66,9 @@
           <div>
             <small>Flat</small>
             <b-button class="md-primary padd" v-on:click="getCollateral">Collateral</b-button> &nbsp;&nbsp
-            <b-button class="md-primary padd" v-on:click="getRewardAddress">RewardAddress</b-button>  &nbsp;&nbsp
+            <b-button class="md-primary padd" v-on:click="getRewardAddresses">RewardAddress</b-button>  &nbsp;&nbsp
             <b-button class="md-accent padd" v-on:click="getChangeAddress">ChangeAddress</b-button> &nbsp;&nbsp
-            <b-button class="md-accent padd" v-on:click="getUsedAddresses">UsedAddress</b-button> &nbsp;&nbsp
+            <b-button class="md-accent padd" v-on:click="genJWTtoken">genJWTtoken</b-button> &nbsp;&nbsp 
             <b-button class="md-accent padd" v-on:click="buildSendADATransaction">BuildTransaction</b-button> &nbsp;&nbsp
           </div>
           
@@ -112,10 +112,11 @@
 <script>
 const uniqueId = require('uuid')
 import * as S from "@emurgo/cardano-serialization-lib-asmjs";
-
+import Web3Token from 'web3-cardano-token/dist/browser';
 
 export default {
     name: 'Intro',
+    props: ['API'],
     data: () => (
         {
             nft_tags: [
@@ -144,6 +145,7 @@ export default {
                 height: 400,
                 class: 'my-5'
             },
+            txBuilder: undefined,
             state: {
                 walletHandle: undefined,
                 selectedTabId: "1",
@@ -158,13 +160,13 @@ export default {
                 CollatUtxos: undefined,
                 balance: undefined,
                 changeAddress: undefined,
-                rewardAddress: undefined,
+                rewardAddredss: undefined,
                 usedAddress: undefined,
                 txBody: undefined,
                 txBodyCborHex_unsigned: "",
                 txBodyCborHex_signed: "",
                 submittedTxHash: "",
-                addressBech32SendADA: "addr_test1qqsw655meex7mm9y0k0yck8w2j6scamyddxl9rpw7rhfl77zahdw9vx0sxq85vky5wfh77mecwqc6yudf9qpspu02kmq2aydw9",
+                addressBech32SendADA: "addr_test1qz573f59nwmnwewd05axy0a92wk7ssu6ndrclkhm9hk4hl43ejzq3x908pjvqy8n42eg9fnzr535tknyjyg9z0tvltmq74qmek",
                 lovelaceToSend: 3000000,
                 assetNameHex: "4c494645",
                 assetPolicyIdHex: "ae02017105527c6c0c9840397a39cc5ca39fabe5b9998ba70fda5f2f",
@@ -227,7 +229,7 @@ export default {
             console.log("Now fetching balance")
             e.preventDefault();
             try{
-                var t = await cardano.getBalance()  
+                var t = await this.API.getBalance()  
                 this.balance = await this.decodeHex(t)
                 console.log("decoded wallet amount", this.balance)
             }
@@ -239,7 +241,7 @@ export default {
         async fetchNetwork(e){
             e.preventDefault()
             try{
-                var id = await cardano.getNetworkId()
+                var id = await this.API.getNetworkId()
                 if( id == 0){
                     this.network = "Testnet"
                 }
@@ -256,8 +258,10 @@ export default {
         async fetchAddress(e){
             const _Buffer = (await import('buffer/')).Buffer
             e.preventDefault()
+            
             try{
-                var t  = await cardano.getChangeAddress()
+                console.log(this.API)
+                var t  = await this.API.getChangeAddress()
                 this.nft_recv_addr = await S.Address.from_bytes(_Buffer.from(t, 'hex')).to_bech32()
                 console.log("Address associated with the wallet is:",this.nft_recv_addr )
             }
@@ -275,9 +279,8 @@ export default {
          */
         async getNetworkId(e){
             try {
-                const networkId = await this.API.getNetworkId();
-                this.setState({networkId})
-                
+                const networkId = await this.API.nami.getNetworkId();
+                this.networkId = networkId                
             } catch (err) {
                 console.log(err)
             }
@@ -290,46 +293,80 @@ export default {
          */
         async checkIfWalletEnabled(e){
             
-            let walletIsEnabled = false;
-            
             try {                
-                this.state.walletIsEnabled = await window.cardano.nami.isEnabled();                
+                this.state.walletIsEnabled = await window.this.API.nami.isEnabled();                
+                return this.state.walletIsEnabled
             } catch (err) {
                 console.log(err)
-            }
-            
-            return walletIsEnabled
+            }            
         },
         
         async enableWallet(e){
             try {                                
                 await this.checkIfWalletEnabled();
-                await cardano.nami.enable();
+                if (! this.state.walletIsEnabled){
+                    await this.API.nami.enable();
+                    this.state.walletIsEnabled = true
+                }
                 await this.getNetworkId();
-                this.walletIsEnabled = true
+                console.log(this.networkId)
             }
             catch (err) {
                 console.log(err)
             }
         },
         
+        isHex(h){
+            var re = /[0-9A-Fa-f]{6}/g;
+            if(re.test(h)) {
+                alert('valid hex');
+                return true
+            } else {
+                alert('invalid');
+                return false
+            }
+        },
+        
+        async addrToPubKeyHash(bech32Addr) {
+            const _Buffer = (await import('buffer/')).Buffer
+            
+            const addr_bytes = S.Address.from_bech32(bech32Addr)
+            const addr_hbytes  = S.BaseAddress.from_address(addr_bytes).payment_cred().to_keyhash().to_bytes()
+            const pkh = _Buffer.from(addr_hbytes).toString("hex")
+            return pkh
+        },
         
         async fetchUtxo(e){
             const _Buffer = (await import('buffer/')).Buffer
             
             let wallet_utxos = []
             e.preventDefault()
+            
+            const pkh = await this.addrToPubKeyHash(this.nft_recv_addr)
+            console.log(`Public key hash of ${this.nft_recv_addr} is ${pkh}`)
+            
             try{
-                let rawUtxo = await cardano.getUtxos()
+                let rawUtxo = await this.API.getUtxos()
                 console.log(rawUtxo)
-                rawUtxo.map(u => {
+                
+                rawUtxo.map(async (u) => {
+                    
+                    console.log(`checking if ${u} is hexadecimal value: ${this.isHex(u)}`)
+                    
                     const utxo = S.TransactionUnspentOutput.from_bytes(_Buffer.from(u, 'hex'))
+                    
                     const input = utxo.input();
                     const txid = _Buffer.from(input.transaction_id().to_bytes(), "utf8").toString("hex");
                     const txindx = input.index();
+                    
                     const output = utxo.output();
+                    
+                    console.log("output utxo")
+                    console.log(output)
+                    
                     const amount = output.amount().coin().to_str(); // ADA amount in lovelace
                     const multiasset = output.amount().multiasset();
+                    
                     let multiAssetStr = "";
                     
                     if (multiasset) {
@@ -350,17 +387,18 @@ export default {
                     }
                     
                     const obj = {
+                        TransactionUnspentOutput: utxo,
                         txid: txid,
                         txindx: txindx,
                         amount: amount,
                         str: `${txid} #${txindx} = ${amount}`,
-                        multiAssetStr: multiAssetStr,
-                        TransactionUnspentOutput: utxo
+                        multiAssetStr: multiAssetStr   
                     }
                     
                     console.log(obj)
                     wallet_utxos.push(obj)
                 })
+                
                 this.state.Utxos = wallet_utxos
             }
             catch(error){
@@ -385,7 +423,7 @@ export default {
             try {
                 
                 let collateral = [];                
-                collateral = await cardano.getCollateral();
+                collateral = await this.API.getCollateral();
                 
                 for (const x of collateral) {
                     const utxo = S.TransactionUnspentOutput.from_bytes(Buffer.from(x, "hex"));
@@ -406,9 +444,10 @@ export default {
          */
         async getChangeAddress(e){
             try {
-                const raw = await cardano.getChangeAddress();
+                const raw = await this.API.getChangeAddress();
                 const changeAddress = S.Address.from_bytes(Buffer.from(raw, "hex")).to_bech32()
                 this.state.changeAddress = changeAddress
+                return changeAddress
             }
             catch (err)
             {
@@ -423,10 +462,11 @@ export default {
         async getRewardAddresses(e){
             
             try {
-                const raw = await cardano.getRewardAddresses();
+                const raw = await this.API.getRewardAddresses();
                 const rawFirst = raw[0];
                 const rewardAddress = S.Address.from_bytes(Buffer.from(rawFirst, "hex")).to_bech32()
                 console.log(rewardAddress)
+                
                 this.state.rewardAddress = rewardAddress                
             } catch (err) {
                 console.log(err)
@@ -440,7 +480,7 @@ export default {
         async getUsedAddresses(e){
             
             try {
-                const raw = await cardano.getUsedAddresses();
+                const raw = await this.API.getUsedAddresses();
                 const rawFirst = raw[0];
                 const usedAddress = S.Address.from_bytes(Buffer.from(rawFirst, "hex")).to_bech32()
                 this.usedAddress = usedAddress
@@ -449,6 +489,33 @@ export default {
                 console.log(err)
             }
         },
+
+        async genJWTtoken(e){
+            try{
+                const Buffer = (await import('buffer/')).Buffer
+                
+                const saddress = await this.API.getRewardAddresses()
+
+                const paddress = await this.getChangeAddress(e)
+                const msg = "hello"
+
+                console.log(msg)
+                console.log("Now signing message using stake keys")
+                
+                const msg_hex = Buffer.from(msg, 'utf-8').toString("hex")
+                console.log(msg_hex)
+                
+                // const signed_data = await this.API.signData(saddress[0], msg_hex)                
+                // console.log(signed_data)
+                
+                const token = await Web3Token.sign(msg => this.API.signData(saddress[0], msg_hex, '1d'))
+                console.log(token)
+            }
+            catch(err){
+                console.error(err)
+            }
+
+        },            
         
         /**
          * Refresh all the data from the user's wallet
@@ -477,36 +544,129 @@ export default {
         },
         
         
+        
         async initTransactionBuilder(e){
             console.log(S)
-
-            const txBuilder = S.TransactionBuilder.new(
-            S.TransactionBuilderConfigBuilder.new()
-                .fee_algo(S.LinearFee.new(S.BigNum.from_str(this.protocolParams.linearFee.minFeeA), S.BigNum.from_str(this.protocolParams.linearFee.minFeeB)))
-                .pool_deposit(S.BigNum.from_str(this.protocolParams.poolDeposit))
-                .key_deposit(S.BigNum.from_str(this.protocolParams.keyDeposit))
-                .coins_per_utxo_word(S.BigNum.from_str(this.protocolParams.coinsPerUtxoWord))
-                .max_value_size(this.protocolParams.maxValSize)
-                .max_tx_size(this.protocolParams.maxTxSize)
-                .prefer_pure_change(true)
-                .build()
+            
+            this.txBuilder = S.TransactionBuilder.new(
+                S.TransactionBuilderConfigBuilder.new()
+                    .fee_algo(S.LinearFee.new(S.BigNum.from_str(this.protocolParams.linearFee.minFeeA), S.BigNum.from_str(this.protocolParams.linearFee.minFeeB)))
+                    .pool_deposit(S.BigNum.from_str(this.protocolParams.poolDeposit))
+                    .key_deposit(S.BigNum.from_str(this.protocolParams.keyDeposit))
+                    .coins_per_utxo_word(S.BigNum.from_str(this.protocolParams.coinsPerUtxoWord))
+                    .max_value_size(this.protocolParams.maxValSize)
+                    .max_tx_size(this.protocolParams.maxTxSize)
+                    .prefer_pure_change(true)
+                    .build()
             );
-                        
-            return txBuilder
+            
         },
-        
         
         /**
          * Builds an object with all the UTXOs from the user's wallet
          * @returns {Promise<TransactionUnspentOutputs>}
          */
-        async getTxUnspentOutputs(e){
-            let txOutputs = S.TransactionUnspentOutputs.new()
-            for (const utxo of this.state.Utxos) {
-                txOutputs.add(utxo.TransactionUnspentOutput)
-            }
-            return txOutputs
+        async getTxUnspentOutputs(){
+            
+            // create TransactionUnspentOutputs for 'add_inputs_from' function
+            const utxoOutputs = await S.TransactionUnspentOutputs.new();            
+            const rawUtxo = await this.API.getUtxos()
+            
+            
+            const utxosFromWalletConnector = rawUtxo.map(utxo => {
+                
+                let t = S.TransactionUnspentOutput.from_bytes(Buffer.from(utxo, 'hex'))
+                utxoOutputs.add(t);
+                
+            })
+            
+            return utxoOutputs;
         },
+        
+        async generate_timelockScript(){
+            const result = await fetch('https://api.koios.rest/api/v0/tip');
+            console.log(result);
+            const nslot = result.abs_slot+10000
+            const timelock = this.API.TimelockExpiry.new(nslot);
+            const timelockScript = this.API.NativeScript.new_timelock_expiry(timelock);
+            
+            return timelockScript
+        },
+        
+        async getWalletWasmAddr(){
+            const Buffer = (await import('buffer/')).Buffer
+            
+            const changeAddress = await this.API.getChangeAddress();
+            const wasmChangeAddress = await S.Address.from_bytes(Buffer.from(changeAddress, 'hex'))
+            
+            return wasmChangeAddress
+        },
+        
+        async generate_pubkeyscript(){
+            
+            const wasmChangeAddress = await this.getWalletWasmAddr()
+            const baseAddress = await S.BaseAddress.from_address(wasmChangeAddress);            
+            const scriptPubKey = await S.ScriptPubkey.new(baseAddress.payment_cred().to_keyhash());            
+            
+            const pubKeyScript = await S.NativeScript.new_script_pubkey(scriptPubKey);
+            
+            console.log(`pubkeyscript is`)
+            console.log(pubKeyScript)
+            
+            return pubKeyScript
+        },
+        
+        async txBuilder_add_nft_tx(pubKeyScript, metadataObj, NFTIndex){
+            
+            const wasmChangeAddress = await this.getWalletWasmAddr()
+            let outputBuilder = await S.TransactionOutputBuilder.new();
+            outputBuilder = outputBuilder.with_address(wasmChangeAddress);
+            
+            this.txBuilder.add_mint_asset_and_output_min_required_coin(
+                pubKeyScript,
+                await S.AssetName.new(Buffer.from('NFT' + NFTIndex.toString(), 'utf8')),
+                await S.Int.new_i32(1),
+                outputBuilder.next(),
+            );
+            
+            // txBuilder.set_ttl(ttl);
+            this.txBuilder.add_json_metadatum(await S.BigNum.from_str('721'), JSON.stringify(metadataObj));
+        },
+        
+        async tx_Nft_Prepare(NFTIndex){
+            
+            //TO DO: ALSO ADD REITCIRCLES BACKEND SCRIPT PUBLIC KEY, SO THAT ISSUANCE OF NFT CAN BE PROVEN.
+            // const appScript = Loader.Cardano.ScriptPubkey.new(appKeyHash);
+            // const appNativeScript = Loader.Cardano.NativeScript.new_script_pubkey(appScript);            
+            
+            // const timelockScript = generate_timelockScript()
+            const pubKeyScript = await this.generate_pubkeyscript()            
+            
+            const policyScripts = await S.NativeScripts.new();
+            policyScripts.add(pubKeyScript);
+            //policyScripts.add(timelockScript);
+            
+            console.log('policyScripts :>> ', policyScripts);
+            
+            const policyId = Buffer.from(pubKeyScript.hash(0).to_bytes()).toString('hex');
+            console.log('policyId :>> ', policyId);
+            
+            const metadataObj = {
+                [policyId]: {
+                    ['NFT' + NFTIndex.toString()]: {
+                        description: 'Test2',
+                        name: 'Test token2',
+                        id: NFTIndex.toString(),
+                        image: 'ipfs://QmUb8fW7qm1zCLhiKLcFH9yTCZ3hpsuKdkTgKmC8iFhxV8',
+                    },
+                },
+            };
+            
+            console.log(metadataObj)
+            
+            await this.txBuilder_add_nft_tx(pubKeyScript, metadataObj, NFTIndex)
+        },
+        
         
         /**
          * The transaction is build in 3 stages:
@@ -519,66 +679,76 @@ export default {
          * 6 - Send the transaction
          * @returns {Promise<void>}
          */
+        
         async buildSendADATransaction(e){
-
+            
             //Step 1: Initialise the transaction
-            const txBuilder = await this.initTransactionBuilder(e);
-            const shelleyOutputAddress = S.Address.from_bech32(this.state.addressBech32SendADA);
-            const shelleyChangeAddress = S.Address.from_bech32(this.nft_recv_addr);
-
-            //Step 2: Add inputs and outputs
-            txBuilder.add_output(
+            this.initTransactionBuilder(e);
+            
+            const shelleyOutputAddress = await S.Address.from_bech32(this.state.addressBech32SendADA);
+            const shelleyChangeAddress = await S.Address.from_bech32(this.nft_recv_addr);
+            
+            //Step 1A: Add input utxos
+            const txUnspentOutputs = await this.getTxUnspentOutputs();
+            this.txBuilder.add_inputs_from(txUnspentOutputs, 0)
+            
+            
+            //Step 2: Add output of the transaction fee to the platform wallet.
+            this.txBuilder.add_output(
                 S.TransactionOutput.new(
                     shelleyOutputAddress,
                     S.Value.new(S.BigNum.from_str(this.state.lovelaceToSend.toString()))
                 ),
             );
-
-            //Step 2A: For NFT we now have to build up the reverse transaction. Where output is nft needs to be minted and transferred to user wallet.
-            // txBuilder.add_output(
-            //     S.TransactionOutput.new(
-            //         shelleyChangeAddress,
-            //         S.Value.new(S.BigNum.from_str(this.state.lovelaceToSend.toString())) //TO DO: This should be the minting transaction for the NFT.
-            //     ),
-            // );
             
+            //Step 2a: Add nft creation transaction and transfer of same to user wallet
+            await this.tx_Nft_Prepare(1)                        
             
-            const txUnspentOutputs = await this.getTxUnspentOutputs();
-            txBuilder.add_inputs_from(txUnspentOutputs, 1)
+            console.log(this.txBuilder)
             
             // Step 3: calculate the min fee required and send any change to an address
-            txBuilder.add_change_if_needed(shelleyChangeAddress)
+            this.txBuilder.add_change_if_needed(shelleyChangeAddress)
+
+            const Buffer = (await import('buffer/')).Buffer
+
+            //Step 4a: Calculate unsigned transaction
+            const unsignedTxHex = Buffer.from(this.txBuilder.build_tx().to_bytes()).toString("hex")
+            const tx1WitnessSetHex = await this.API.signTx(unsignedTxHex)
+            console.log('witnessSetHex :>> ', tx1WitnessSetHex);
+            
+
             
             // Step 4: once the transaction is ready, we build it to get the tx body without witnesses
-            const txBody = txBuilder.build();
+            const txBody = this.txBuilder.build();
             
-            const transactionWitnessSet = S.TransactionWitnessSet.new();
+            // Tx witness
+            const txWitnessSet = await S.TransactionWitnessSet.new();
             
-            const tx = S.Transaction.new(
+            // Step 4a: Now calculate all the witnesses 
+            const tx = await S.Transaction.new(
                 txBody,
-                S.TransactionWitnessSet.from_bytes(transactionWitnessSet.to_bytes())
+                await S.TransactionWitnessSet.from_bytes(txWitnessSet.to_bytes())
             )
             
-            let txVkeyWitnesses = await cardano.signTx(Buffer.from(tx.to_bytes(), "utf8").toString("hex"), true);
+            let txVkeyWitnesses = await this.API.signTx(Buffer.from(tx.to_bytes(), "utf8").toString("hex"), true);                               
+            txVkeyWitnesses = await S.TransactionWitnessSet.from_bytes(Buffer.from(txVkeyWitnesses, "hex"));
             
-            console.log(txVkeyWitnesses)
+            txWitnessSet.set_vkeys(txVkeyWitnesses.vkeys());
             
-            txVkeyWitnesses = S.TransactionWitnessSet.from_bytes(Buffer.from(txVkeyWitnesses, "hex"));
-            
-            transactionWitnessSet.set_vkeys(txVkeyWitnesses.vkeys());
-
-            //Step 5: Sign the transaction
-            
+            //Step 5: Sign the transaction            
             const signedTx = S.Transaction.new(
                 tx.body(),
-                transactionWitnessSet
+                txWitnessSet
             );
-            
 
+            
+            
             // Step 6: Submit transaction
-            const submittedTxHash = await cardano.submitTx(Buffer.from(signedTx.to_bytes(), "utf8").toString("hex"));
-            console.log(submittedTxHash)
+            const submittedTxHash = await this.API.submitTx(Buffer.from(signedTx.to_bytes(), "utf8").toString("hex"));
+            console.log(`submitted transaction hash:${submittedTxHash}`)
+            
             //this.setState({submittedTxHash});
+            
         }
         
     }

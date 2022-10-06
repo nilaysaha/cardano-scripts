@@ -15,7 +15,8 @@
     "core-js": "^3.6.5",
     "uuid": "^8.3.2",
     "vue": "^2.6.11",
-    "vue-material": "^1.0.0-beta-15"
+    "vue-material": "^1.0.0-beta-15",
+    "web3-cardano-token": "0.0.12"
   },
   "devDependencies": {
     "@vue/cli-plugin-babel": "~4.5.0",
