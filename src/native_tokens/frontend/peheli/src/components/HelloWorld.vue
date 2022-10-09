@@ -351,7 +351,7 @@ export default {
                 
                 rawUtxo.map(async (u) => {
                     
-                    console.log(`checking if ${u} is hexadecimal value: ${this.isHex(u)}`)
+                    //console.log(`checking if ${u} is hexadecimal value: ${this.isHex(u)}`)
                     
                     const utxo = S.TransactionUnspentOutput.from_bytes(_Buffer.from(u, 'hex'))
                     
