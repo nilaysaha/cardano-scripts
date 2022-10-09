@@ -19,7 +19,7 @@ export default {
     data: () => {
         return {
 	    button_text: "Sign In",
-            chandle: window.cardano["nami"],
+            chandle: window.cardano["eternl"],
             API: null
         }
     },

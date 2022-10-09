@@ -16,7 +16,7 @@ import { BootstrapVue, IconsPlugin } from 'bootstrap-vue'
 Vue.use(BootstrapVue)
 Vue.use(IconsPlugin)
 
-Vue.prototype.$chandle = window.cardano.nami
+Vue.prototype.$chandle = window.cardano.eternl
 
 new Vue({
     render: h => h(App),

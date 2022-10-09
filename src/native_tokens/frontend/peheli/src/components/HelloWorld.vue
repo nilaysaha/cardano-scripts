@@ -505,10 +505,10 @@ export default {
                 const msg_hex = Buffer.from(msg, 'utf-8').toString("hex")
                 console.log(msg_hex)
                 
-                // const signed_data = await this.API.signData(saddress[0], msg_hex)                
-                // console.log(signed_data)
+                const signed_data = await this.API.signData(saddress[0], msg_hex)                
+                console.log(signed_data)
                 
-                const token = await Web3Token.sign(msg => this.API.signData(saddress[0], msg_hex, '1d'))
+                const token = await Web3Token.sign(msg => this.API.signData(saddress[0], msg_hex), '1d')
                 console.log(token)
             }
             catch(err){
