@@ -112,7 +112,7 @@
 <script>
 const uniqueId = require('uuid')
 import * as S from "@emurgo/cardano-serialization-lib-asmjs";
-import Web3Token from 'web3-cardano-token/dist/browser';
+import Web3Token from 'web3-cardano-token-cportal/dist/browser';
 
 export default {
     name: 'Intro',
@@ -136,6 +136,7 @@ export default {
             nft_cost_payment_addr: "",
             previewImage: "",
             utxo:[],
+            DEFAULT_SESSION_LENGTH_IN_DAYS: 365,
             mainProps: {
                 center: true,
                 fluidGrow: true,
@@ -279,7 +280,7 @@ export default {
          */
         async getNetworkId(e){
             try {
-                const networkId = await this.API.nami.getNetworkId();
+                const networkId = await this.API.getNetworkId() ;
                 this.networkId = networkId                
             } catch (err) {
                 console.log(err)
@@ -490,6 +491,59 @@ export default {
             }
         },
 
+        async generateMessagingKeys(e){
+            const keyPair = await window.crypto.subtle.generateKey(
+                {
+                    name: "ECDH",
+                    namedCurve: "P-256",
+                },
+                true,
+                ["deriveKey", "deriveBits"]
+            );
+            
+            const publicKeyJwk = await window.crypto.subtle.exportKey(
+                "jwk",
+                keyPair.publicKey
+            );
+            
+            const privateKeyJwk = await window.crypto.subtle.exportKey(
+                "jwk",
+                keyPair.privateKey
+            );
+            
+            return { publicKeyJwk, privateKeyJwk };
+        },
+
+        /*
+          Localstorage of items required for storage.
+          where method: 'get', 'set', 'del'
+         */
+        async lstore(key,value,method){
+
+            try{
+                switch (method) {
+                case 'get':
+                    localStorage.getItem(key)
+                    break;
+                case 'set':
+                    localStorage.setItem(key, value)
+                    break
+                case 'del':
+                    localStorage.removeItem(key)
+                    break;
+                default:
+                    console.log('did not find proper method get, set, del for localstorage')
+                    throw new Error(`Method:${method} not found.`)
+                    
+                }
+            }
+            catch(err){
+                console.error('Could not process localstorage data',err)
+                throw new Error('Could not process localstorage data',err)
+            }
+
+        },
+        
         async genJWTtoken(e){
             try{
                 const Buffer = (await import('buffer/')).Buffer
@@ -497,18 +551,38 @@ export default {
                 const saddress = await this.API.getRewardAddresses()
 
                 const paddress = await this.getChangeAddress(e)
-                const msg = "hello"
 
-                console.log(msg)
-                console.log("Now signing message using stake keys")
+                const expiry_date = Math.floor(Date.now() / 1000) + 60 * 60 * 24 * this.DEFAULT_SESSION_LENGTH_IN_DAYS
+
+                //The "type" of message can be: "walletLogin", "DaoCreation", "DaoMembership", "HouseFractionalise" etc.
+
+                const msgKPairs = await this.generateMessagingKeys()
                 
-                const msg_hex = Buffer.from(msg, 'utf-8').toString("hex")
-                console.log(msg_hex)
+                const msg = {
+                    'type': "walletLogin",
+                    'chainID': (await this.API.getNetworkId()).toString(),
+                    'msgPublicKey': JSON.stringify(msgKPairs.publicKeyJwk)
+                };
+
+                //store the key pairs.
+                await this.lstore('ecdh_private_key', msgKPairs.privateKeyJwk, 'set')
+                await this.lstore('ecdh_public_key', msgKPairs.publicKeyJwk, 'set')
                 
-                const signed_data = await this.API.signData(saddress[0], msg_hex)                
-                console.log(signed_data)
-                
-                const token = await Web3Token.sign(msg => this.API.signData(saddress[0], msg_hex), '1d')
+                const wallet_signing_function = async (msg) => {
+                    const Buffer = (await import('buffer/')).Buffer
+
+                    const paddress = await this.API.getRewardAddresses();
+                    const msg_hex = Buffer.from(JSON.stringify(msg), 'utf-8').toString("hex")
+                    
+                    return this.API.signData(saddress[0], msg_hex)
+                }
+
+                // const signed_data = await this.API.signData(saddress[0], msg_hex)                
+                // console.log(signed_data)                
+                //const token = await Web3Token.sign(m => this.API.signData(saddress[0], msg_hex), '1d', )
+
+                const nonce = 123 //to be finally obtained via api using the wallet address
+                const token = await Web3Token.sign(wallet_signing_function, '1d', msg, nonce )
                 console.log(token)
             }
             catch(err){

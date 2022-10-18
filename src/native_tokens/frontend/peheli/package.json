@@ -10,22 +10,22 @@
   "dependencies": {
     "@emurgo/cardano-serialization-lib-asmjs": "^10.0.4-beta.4",
     "axios": "^0.24.0",
-    "bootstrap": "^5.1.3",
-    "bootstrap-vue": "^2.21.2",
-    "core-js": "^3.6.5",
+    "bootstrap": "^5.2.2",
+    "bootstrap-vue": "^2.22.0",
+    "core-js": "^3.25.5",
     "uuid": "^8.3.2",
-    "vue": "^2.6.11",
+    "vue": "^2.7.12",
     "vue-material": "^1.0.0-beta-15",
-    "web3-cardano-token": "0.0.12"
+    "web3-cardano-token-cportal": "0.0.15"
   },
   "devDependencies": {
-    "@vue/cli-plugin-babel": "~4.5.0",
-    "@vue/cli-plugin-eslint": "~4.5.0",
-    "@vue/cli-service": "~4.5.0",
+    "@vue/cli-plugin-babel": "^4.5.19",
+    "@vue/cli-plugin-eslint": "^4.5.19",
+    "@vue/cli-service": "^4.5.19",
     "babel-eslint": "^10.1.0",
     "eslint": "^6.7.2",
     "eslint-plugin-vue": "^6.2.2",
-    "vue-template-compiler": "^2.6.11"
+    "vue-template-compiler": "^2.7.12"
   },
   "eslintConfig": {
     "root": true,
