@@ -23,9 +23,9 @@
     "web3-cardano-token-cportal": "0.0.15"
   },
   "devDependencies": {
-    "@vue/cli-plugin-babel": "^4.5.19",
-    "@vue/cli-plugin-eslint": "^4.5.19",
-    "@vue/cli-service": "^4.5.19",
+    "@vue/cli-plugin-babel": "^5.0.8",
+    "@vue/cli-plugin-eslint": "^5.0.8",
+    "@vue/cli-service": "^5.0.8",
     "babel-eslint": "^10.1.0",
     "eslint": "^6.7.2",
     "eslint-plugin-vue": "^6.2.2",
