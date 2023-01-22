@@ -24,7 +24,7 @@ ensure_node_dir() {
 }
 
 stop() {
-    kill -2 `pgrep -u nsaha cardano-node`
+    kill -15 `pgrep -u nsaha cardano-node`
 }
 
 choice() { i=$1; shift; eval "echo \${$((i + 1))}"; }

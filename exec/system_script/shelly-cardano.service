@@ -11,6 +11,8 @@ Environment=LD_LIBRARY_PATH="/usr/local/lib:$LD_LIBRARY_PATH":
 WorkingDirectory=/home/nsaha/projects/cardano/cardano-scripts/exec
 ExecStart=/home/nsaha/project/cardano/cardano-scripts/exec/ff-node-shelly-mainnet-relay.v2 start
 ExecStop=/usr/bin/pkill -2 cardano-node
+Restart=always
+RestartSec=5s
 
 [Service]
 # Configures the time to wait before service is stopped forcefully.

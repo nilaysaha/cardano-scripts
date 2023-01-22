@@ -1,6 +1,7 @@
 #!/bin/sh
 
 #install pre-req
+sudo apt update
 sudo apt install build-essential
 sudo apt-get install libtool
 sudo apt-get install autoconf

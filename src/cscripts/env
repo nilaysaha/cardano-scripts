@@ -33,7 +33,6 @@ USE_EKG="Y"                                            # Use EKG metrics from th
 #TG_CHAT_ID=""                                          # https://cardano-community.github.io/guild-operators/Scripts/sendalerts
 #TIMEOUT_LEDGER_STATE=300                               # Timeout in seconds for querying and dumping ledger-state
 #IP_VERSION=4                                           # The IP version to use for push and fetch, valid options: 4 | 6 | mix (Default: 4)
-#PGREST_API="http://127.0.0.1:8050"                     # Uncomment and set to enable PostgREST API queries against DB-Sync
 #DBSYNC_QUERY_FOLDER="${CNODE_HOME}/files/dbsync/queries" # [advanced feature] Folder containing DB-Sync chain analysis queries
 
 #WALLET_FOLDER="${CNODE_HOME}/priv/wallet"              # Root folder for Wallets
@@ -76,10 +75,15 @@ POOL_NAME="LKBH"                                           # Set the pool's name
 #TCONFIG_HOME="/opt/cardano/tconfig"                        # Override default TCONFIG_HOME path (defaults to /opt/cardano/tconfig)
 #ENABLE_KOIOS=Y                                         # (Y|N) Enable KOIOS API. If disabled, local node queries will be used instead with increased system resource requirements (default Y)
 #KOIOS_API="https://api.koios.rest/api/v0/"             # Koios API for blockchain queries instead of local cli lookup.
+#G_ACCOUNT="cardano-community"             # Override default github repository if you forked project
 
 ######################################
 # Do NOT modify code below           #
 ######################################
+
+# Initialise/Set offline mode prior to calling functions
+OFFLINE_MODE='N'
+[[ $1 = "offline" ]] && OFFLINE_MODE='Y'
 
 # Description : Check if provided file exists
 #             : $1 = File (with path) to check
@@ -150,10 +154,9 @@ checkUpdate() {
   [[ "${UPDATE_CHECK}" != "Y" ]] && return 0
 
   if [[ ${OFFLINE_MODE} = N && ${BRANCH} != master && ${BRANCH} != alpha ]]; then
-    if ! curl -s -f -m ${CURL_TIMEOUT} "https://api.github.com/repos/cardano-community/guild-operators/branches" | jq -e ".[] | select(.name == \"${BRANCH}\")" &>/dev/null ; then
-      echo -e "WARN!! The folder was configured against ${BRANCH} branch - which does not exist anymore, falling back to alpha branch"
-      # alpha because if someone was testing something against a custom branch, it would likely be merged to alpha first. Production systems should not be using custom branch anyways
-      BRANCH=alpha
+    if ! curl -s -f -m ${CURL_TIMEOUT} "${URL_RAW}/LICENSE" -o /dev/null ; then
+      echo -e "WARN!! The folder was configured against ${BRANCH} branch - which does not exist anymore, falling back to master branch"
+      BRANCH=master
       echo "${BRANCH}" > "${TCONFIG_HOME}"/scripts/.env_branch
     fi
   fi
@@ -173,7 +176,7 @@ checkUpdate() {
     GIT_TEMPL=$(awk '/^# Do NOT modify/,0' "${dname}/${fname}".tmp)
     NEW_STATIC=$(checkUserVariables "${OLD_STATIC}" "${GIT_STATIC}")
     if [[ ($3 = Y && "$(sha256sum "${dname}/${fname}" | cut -d' ' -f1)" != "$(sha256sum "${dname}/${fname}.tmp" | cut -d' ' -f1)") || "$(echo ${OLD_STATIC} | sha256sum)" != "$(echo ${NEW_STATIC} | sha256sum)" || "$(echo ${OLD_TEMPL} | sha256sum)" != "$(echo ${GIT_TEMPL} | sha256sum)" ]]; then
-      update_msg="\nScript update(s) detected, do you want to download the latest version?"
+      update_msg="\n${fname} script update(s) detected, do you want to download the latest version?"
       if [[ ${fname} = cntools.library || ${fname} = gLiveView.sh ]]; then
         if [[ ${fname} = cntools.library ]]; then
           CUR_MAJOR_VERSION=$(grep -r ^CNTOOLS_MAJOR_VERSION= "${dname}/${fname}" |sed -e "s#.*=##")
@@ -323,11 +326,12 @@ validateDecimalNbr() {
 
 # Description : Pretty print Lovelace value
 #             : $1 = Amount in Lovelace
+#             : $2 = normal | pretty (default)
 formatLovelace() {
   if isNumber $1; then
     [[ $1 -eq 0 ]] && echo 0 && return
     [[ $1 -le 999999 ]] && printf '0.%06d' "$1" && return
-    printf '%s.%s' "$(sed ':a;s/\B[0-9]\{3\}\>/,&/;ta' <<< ${1::-6})" "${1: -6}"
+    [[ -z $2 || $2 = 'pretty' ]] && printf '%s.%s' "$(sed ':a;s/\B[0-9]\{3\}\>/,&/;ta' <<< ${1::-6})" "${1: -6}" || printf '%s.%s' "${1::-6}" "${1: -6}"
   else
     printf "${FG_RED}ERROR${NC}: must be a valid integer number" 1>&2
     return 1
@@ -394,7 +398,7 @@ fractionToPCT() {
 isValidIPv4() {
   local ip=$1
   [[ -z ${ip} ]] && return 1
-  if [[ ${ip} =~ ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$ || ${ip} =~ ^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$ ]]; then
+  if [[ ${ip} =~ ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$ || ${ip} =~ ^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9_\-]*[a-zA-Z0-9])\.)*([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9_\-]*[A-Za-z0-9])$ ]]; then
     return 0
   fi
   return 1
@@ -482,7 +486,7 @@ createDistanceToBottom() {
 # Description : Query cardano-node for current metrics
 getNodeMetrics() {
   CNODE_PID=$(pgrep -fn "$(basename ${CNODEBIN}).*.--port ${CNODE_PORT}") # Define again - as node could be restarted since last attempt of sourcing env
-  [[ -n ${CNODE_PID} ]] && uptimes=$(ps -p ${CNODE_PID} -o etimes=) || uptimes=0
+  [[ -n ${CNODE_PID} ]] && uptimes=$(( $(date -u +%s) - $(date -d "$(ps -p ${CNODE_PID} -o lstart=)" +%s) )) || uptimes=0
   if [[ ${USE_EKG} = 'Y' ]]; then
     node_metrics=$(curl -s -m ${EKG_TIMEOUT} -H 'Accept: application/json' "http://${EKG_HOST}:${EKG_PORT}/" 2>/dev/null)
     node_metrics_tsv=$(jq -r '[
@@ -700,39 +704,23 @@ slotInterval() {
 }
 
 # Description : Identify current era and set variables accordingly
+# TODO: Track progress of https://github.com/input-output-hk/cardano-node/pull/4135 to see if era identifier can be removed in a future release. 
 getEraIdentifier() {
-    if ${CCLI} query protocol-parameters --byron-era ${NETWORK_IDENTIFIER} &>/dev/null; then ERA_IDENTIFIER="--byron-era"
-  elif ${CCLI} query protocol-parameters --shelley-era ${NETWORK_IDENTIFIER} &>/dev/null; then ERA_IDENTIFIER="--shelley-era"
-  elif ${CCLI} query protocol-parameters --allegra-era ${NETWORK_IDENTIFIER} &>/dev/null; then ERA_IDENTIFIER="--allegra-era"
-  elif ${CCLI} query protocol-parameters --mary-era ${NETWORK_IDENTIFIER} &>/dev/null; then ERA_IDENTIFIER="--mary-era"
-  #Alonzo era disabled for now until hw support is fully implemented
-  #elif ${CCLI} query protocol-parameters --alonzo-era ${NETWORK_IDENTIFIER} &>/dev/null; then ERA_IDENTIFIER="--alonzo-era"
-  else
-    ERA_IDENTIFIER="--mary-era"
-    [[ ${OFFLINE_MODE} = "N" ]] && return 1
-  fi
+  NETWORK_ERA=$(${CCLI} query tip ${NETWORK_IDENTIFIER} 2>/dev/null | jq -r '.era //empty')
+  case ${NETWORK_ERA} in
+    Byron)   ERA_IDENTIFIER="--byron-era" ;;
+    Shelley) ERA_IDENTIFIER="--shelley-era" ;;
+    Allegra) ERA_IDENTIFIER="--allegra-era" ;;
+    Mary)    ERA_IDENTIFIER="--mary-era" ;;
+    #Alonzo)  ERA_IDENTIFIER="--alonzo-era" ;;
+    #Babbage) ERA_IDENTIFIER="--babbage-era" ;;
+    *)       ERA_IDENTIFIER="--mary-era" # use mary era as default
+             [[ ${OFFLINE_MODE} = "N" ]] && return 1
+  esac
   return 0
 }
 
 [[ ${0} != '-bash' ]] && PARENT=$(dirname $0) || PARENT="$(pwd)" # If sourcing at terminal, $0 would be "-bash" , which is invalid. Thus, fallback to present working directory
-
-OFFLINE_MODE='N'
-[[ $1 = "offline" ]] && OFFLINE_MODE='Y'
-[[ $(basename $0 2>/dev/null) = "cnode.sh" ]] && OFFLINE_MODE='Y' # for backwards compatibility
-[[ $(basename $0 2>/dev/null) = "topologyUpdater.sh" ]] && OFFLINE_MODE='Y' # for backwards compatibility
-
-[[ -f "${PARENT}"/.env_branch ]] && BRANCH=$(cat "${PARENT}"/.env_branch) || BRANCH=master
-
-URL_RAW="https://raw.githubusercontent.com/cardano-community/guild-operators/${BRANCH}"
-DB_SCRIPTS_URL="${URL_RAW}/scripts/grest-helper-scripts/db-scripts"
-export LC_ALL=C.UTF-8
-
-# special mapping of coreutils gdate to date for MacOS
-if [[ $(uname) == Darwin ]]; then
-   date () { gdate "$@"; }
-fi
-
-[[ -z ${CURL_TIMEOUT} ]] && CURL_TIMEOUT=10
 
 telegramSend() {
   if [[ -z "${TG_BOT_TOKEN}" ]] || [[ -z "${TG_CHAT_ID}" ]]; then
@@ -744,6 +732,20 @@ telegramSend() {
 }
 
 set_default_vars() {
+  [[ $(basename $0 2>/dev/null) = "cnode.sh" ]] && OFFLINE_MODE='Y' # for backwards compatibility
+  [[ $(basename $0 2>/dev/null) = "topologyUpdater.sh" ]] && OFFLINE_MODE='Y' # for backwards compatibility
+
+  [[ -f "${PARENT}"/.env_branch ]] && BRANCH=$(cat "${PARENT}"/.env_branch) || BRANCH=master
+  [[ -z ${G_ACCOUNT} ]] && G_ACCOUNT="cardano-community"
+
+  URL_RAW="https://raw.githubusercontent.com/${G_ACCOUNT}/guild-operators/${BRANCH}"
+  DB_SCRIPTS_URL="${URL_RAW}/scripts/grest-helper-scripts/db-scripts"
+  export LC_ALL=C.UTF-8
+  # special mapping of coreutils gdate to date for MacOS
+  if [[ $(uname) == Darwin ]]; then
+     date () { gdate "$@"; }
+  fi
+  [[ -z ${CURL_TIMEOUT} ]] && CURL_TIMEOUT=10
   [[ -z "${TCONFIG_HOME}" ]] && TCONFIG_HOME=/opt/cardano/tconfig
   CNODE_NAME="$(basename ${TCONFIG_HOME})"
   CNODE_VNAME=$(tr '[:upper:]' '[:lower:]' <<< ${CNODE_NAME//_HOME/})
@@ -882,8 +884,8 @@ if ! command -v "jq" &>/dev/null; then
   return 1
 fi
 
-read -ra CONFIG_CONTENTS <<<"$(jq -r '[ .AlonzoGenesisFile, .ByronGenesisFile, .ShelleyGenesisFile, .Protocol, .TraceChainDb]| @tsv' "${CONFIG}" 2>/dev/null)"
-if [[ -z "${CONFIG_CONTENTS[4]}" ]]; then
+read -ra CONFIG_CONTENTS <<<"$(jq -r '[ .AlonzoGenesisFile //"null", .ByronGenesisFile //"null", .ShelleyGenesisFile //"null", .Protocol //"Cardano", .TraceChainDb //"null", .EnableP2P //"false"]| @tsv' "${CONFIG}" 2>/dev/null)"
+if [[ ${CONFIG_CONTENTS[4]} != "true" ]]; then
   echo "Could not find TraceChainDb when attempting to parse ${CONFIG} file in JSON format, please double-check the syntax of your config, or simply download it from guild-operators repository!"
   return 1
 else
@@ -898,7 +900,9 @@ else
   [[ ! -f "${ALONZO_GENESIS_JSON}" ]] && echo "Byron genesis file not found: ${ALONZO_GENESIS_JSON}" && return 1
   [[ ! -f "${BYRON_GENESIS_JSON}" ]] && echo "Byron genesis file not found: ${BYRON_GENESIS_JSON}" && return 1
   [[ ! -f "${GENESIS_JSON}" ]] && echo "Shelley genesis file not found: ${GENESIS_JSON}" && return 1
+  GENESIS_HASH="$(${CCLI} genesis hash --genesis "${GENESIS_JSON}")"
   PROTOCOL="${CONFIG_CONTENTS[3]}"
+  P2P_ENABLED="${CONFIG_CONTENTS[5]}"
 fi
 
 [[ -z ${EKG_TIMEOUT} ]] && EKG_TIMEOUT=3
@@ -974,8 +978,8 @@ if [[ -n "${CNODE_PID}" ]]; then
 fi
 
 node_version="$(${CCLI} version | head -1 | cut -d' ' -f2)"
-if ! versionCheck "1.32.1" "${node_version}"; then
-  echo -e "\nGuild scripts has now been upgraded to support cardano-node 1.32.1 or higher (${node_version} found).\nPlease update cardano-node (note that you should ideally update your config too) or use tagged branches for older node version.\n\n"
+if ! versionCheck "1.35.2" "${node_version}"; then
+  echo -e "\nGuild scripts has now been upgraded to support cardano-node 1.35.2 or higher (${node_version} found).\nPlease update cardano-node (note that you should ideally update your config too) or use tagged branches for older node version.\n\n"
   return 1
 fi
 
@@ -1003,17 +1007,22 @@ case ${NWMAGIC} in
     NETWORK_NAME="Mainnet"
     SHELLEY_TRANS_EPOCH=208
     [[ -z ${KOIOS_API} ]] && KOIOS_API="https://api.koios.rest/api/v0" ;;
-  1097911063) 
-    NETWORK_NAME="Testnet"
-    SHELLEY_TRANS_EPOCH=74
-    [[ -z ${KOIOS_API} ]] && KOIOS_API="https://testnet.koios.rest/api/v0" ;;
-  633343913) 
-    NETWORK_NAME="Staging"
-    SHELLEY_TRANS_EPOCH=208 ;;
+  1)
+    NETWORK_NAME="PreProd"
+    SHELLEY_TRANS_EPOCH=4
+    [[ -z ${KOIOS_API} ]] && KOIOS_API="https://preprod.koios.rest/api/v0";;
   141) 
     NETWORK_NAME="Guild"
     SHELLEY_TRANS_EPOCH=2
     [[ -z ${KOIOS_API} ]] && KOIOS_API="https://guild.koios.rest/api/v0" ;;
+  2)
+    NETWORK_NAME="Preview"
+    SHELLEY_TRANS_EPOCH=0
+    [[ -z ${KOIOS_API} ]] && KOIOS_API="https://preview.koios.rest/api/v0" ;;
+  1097911063) # To be retired soon
+    NETWORK_NAME="Testnet"
+    SHELLEY_TRANS_EPOCH=74
+    [[ -z ${KOIOS_API} ]] && KOIOS_API="https://testnet.koios.rest/api/v0" ;;
   *) 
     NETWORK_NAME="Custom"
     [[ -z ${SHELLEY_TRANS_EPOCH} ]] && SHELLEY_TRANS_EPOCH=0
