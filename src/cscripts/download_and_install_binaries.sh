@@ -37,7 +37,7 @@ done
 
 #Now restart the blockchain
 #sudo systemctl stop shelly-cardano
-kill -2 `pgrep -u nsaha cardano-node`
+kill -15 `pgrep -u nsaha cardano-node`
 sudo systemctl daemon-reload
 sleep 60s
 sudo systemctl start shelly-cardano
