@@ -3,11 +3,11 @@
   <b-navbar toggleable="lg" type="dark" variant="info">
     <b-navbar-brand  class="ml-auto">
       <form>
-	<b-button type="submit" v-on:click="connect" variant="primary">{{ button_text }}</b-button>
+	<b-button type="submit" v-on:click="switchStatus" variant="primary">{{ button_text }}</b-button>
       </form>
     </b-navbar-brand>
   </b-navbar>
-  <HelloWorld name="Beautiful card"/>
+  <HelloWorld v-bind:API="API"/>
 </div>
 </template>
 
@@ -16,21 +16,58 @@ import HelloWorld from './components/HelloWorld.vue'
 
 export default {
     name: 'App',
-    data: () => ({
-	button_text: "Sign In",
-    }),
+    async created() {
+        console.log(this.$el);
+    },
+    async mounted() {
+        console.log(this.$el);
+        this.connected = await this.$chandle.isEnabled()
+        alert(`Wallet status on mount:${this.connected}`)
+        this.button_text = (this.connected)?"Disconnect":"Connect"
+        if (this.connected){
+            console.log("now getting handle")
+            this.API = await this.$chandle.enable()
+            console.log(this.API)
+        }
+    },
+    data() {
+        return {
+            button_text: this.connect_string,
+            chandle: window.cardano["eternl"],
+            API: null
+        };
+    },
     methods:{
-	async connect(e){
+        async disconnect(e){
+            e.preventDefault();
+            console.log("disconnecting wallet")
+            this.button_text = "Connect"
+            this.API = null
+            this.connected = false
+        },
+        async connect(e){
+            e.preventDefault();
+            console.log("Connecting")
+            this.button_text = "Disconnect"
+
+            this.API = await this.$chandle.enable()
+            this.connected = await this.$chandle.isEnabled()  
+
+            console.log(this.API)
+        },
+	async switchStatus(e){
 	    e.preventDefault();
-	    try{	
-		console.log("Pressed connect wallet")
-		await cardano.enable()
-		if (await cardano.isEnabled()){
-		    this.button_text = "SignOut"
-                    console.log("Attached Wallet")
+            
+	    try{                
+                console.log(`Current connect status:${this.connected}`)
+
+		if (this.connected)
+                {
+                    this.disconnect(e)                    
 		}
-                else{
-                    throw new Error("Could not enable wallet")
+                else //wallet is not connected
+                {
+                    this.connect(e)
                 }
 	    }			
 	    catch(e){
