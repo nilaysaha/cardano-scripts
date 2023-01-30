@@ -30,8 +30,8 @@ stop() {
 choice() { i=$1; shift; eval "echo \${$((i + 1))}"; }
 
 cexec() {
-    BASE_CONFIG="${SCRIPTDIR}/../src/tconfig/preprod/config.json"
-    TOPOLOGY_CONFIG="${SCRIPTDIR}/../src/tconfig/preprod/topology.json"
+    BASE_CONFIG="${SCRIPTDIR}/../src/tconfig/preview/config.json"
+    TOPOLOGY_CONFIG="${SCRIPTDIR}/../src/tconfig/preview/topology.json"
     CARDANO_NODE="/home/nsaha/.cabal/bin/cardano-node"
     HOST_IP="$(wget http://ipecho.net/plain -O - -q ; echo)"
     PORT=6001
