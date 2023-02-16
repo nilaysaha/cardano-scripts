@@ -70,7 +70,7 @@ unattended-upgrades==0.1
 urllib3>=1.26.5
 varint==1.0.2
 waitress==2.0.0
-Werkzeug==1.0.1
+Werkzeug==2.2.3
 zipp==1.0.0
 zope.component==5.0.0
 zope.event==4.5.0
