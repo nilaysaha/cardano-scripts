@@ -10,7 +10,8 @@ CWD=os.getcwd()
 
 #BASE_URL = 'https://hydra.iohk.io/job/Cardano/cardano-node/cardano-deployment/latest-finished/download/1/'
 #BASE_URL = 'http://hydra.iohk.io/job/Cardano/iohk-nix/cardano-deployment/latest-finished/download/1/'
-BASE_URL = 'https://hydra.iohk.io/job/Cardano/cardano-node/cardano-deployment/latest-finished/download/1/'
+#BASE_URL = 'https://hydra.iohk.io/job/Cardano/cardano-node/cardano-deployment/latest-finished/download/1/'
+BASE_URL = 'https://book.world.dev.cardano.org/environments/preview/'
 CARDANO_CLI="/home/nsaha/.cabal/bin/cardano-cli"
 
 FILES={
@@ -22,12 +23,12 @@ FILES={
             'byron-genesis':os.path.join( CWD, 'tconfig/mainnet-byron-genesis.json'),
             'alonzo-genesis':os.path.join( CWD, 'tconfig/mainnet-alonzo-genesis.json'),
         },
-        'testnet':{
-            'config':os.path.join( CWD, 'tconfig/testnet-config.json'),
-            'topology':os.path.join( CWD, 'tconfig/testnet-topology.json'),
-            'shelley-genesis':os.path.join( CWD, 'tconfig/testnet-shelley-genesis.json'),
-            'byron-genesis':os.path.join( CWD, 'tconfig/testnet-byron-genesis.json'),
-            'alonzo-genesis':os.path.join( CWD, 'tconfig/mainnet-alonzo-genesis.json'),
+        'preview':{
+            'config':os.path.join( CWD, 'tconfig/preview/config.json'),
+            'topology':os.path.join( CWD, 'tconfig/preview/topology.json'),
+            'shelley-genesis':os.path.join( CWD, 'tconfig/preview/shelley-genesis.json'),
+            'byron-genesis':os.path.join( CWD, 'tconfig/preview/byron-genesis.json'),
+            'alonzo-genesis':os.path.join( CWD, 'tconfig/preview/alonzo-genesis.json'),
         }
     }
 }
@@ -59,7 +60,7 @@ def fetch_init_files(network='mainnet'):
     """
     print(f"fetch_init_files")
     try:
-        fnames = [f'{network}-config.json', f'{network}-topology.json', f'{network}-shelley-genesis.json',f'{network}-byron-genesis.json',f'{network}-alonzo-genesis.json'  ]
+        fnames = [f'{network}/config.json', f'{network}/topology.json', f'{network}/shelley-genesis.json',f'{network}/byron-genesis.json',f'{network}/alonzo-genesis.json', f'{network}/db-sync-config.json', f'{network}/submit-api-config.json'  ]
         for c in fnames:
             turl = BASE_URL+c
             r1 = requests.get(url = BASE_URL+c)
@@ -182,7 +183,7 @@ if __name__ == "__main__":
     Options to download config files or to create keys etc.
     """
     parser = argparse.ArgumentParser(description=descr, formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument("--network", help="The network should be either 'mainnet' or 'testnet'", default="mainnet")
+    parser.add_argument("--network", help="The network should be either 'mainnet' or 'preview' or 'preprod'", default="mainnet")
     parser.add_argument("--configs", help="Fetch the configs and store them in proper directory",action="store_true")
     parser.add_argument("--kaddr", help="create the pairs of keys corresponding to the github.com/input-output-hk/cardano-tutorials/blob/master/node-setup/020_keys_and_addresses.md",action="store_true")
     args = parser.parse_args()
