@@ -81,10 +81,10 @@ RUN echo `which cabal`
 # 	make install;
 
 
-#install libsodium
+#install libsodium (earlier: 66f017f1)
 RUN git clone https://github.com/input-output-hk/libsodium; \
 	cd libsodium; \
-	git checkout 66f017f1; \
+	git checkout dbb48cce5429cb6585c9034f002568964f1ce567; \
 	./autogen.sh; \
 	./configure; \
 	make; \
