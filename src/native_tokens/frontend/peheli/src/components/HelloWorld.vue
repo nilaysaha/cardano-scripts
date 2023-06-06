@@ -582,7 +582,9 @@ export default {
                     const paddress = await this.API.getRewardAddresses();
                     const msg_hex = Buffer.from(JSON.stringify(msg), 'utf-8').toString("hex")
                     
-                    return this.API.signData(saddress[0], msg_hex)
+                    const signdata = await this.API.signData(saddress[0], msg_hex)
+                    console.log(signdata)
+                    return signdata
                 }
                 
                 // const signed_data = await this.API.signData(saddress[0], msg_hex)                

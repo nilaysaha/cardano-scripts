@@ -33,7 +33,7 @@ export default {
     data() {
         return {
             button_text: this.connect_string,
-            chandle: window.cardano["eternl"],
+            chandle: window.cardano["nami"],
             API: null
         };
     },
