@@ -33,7 +33,7 @@ cexec() {
     BASE_CONFIG="${SCRIPTDIR}/../src/tconfig/preview/config.json"
     TOPOLOGY_CONFIG="${SCRIPTDIR}/../src/tconfig/preview/topology.json"
     CARDANO_NODE="/home/nsaha/.cabal/bin/cardano-node"
-    HOST_IP="$(wget http://ipecho.net/plain -O - -q ; echo)"
+    HOST_IP="$(curl api.ipify.org)"
     PORT=6001
     DB_DIR="${NODE_DIR}/db-ff"
     SOCKET="${NODE_DIR}/node.socket"
