@@ -15,7 +15,7 @@ BASE_BINARY_DIR="$HOME/.cabal/bin"
 ./download_binaries.sh $VERSION_ID
 
 #Now backup the current .cabal directory
-DATE=$(date +%d/%m/%y)
+DATE=$(date %s)
 BACKUP_BIN_DIR="$HOME/.cabal/bin_$DATE"
 
 
@@ -28,12 +28,11 @@ fi
 mv $BASE_BINARY_DIR/* $BACKUP_BIN_DIR/.
 
 #And move the latest binary
-mv $STORAGE_DIR/* $BASE_BINARY_DIR/.
-for i in `ls $BASE_BINARY_DIR`
+for i in `find ${STORAGE_DIR} -executable`
 do
-    chmod +x $BASE_BINARY_DIR/$i
+    cp $i $BASE_BINARY_DIR/.
 done
-    
+        
 
 #Now restart the blockchain
 #sudo systemctl stop shelly-cardano
