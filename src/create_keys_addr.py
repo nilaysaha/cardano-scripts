@@ -21,6 +21,7 @@ FILES={
             'alonzo-genesis':os.path.join( CWD, 'tconfig/mainnet/alonzo-genesis.json'),
             'submit-api-config':os.path.join( CWD, 'tconfig/mainnet/submit-api-config.json'),
             'db-sync-config':os.path.join( CWD, 'tconfig/mainnet/db-sync-config.json'),
+            'conway-genesis':os.path.join( CWD, 'tconfig/mainnet/conway-genesis.json'),                        
         },
         'preview':{
             'config':os.path.join( CWD, 'tconfig/preview/config.json'),
@@ -30,7 +31,7 @@ FILES={
             'alonzo-genesis':os.path.join( CWD, 'tconfig/preview/alonzo-genesis.json'),
             'submit-api-config':os.path.join( CWD, 'tconfig/preview/submit-api-config.json'),
             'db-sync-config':os.path.join( CWD, 'tconfig/preview/db-sync-config.json'),
-            
+            'conway-genesis':os.path.join( CWD, 'tconfig/preview/conway-genesis.json'),                        
         }
     }
 }
@@ -62,7 +63,7 @@ def fetch_init_files(network='mainnet'):
     """
     print(f"fetch_init_files")
     try:
-        fnames = [f'{network}/config.json', f'{network}/topology.json', f'{network}/shelley-genesis.json',f'{network}/byron-genesis.json',f'{network}/alonzo-genesis.json', f'{network}/db-sync-config.json', f'{network}/submit-api-config.json'  ]
+        fnames = [f'{network}/config.json', f'{network}/topology.json', f'{network}/shelley-genesis.json',f'{network}/byron-genesis.json',f'{network}/alonzo-genesis.json', f'{network}/db-sync-config.json', f'{network}/submit-api-config.json' , f'{network}/submit-api-config.json' ]
         for c in fnames:
             turl = BASE_URL+c
             print(f"fetched content url:{turl}")

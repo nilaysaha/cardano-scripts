@@ -48,8 +48,8 @@ ENV PATH=${PATH}:/root/.ghcup/bin
 
 # Install cabal
 RUN bash -c "ghcup upgrade"
-RUN bash -c "ghcup install cabal 3.6.2.0"
-RUN bash -c "ghcup set cabal 3.6.2.0"
+RUN bash -c "ghcup install cabal 3.8.1.0"
+RUN bash -c "ghcup set cabal 3.8.1.0"
 
 # Install GHC
 RUN bash -c "ghcup install ghc 8.10.7"

@@ -27,11 +27,11 @@ METADATA = {
     "subject":"1a49530b152d1e090a0242ecfe79a5b6b7d28e57f0d9d1b64f42eba452454954",
     "name": "REIT",
     "description": "A protocol to unlock value and trade verified real estate assets",
-    "policy":"1a49530b152d1e090a0242ecfe79a5b6b7d28e57f0d9d1b64f42eba4",
+    "policy":"12e4574d12610a77e01f3886d93e3d920105975965ed11341b5ba8f4",
     "ticker": "REIT",    
     "url":"https://reitcircles.com",
-    "logo":"",
-    "decimals":"6"}
+    "logo":"./kaddr_new/logo.png",
+    "decimals":"6"
 }
 
 
@@ -39,60 +39,62 @@ class RegisterToken:
     """
     based on the following page:https://github.com/cardano-foundation/cardano-token-registry/wiki/How-to-prepare-an-entry-for-the-registry
     """
-    def __init__(self, name=FILES['token']['ticker']):
-        self.name = name
-        policy = ct.mint_new_asset(FILES['policy']['script'])
+    def __init__(self):
+        self.name = METADATA['name']
+        policy = METADATA['policy']
         b64name = "52454954"
         self.subject = policy+b64name
 
         
     def _prepare_draft(self):
         """
-        cardano-metadata-submitter --init baa836fef09cb35e180fce4b55ded152907af1e2c840ed5218776f2f6d7961737365746e616d65        
+        token-metadata-creator entry --init baa836fef09cb35e180fce4b55ded152907af1e2c840ed5218776f2f6d7961737365746e616d65        
         """
 
         try:
-            command = ["cardano-metadata-submitter", "--init",self.subject]
+            command = ["token-metadata-creator", "entry", "--init",self.subject]
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
             print(Fore.GREEN + f"Successful:  Output of command {command} is:{s}")
         except:
             logging.exception("Prepare draft")
 
 
-    def _augment_data(self,name=FILES['token']['name'], descr=FILES['token']['description'], policy_file=FILES['policy']['script']):
+    def _add_required_fields(self,name=METADATA['name'], descr=METADATA['description'], policy=METADATA['policy']):
         """
-        cardano-metadata-submitter baa836fef09cb35e180fce4b55ded152907af1e2c840ed5218776f2f6d7961737365746e616d65 \
+        token-metadata-creator baa836fef09cb35e180fce4b55ded152907af1e2c840ed5218776f2f6d7961737365746e616d65 \
         --name "My Gaming Token" \
         --description "A currency for the Metaverse." \
-        --policy policy.json
+        --policy policy.json  (only for non script based policy)
         """
 
         try:
             #policy = pc.content(policy_file)
-            command = ["cardano-metadata-submitter", self.subject,
-                       "--name", name,
-                       "--description", descr,
-                       "--policy", policy_file]
+            command = [
+                "token-metadata-creator", "entry", self.subject,
+                "--name", name,
+                "--description", descr
+            ]
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
             print(Fore.GREEN + f"Successful:  Output of command {command} is:{s}")                        
         except:
             logging.exception("Failed to augment data with name, description and policy json data")
 
 
-    def _add_optional_field(self, ticker=FILES['token']['ticker'], url=FILES['token']['url'], unit=FILES['token']['unit'], logo=FILES['token']['logo']):
+    def _add_optional_fields(self, ticker=METADATA['ticker'], url=METADATA['url'], decimals=METADATA['decimals'], logo=METADATA['logo']):
         """
-        cardano-metadata-submitter baa836fef09cb35e180fce4b55ded152907af1e2c840ed5218776f2f6d7961737365746e616d65 \
+        token-metadata-creator baa836fef09cb35e180fce4b55ded152907af1e2c840ed5218776f2f6d7961737365746e616d65 \
         --ticker "TKN" \
         --url "https://finalfantasy.fandom.com/wiki/Gil" \
-        --unit "2,cents" \
+        --decimals 6 \
         --logo "icon.png"
         """
 
         try:
-            command = ["cardano-metadata-submitter", self.subject,
+            command = ["token-metadata-creator", "entry", self.subject,
                        "--ticker", ticker,
-                       "--url", url, "--unit", unit, # "--logo", logo
-            ]
+                       "--url", url,
+                       "--decimals",decimals,
+                       "--logo", logo]
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
             print(Fore.GREEN + f"Successful:  Output of command {command} is:{s}")                        
         except:
@@ -101,11 +103,11 @@ class RegisterToken:
 
     def _sign_metadata(self):
         """
-        cardano-metadata-submitter baa836fef09cb35e180fce4b55ded152907af1e2c840ed5218776f2f6d7961737365746e616d65 -a policy.skey
+        token-metadata-creator baa836fef09cb35e180fce4b55ded152907af1e2c840ed5218776f2f6d7961737365746e616d65 -a policy.skey
         """
 
         try:
-            command = ["cardano-metadata-submitter", self.subject, "-a", FILES["policy"]["signature"]]
+            command = ["token-metadata-creator", "entry", self.subject, "-a", "./kaddr_new/owner.skey"]
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
             print(Fore.GREEN + f"Successful:  Output of command {command} is:{s}")                                    
         except:
@@ -114,11 +116,11 @@ class RegisterToken:
 
     def _finalize_entry(self):
         """
-        cardano-metadata-submitter baa836fef09cb35e180fce4b55ded152907af1e2c840ed5218776f2f6d7961737365746e616d65 --finalize
+        token-metadata-creator baa836fef09cb35e180fce4b55ded152907af1e2c840ed5218776f2f6d7961737365746e616d65 --finalize
         """
 
         try:
-            command = ["cardano-metadata-submitter", self.subject, "--finalize"]
+            command = ["token-metadata-creator", "entry", self.subject, "--finalize"]
             s = subprocess.check_output(command, stderr=True, universal_newlines=True)
             print(Fore.GREEN + f"Successful:  Output of command {command} is:{s}")                                    
         except:
@@ -127,8 +129,8 @@ class RegisterToken:
 
     def main(self):
         self._prepare_draft()
-        self._augment_data()
-        self._add_optional_field()
+        self._add_required_fields()
+        self._add_optional_fields()
         self._sign_metadata()
         self._finalize_entry()
         
