@@ -132,8 +132,8 @@ def calculate_min_fees(tx_in, ttl, options={"raw_transaction":False}):
         print(command)
         s = subprocess.check_output(command,stderr=True, universal_newlines=True)
         print(f"output of command:{command} output is:{s}")
-        min_fee = s.split(" ")[0]
-        return min_fee
+        min_fee = 2*int(s.split(" ")[0])        
+        return str(min_fee)
     except:
         logging.exception("Failed to calculate min fees")
         

@@ -30,15 +30,15 @@ stop() {
 choice() { i=$1; shift; eval "echo \${$((i + 1))}"; }
 
 cexec() {
-    BASE_CONFG="${SCRIPTDIR}/../src/tconfig/mainnet-config.json"
-    TOPOLOGY_CONFIG="${SCRIPTDIR}/../src/tconfig/mainnet-topology.json"
-    GENESIS_CONFIG="${SCRIPTDIR}/../src/tconfig/mainnet-genesis.json"
+    BASE_CONFG="${SCRIPTDIR}/../src/tconfig/mainnet/config.json"
+    TOPOLOGY_CONFIG="${SCRIPTDIR}/../src/tconfig/mainnet/topology.json"
+    GENESIS_CONFIG="${SCRIPTDIR}/../src/tconfig/mainnet/genesis.json"
     KES_SKEY="${SCRIPTDIR}/../src/kaddr_run/kes.skey"
     VRF_SKEY="${SCRIPTDIR}/../src/kaddr_run/vrf.skey"
     NODE_CERT="${SCRIPTDIR}/../src/kaddr_run/node.cert"
 
     CARDANO_NODE="/home/nsaha/.cabal/bin/cardano-node"
-    HOST_IP="$(wget http://ipecho.net/plain -O - -q ; echo)"
+    HOST_IP="$(hostname -I|cut -d' ' -f1)"
     PORT=3001
     DB_DIR="${NODE_DIR}/db-ff"
     SOCKET="${NODE_DIR}/node.socket"

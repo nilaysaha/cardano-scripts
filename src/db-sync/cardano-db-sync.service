@@ -1,0 +1,22 @@
+[Unit]
+Description=Shelly-mainnet cardano-db-sync
+
+[Service]
+User=nsaha
+Group=nsaha
+TimeoutStartSec=300
+Type=simple
+KillMode=process
+Environment=LD_LIBRARY_PATH="/usr/local/lib:$LD_LIBRARY_PATH":
+WorkingDirectory=/home/nsaha/projects/cardano-scripts/src/db-sync
+ExecStart=/home/nsaha/projects/cardano-scripts/src/db-sync/build.sh
+ExecStop=/usr/bin/pkill -5 cardano-db-sync
+Restart=always
+RestartSec=5s
+
+[Service]
+# Configures the time to wait before service is stopped forcefully.
+TimeoutStopSec=300
+
+[Install]
+WantedBy=multi-user.target
