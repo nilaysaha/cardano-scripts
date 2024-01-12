@@ -118,7 +118,7 @@
 <script>
 const uniqueId = require('uuid')
 import * as S from "@emurgo/cardano-serialization-lib-asmjs";
-import Web3Token from 'web3-cardano-token-cportal/dist/browser';
+//import Web3Token from 'web3-slib/dist/browser';
 //import * as M from "@meshsdk/core"
 
 export default {
@@ -569,7 +569,10 @@ export default {
                 const msg = {
                     'type': "walletLogin",
                     'chainID': (await this.API.getNetworkId()).toString(),
-                    'msgPublicKey': JSON.stringify(msgKPairs.publicKeyJwk)
+                    'msgPublicKey': JSON.stringify(msgKPairs.publicKeyJwk),
+                    "nonce":123,
+                    "domain": window.location.hostname,
+                    "expiry": expiry_date 
                 };
                 
                 //store the key pairs.
@@ -581,19 +584,22 @@ export default {
                     
                     const paddress = await this.API.getRewardAddresses();
                     const msg_hex = Buffer.from(JSON.stringify(msg), 'utf-8').toString("hex")
-                    
+
                     const signdata = await this.API.signData(saddress[0], msg_hex)
                     console.log(signdata)
                     return signdata
                 }
-                
+
                 // const signed_data = await this.API.signData(saddress[0], msg_hex)                
                 // console.log(signed_data)                
                 //const token = await Web3Token.sign(m => this.API.signData(saddress[0], msg_hex), '1d', )
                 
-                const nonce = 123 //to be finally obtained via api using the wallet address
-                const token = await Web3Token.sign(wallet_signing_function, '365d', msg, nonce )
-                console.log(token)
+                // const nonce = 123 //to be finally obtained via api using the wallet address
+                // const token = await Web3Token.signWallet(wallet_signing_function, '365d', msg, nonce )
+
+                const signdata = await wallet_signing_function(msg)
+                
+                console.log(signdata)
             }
             catch(err){
                 console.error(err)

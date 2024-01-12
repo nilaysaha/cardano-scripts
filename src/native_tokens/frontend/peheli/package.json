@@ -1,56 +1,56 @@
 {
-  "name": "rcircle",
-  "version": "0.1.0",
-  "private": true,
-  "scripts": {
-    "serve": "vue-cli-service serve --port 8081",
-    "build": "vue-cli-service build --skip-plugins @vue/cli-plugin-eslint",
-    "lint": "vue-cli-service lint"
-  },
-  "dependencies": {
-    "@emurgo/cardano-serialization-lib-asmjs": "^10.0.4-beta.4",
-    "@meshsdk/core": "^1.2.1-beta.1",
-    "@meshsdk/react": "^1.1.1",
-    "axios": "^0.24.0",
-    "bootstrap": "^5.2.2",
-    "bootstrap-vue": "^2.22.0",
-    "buffer": "^6.0.3",
-    "caniuse-lite": "^1.0.30001518",
-    "cbor": "^8.1.0",
-    "cborg": "^1.10.0",
-    "core-js": "^3.25.5",
-    "stream": "0.0.2",
-    "uuid": "^8.3.2",
-    "vue": "^2.7.12",
-    "vue-material": "^1.0.0-beta-15",
-    "web3-cardano-token-cportal": "0.0.15"
-  },
-  "devDependencies": {
-    "@vue/cli-plugin-babel": "^4.5.19",
-    "@vue/cli-plugin-eslint": "^4.5.19",
-    "@vue/cli-service": "^4.5.19",
-    "babel-eslint": "^10.1.0",
-    "eslint": "^6.7.2",
-    "eslint-plugin-vue": "^6.2.2",
-    "vue-template-compiler": "^2.7.12"
-  },
-  "eslintConfig": {
-    "root": true,
+    "name": "rcircle",
+    "version": "0.1.0",
+    "private": true,
+    "scripts": {
+        "serve": "export NODE_OPTIONS=--openssl-legacy-provider && vue-cli-service serve",
+        "build": "export NODE_OPTIONS=--openssl-legacy-provider && vue-cli-service build",
+        "lint": "export NODE_OPTIONS=--openssl-legacy-provider && vue-cli-service lint"
+    },
+    "dependencies": {
+        "@emurgo/cardano-serialization-lib-asmjs": "^10.0.4-beta.4",
+        "@meshsdk/core": "^1.2.1-beta.1",
+        "@meshsdk/react": "^1.1.1",
+        "axios": "^0.24.0",
+        "bootstrap": "^5.2.2",
+        "bootstrap-vue": "^2.22.0",
+        "buffer": "^6.0.3",
+        "caniuse-lite": "^1.0.30001518",
+        "cbor": "^8.1.0",
+        "cborg": "^1.10.0",
+        "core-js": "^3.25.5",
+        "stream": "0.0.2",
+        "uuid": "^8.3.2",
+        "vue": "^2.7.12",
+        "vue-material": "^1.0.0-beta-15",
+        "web3-slib": "1.0.1"
+    },
+    "devDependencies": {
+        "@vue/cli-plugin-babel": "^4.5.19",
+        "@vue/cli-plugin-eslint": "^4.5.19",
+        "@vue/cli-service": "^4.5.19",
+        "babel-eslint": "^10.1.0",
+        "eslint": "^6.7.2",
+        "eslint-plugin-vue": "^6.2.2",
+        "vue-template-compiler": "^2.7.12"
+    },
+    "eslintConfig": {
+        "root": true,
     "env": {
-      "node": true
+        "node": true
     },
-    "extends": [
-      "plugin:vue/essential",
-      "eslint:recommended"
-    ],
-    "parserOptions": {
-      "parser": "babel-eslint"
+        "extends": [
+            "plugin:vue/essential",
+            "eslint:recommended"
+        ],
+        "parserOptions": {
+            "parser": "babel-eslint"
+        },
+        "rules": {}
     },
-    "rules": {}
-  },
-  "browserslist": [
+    "browserslist": [
     "> 1%",
-    "last 2 versions",
-    "not dead"
-  ]
+        "last 2 versions",
+        "not dead"
+    ]
 }
