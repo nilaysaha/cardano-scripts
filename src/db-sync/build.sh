@@ -8,13 +8,11 @@ cd ${DB_SYNC_DIR}
 # git checkout  -b ${DB_SYNC_TAG} tag-${DB_SYNC_TAG}
 # nix-build -A cardano-db-sync -o db-sync-node
 
-CS_DIR="/home/nsaha/projects/cardano-scripts"
-DBSYNC_DIR="${HOME}/projects/cardano-db-sync"
-
-SOCKET_DIR="${CS_DIR}/exec/state-node-shelly-mainnet/node.socket"  #relative to cardano-db-sync as we are now thre.
-LEDGER_STATE_DIR="${CS_DIR}/exec/state-node-shelly-mainnet/db-ff/ledger/"
-DB_SYNC_CONFIG="${HOME}/projects/cardano-db-sync/config/mainnet-config.yaml"
-DB_SYNC_SCHEMA="${HOME}/projects/cardano-db-sync/cardano-db-sync/schema/"
+CS_DIR="${HOME}/projects/cardano-scripts"
+SOCKET_DIR="${CS_DIR}/exec/cardano-chain-data-store/node.socket"  #relative to cardano-db-sync as we are now thre.
+LEDGER_STATE_DIR="${CS_DIR}/exec/cardano-chain-data-store//db-ff/ledger/"
+DB_SYNC_CONFIG="${DB_SYNC_DIR}/config/testnet-config.yaml"
+DB_SYNC_SCHEMA="${DB_SYNC_DIR}/schema/"
 
 
 # ${DB_SYNC_DIR}/scripts/postgresql-setup.sh --createdb
