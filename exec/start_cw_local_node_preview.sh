@@ -1,7 +1,7 @@
 #!/bin/bash
 
 CARDANO_WALLET="/home/nsaha/.cabal/bin/cardano-wallet"
-CONFIG_FILE="$HOME/projects/cardano-scripts/src/tconfig/mainnet/byron-genesis.json"
+CONFIG_FILE="$HOME/projects/cardano-scripts/src/tconfig/preview/byron-genesis.json"
 DB_DIR="$HOME/wallets/db"
 SOCKET="$HOME/projects/cardano-scripts/exec/cardano-chain-data-store/node.socket"
 
