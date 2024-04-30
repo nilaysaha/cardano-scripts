@@ -5,7 +5,7 @@ cd ${DB_SYNC_DIR}
 
 # DB_SYNC_TAG=13.1.0.0
 
-# git checkout  -b ${DB_SYNC_TAG} tag-${DB_SYNC_TAG}
+# git checkout -b 13.1.0.0 tags/13.1.0.0
 # nix-build -A cardano-db-sync -o db-sync-node
 
 CS_DIR="/home/nsaha/projects/cardano-scripts"

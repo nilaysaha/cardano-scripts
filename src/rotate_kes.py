@@ -57,7 +57,7 @@ def main(min_KES):
     print(f"remaining kes period:{remaining_kes_period}")
     if (remaining_kes_period < min_KES):
         #first generate new KES params
-        #update_KES_params()
+        update_KES_params()
         #next restart the chain
         # t = ChainProcess()
         # t.stop_chain()
