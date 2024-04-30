@@ -118,7 +118,7 @@
 <script>
 const uniqueId = require('uuid')
 import * as S from "@emurgo/cardano-serialization-lib-asmjs";
-import Web3Token from 'web3-cardano-token-cportal/dist/browser';
+import Web3Token from 'web3-cardano-token-rc/dist/browser';
 //import * as M from "@meshsdk/core"
 
 export default {
@@ -565,34 +565,37 @@ export default {
                 //The "type" of message can be: "walletLogin", "DaoCreation", "DaoMembership", "HouseFractionalise" etc.
                 
                 const msgKPairs = await this.generateMessagingKeys()
-                
-                const msg = {
-                    'type': "walletLogin",
-                    'chainID': (await this.API.getNetworkId()).toString(),
-                    'msgPublicKey': JSON.stringify(msgKPairs.publicKeyJwk)
-                };
-                
+                                
                 //store the key pairs.
                 await this.lstore('ecdh_private_key', msgKPairs.privateKeyJwk, 'set')
                 await this.lstore('ecdh_public_key', msgKPairs.publicKeyJwk, 'set')
+
+                const nonce = 123
+                const msg = {
+                    'type': "walletLogin",
+                    'chainID': (await this.API.getNetworkId()).toString(),
+                    'msgPublicKey': JSON.stringify(msgKPairs.publicKeyJwk),
+                    "nonce": nonce.toString(),
+                    "domain": window.location.hostname,
+                    "expiry": expiry_date.toString() 
+                };
                 
                 const wallet_signing_function = async (msg) => {
-                    const Buffer = (await import('buffer/')).Buffer
-                    
+                    const Buffer = (await import('buffer/')).Buffer                    
                     const paddress = await this.API.getRewardAddresses();
-                    const msg_hex = Buffer.from(JSON.stringify(msg), 'utf-8').toString("hex")
-                    
+
+                    const msg_hex = Buffer.from(msg, 'utf-8').toString("hex")
+
                     const signdata = await this.API.signData(saddress[0], msg_hex)
                     console.log(signdata)
                     return signdata
                 }
-                
+
                 // const signed_data = await this.API.signData(saddress[0], msg_hex)                
                 // console.log(signed_data)                
-                //const token = await Web3Token.sign(m => this.API.signData(saddress[0], msg_hex), '1d', )
+
+                const token = await Web3Token.sign(wallet_signing_function, '365d', msg )
                 
-                const nonce = 123 //to be finally obtained via api using the wallet address
-                const token = await Web3Token.sign(wallet_signing_function, '365d', msg, nonce )
                 console.log(token)
             }
             catch(err){
