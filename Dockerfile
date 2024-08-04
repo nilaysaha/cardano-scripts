@@ -112,7 +112,7 @@ RUN git clone https://github.com/IntersectMBO/cardano-node.git; \
 	cd cardano-node; \
 	cabal clean; \
 	cabal update;\
-	git fetch -all --tags; \
+	git fetch --all --recurse-submodules --tags; \
 	git checkout ${CARDANO_NODE_VERSION} -b tag-${CARDANO_NODE_VERSION};\
 	cabal build all;
 
