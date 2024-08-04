@@ -108,7 +108,7 @@ RUN git clone https://github.com/bitcoin-core/secp256k1.git; \
 RUN echo "with-compiler: ghc-8.10.7" >> cabal.project.local
 
 #Now import the cardano-node
-RUN git clone https://github.com/input-output-hk/cardano-node.git; \
+RUN git clone https://github.com/IntersectMBO/cardano-node.git; \
 	cd cardano-node; \
 	cabal clean; \
 	cabal update;\
