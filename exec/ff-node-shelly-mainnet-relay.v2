@@ -2,7 +2,7 @@
 
 SCRIPTDIR=`dirname "$BASH_SOURCE"`
 echo ${SCRIPTDIR}
-NODE_DIR="${SCRIPTDIR}/state-node-shelly-mainnet"
+NODE_DIR="${SCRIPTDIR}/state-node-shelly-mainnet/cnode-db"
 
 reset_node_dir() {
     if [[ -d ${NODE_DIR} ]]
@@ -33,7 +33,7 @@ cexec() {
     BASE_CONFIG="${SCRIPTDIR}/../src/tconfig/mainnet-config.json"
     TOPOLOGY_CONFIG="${SCRIPTDIR}/../src/tconfig/mainnet-topology.json"
     CARDANO_NODE="/home/nsaha/.cabal/bin/cardano-node"
-    HOST_IP="$(wget http://ipecho.net/plain -O - -q ; echo)"
+    HOST_IP="$(curl ipinfo.io/ip; echo)"
     PORT=3001
     DB_DIR="${NODE_DIR}/db-ff"
     SOCKET="${NODE_DIR}/node.socket"
