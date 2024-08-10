@@ -14,6 +14,11 @@ if [ ! -d "$STORAGE_DIR" ]; then
     mkdir -p $STORAGE_DIR
 fi
 
-aws s3 cp s3://stake-pool/cardano-cli-${VERSION_ID} $STORAGE_DIR/cardano-cli
-aws s3 cp s3://stake-pool/cardano-node-${VERSION_ID} $STORAGE_DIR/cardano-node
-aws s3 cp s3://stake-pool/cardano-node-chairman-${VERSION_ID} $STORAGE_DIR/cardano-node-chairman
+cd $STORAGE_DIR
+BINARY_FILENAME=cardano-node-${VERSION_ID}-linux.tar.gz
+wget https://github.com/input-output-hk/cardano-node/releases/download/${VERSION_ID}/${BINARY_FILENAME}
+tar xvfz $BINARY_FILENAME
+
+# aws s3 cp s3://stake-pool/cardano-cli-${VERSION_ID} $STORAGE_DIR/cardano-cli
+# aws s3 cp s3://stake-pool/cardano-node-${VERSION_ID} $STORAGE_DIR/cardano-node
+# aws s3 cp s3://stake-pool/cardano-node-chairman-${VERSION_ID} $STORAGE_DIR/cardano-node-chairman

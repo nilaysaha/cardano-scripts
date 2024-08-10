@@ -1,5 +1,5 @@
 [Unit]
-Description=Shelly-mainnet cardano
+Description=cardano-submit-api  
 
 [Service]
 User=nsaha
@@ -8,9 +8,9 @@ TimeoutStartSec=300
 Type=simple
 KillMode=process
 Environment=LD_LIBRARY_PATH="/usr/local/lib:$LD_LIBRARY_PATH":
-WorkingDirectory=/home/nsaha/projects/cardano/cardano-scripts/exec
-ExecStart=/home/nsaha/project/cardano/cardano-scripts/exec/ff-node-shelly-mainnet-relay.v2 start
-ExecStop=/usr/bin/pkill -2 cardano-node
+WorkingDirectory=/home/nsaha/projects/cardano-scripts/src/cardano-submit-api
+ExecStart=/home/nsaha/projects/cardano-scripts/src/cardano-submit-api/start.sh
+ExecStop=/usr/bin/pkill -2 cardano-submit-api
 Restart=always
 RestartSec=5s
 

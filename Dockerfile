@@ -48,8 +48,8 @@ ENV PATH=${PATH}:/root/.ghcup/bin
 
 # Install cabal
 RUN bash -c "ghcup upgrade"
-RUN bash -c "ghcup install cabal 3.6.2.0"
-RUN bash -c "ghcup set cabal 3.6.2.0"
+RUN bash -c "ghcup install cabal 3.8.1.0"
+RUN bash -c "ghcup set cabal 3.8.1.0"
 
 # Install GHC
 RUN bash -c "ghcup install ghc 8.10.7"
@@ -81,10 +81,10 @@ RUN echo `which cabal`
 # 	make install;
 
 
-#install libsodium
+#install libsodium (earlier: 66f017f1)
 RUN git clone https://github.com/input-output-hk/libsodium; \
 	cd libsodium; \
-	git checkout 66f017f1; \
+	git checkout dbb48cce5429cb6585c9034f002568964f1ce567; \
 	./autogen.sh; \
 	./configure; \
 	make; \
@@ -108,17 +108,16 @@ RUN git clone https://github.com/bitcoin-core/secp256k1.git; \
 RUN echo "with-compiler: ghc-8.10.7" >> cabal.project.local
 
 #Now import the cardano-node
-RUN git clone https://github.com/input-output-hk/cardano-node.git; \
+RUN git clone https://github.com/IntersectMBO/cardano-node.git; \
 	cd cardano-node; \
 	cabal clean; \
 	cabal update;\
-	git fetch -all --tags; \
+	git fetch --all --recurse-submodules --tags; \
 	git checkout ${CARDANO_NODE_VERSION} -b tag-${CARDANO_NODE_VERSION};\
 	cabal build all;
 
 ENV CARDANO_NODE_PATH="/cardano-node/dist-newstyle/build/x86_64-linux/ghc-8.10.7/cardano-node-${CARDANO_NODE_VERSION_EXPORT}/x/cardano-node/build/cardano-node/cardano-node"
 ENV CARDANO_CLI_PATH="/cardano-node/dist-newstyle/build/x86_64-linux/ghc-8.10.7/cardano-cli-${CARDANO_NODE_VERSION_EXPORT}/x/cardano-cli/build/cardano-cli/cardano-cli"
-ENV CARDANO_CHAIRMAN_PATH="/cardano-node/dist-newstyle/build/x86_64-linux/ghc-8.10.7/cardano-node-chairman-${CARDANO_NODE_VERSION_EXPORT}/x/cardano-node-chairman/build/cardano-node-chairman/cardano-node-chairman"
 
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
@@ -126,5 +125,4 @@ ENV LANG=C.UTF-8
 #Upload using api
 RUN aws s3 cp ${CARDANO_NODE_PATH} s3://stake-pool/"cardano-node-${CARDANO_NODE_VERSION}"
 RUN aws s3 cp ${CARDANO_CLI_PATH} s3://stake-pool/"cardano-cli-${CARDANO_NODE_VERSION}"
-RUN aws s3 cp ${CARDANO_CHAIRMAN_PATH} s3://stake-pool/"cardano-node-chairman-${CARDANO_NODE_VERSION}"
 

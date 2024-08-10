@@ -118,7 +118,7 @@
 <script>
 const uniqueId = require('uuid')
 import * as S from "@emurgo/cardano-serialization-lib-asmjs";
-import Web3Token from 'web3-cardano-token-rc/dist/browser';
+import Web3Token from 'web3-cardano-token-cportal/dist/browser';
 //import * as M from "@meshsdk/core"
 
 export default {
@@ -230,7 +230,7 @@ export default {
         async decodeHex(t){
             const Buffer = (await import('buffer/')).Buffer
             
-            let cb = require('cborg')
+            let cb = require('cbor')
             return cb["decode"](Buffer.from(t,'hex'))
         },
         async fetchBalance(e){
@@ -565,37 +565,32 @@ export default {
                 //The "type" of message can be: "walletLogin", "DaoCreation", "DaoMembership", "HouseFractionalise" etc.
                 
                 const msgKPairs = await this.generateMessagingKeys()
-                                
-                //store the key pairs.
-                await this.lstore('ecdh_private_key', msgKPairs.privateKeyJwk, 'set')
-                await this.lstore('ecdh_public_key', msgKPairs.publicKeyJwk, 'set')
-
-                const nonce = 123
+                
                 const msg = {
                     'type': "walletLogin",
                     'chainID': (await this.API.getNetworkId()).toString(),
-                    'msgPublicKey': JSON.stringify(msgKPairs.publicKeyJwk),
-                    "nonce": nonce.toString(),
-                    "domain": window.location.hostname,
-                    "expiry": expiry_date.toString() 
+                    'msgPublicKey': JSON.stringify(msgKPairs.publicKeyJwk)
                 };
                 
+                //store the key pairs.
+                await this.lstore('ecdh_private_key', msgKPairs.privateKeyJwk, 'set')
+                await this.lstore('ecdh_public_key', msgKPairs.publicKeyJwk, 'set')
+                
                 const wallet_signing_function = async (msg) => {
-                    const Buffer = (await import('buffer/')).Buffer                    
+                    const Buffer = (await import('buffer/')).Buffer
+                    
                     const paddress = await this.API.getRewardAddresses();
-
-                    const msg_hex = Buffer.from(msg, 'utf-8').toString("hex")
-
-                    const signdata = await this.API.signData(saddress[0], msg_hex)
-                    console.log(signdata)
-                    return signdata
+                    const msg_hex = Buffer.from(JSON.stringify(msg), 'utf-8').toString("hex")
+                    
+                    return this.API.signData(saddress[0], msg_hex)
                 }
-
+                
                 // const signed_data = await this.API.signData(saddress[0], msg_hex)                
                 // console.log(signed_data)                
-
-                const token = await Web3Token.sign(wallet_signing_function, '365d', msg )
+                //const token = await Web3Token.sign(m => this.API.signData(saddress[0], msg_hex), '1d', )
                 
+                const nonce = 123 //to be finally obtained via api using the wallet address
+                const token = await Web3Token.sign(wallet_signing_function, '365d', msg, nonce )
                 console.log(token)
             }
             catch(err){
@@ -690,6 +685,7 @@ export default {
             return wasmChangeAddress
         },
         
+        
         async generate_pubkeyscript(){
             
             const wasmChangeAddress = await this.getWalletWasmAddr()
@@ -704,112 +700,117 @@ export default {
             return pubKeyScript
         },
         
-        async txBuilder_add_nft_tx(pubKeyScript, metadataObj, NFTIndex){
-            
+        async generate_pubkey_hash(){
             const wasmChangeAddress = await this.getWalletWasmAddr()
-
-            this.txBuilder.add_mint_asset_and_output_min_required_coin(
-                pubKeyScript,
-                await S.AssetName.new(Buffer.from('NFT' + NFTIndex.toString(), 'utf8')),
-                await S.Int.new_i32(1),
-                S.TransactionOutputBuilder.new().with_address(wasmChangeAddress).next()
+            const baseAddress = await S.BaseAddress.from_address(wasmChangeAddress);
+            return baseAddress.payment_cred().to_keyhash()
+        },        
+        
+        async generate_policy_keyhash(){
+            let cbor = require('cbor')
+            let decoded_skey = await cbor.decodeFirstSync("5820362e12e1b4ffbbe1fdb29628948830769eb75100b58773b8f5258bdd357efd6d")
+            
+            // import policy key from a .skey file(payment.skey)
+            const policyPrivateKey = await S.PrivateKey.from_normal_bytes(decoded_skey);
+            const policyPubKey = policyPrivateKey.to_public();
+            
+            const policyAddr = await S.BaseAddress.new(
+                S.NetworkInfo.testnet().network_id(),
+                S.StakeCredential.from_keyhash(policyPubKey.hash()),
+                S.StakeCredential.from_keyhash(policyPubKey.hash())
+            ).to_address();
+            
+            const policyKeyHash = await S.BaseAddress.from_address(policyAddr)
+                  .payment_cred()
+                  .to_keyhash();
+            
+            console.log(
+                `POLICY_KEYHASH: ${Buffer.from(policyKeyHash.to_bytes()).toString("hex")}`
             );
             
-            this.txBuilder.add_json_metadatum(S.BigNum.from_str('721'), JSON.stringify(metadataObj));
+            return {
+                "keyhash": policyKeyHash,
+                "privateKey": policyPrivateKey
+            }
         },
         
-        async tx_Nft_Prepare(NFTIndex){
+        async create_nft_tx( assetNameStr, assetNum){
             
-            //TO DO: ALSO ADD REITCIRCLES BACKEND SCRIPT PUBLIC KEY, SO THAT ISSUANCE OF NFT CAN BE PROVEN.
-            // const appScript = Loader.Cardano.ScriptPubkey.new(appKeyHash);
-            // const appNativeScript = Loader.Cardano.NativeScript.new_script_pubkey(appScript);                        
+            //generate address in proper format for output of nft
+            const wasmChangeAddress = await this.getWalletWasmAddr()
             
-            // const timelockScript = generate_timelockScript()
-            const pubKeyScript = await this.generate_pubkeyscript()            
+            //policy wallet details
+            const timelockExpirySlot = 10143830
+            const policy = await this.generate_policy_keyhash()
             
-            const policyScripts = await S.NativeScripts.new();
-            policyScripts.add(pubKeyScript);
-            //policyScripts.add(timelockScript);
+            console.log(`pkeyhash: ${policy.keyhash}`)
+            console.log(`tes:${timelockExpirySlot}`)
             
-            console.log('policyScripts :>> ', policyScripts);
+            const nativeScripts = await S.NativeScripts.new()
+            const Ed25519KeyHash = await S.ScriptPubkey.new(policy.keyhash)
             
-            const policyId = Buffer.from(pubKeyScript.hash(0).to_bytes()).toString('hex');
-            console.log('policyId :>> ', policyId);
+            const scriptPubkey = await S.NativeScript.new_script_pubkey(Ed25519KeyHash)
+            const scriptTimelock = S.NativeScript.new_timelock_expiry(S.TimelockExpiry.new(timelockExpirySlot))
             
-            const metadataObj = {
-                [policyId]: {
-                    ['NFT' + NFTIndex.toString()]: {
-                        description: 'Test2',
-                        name: 'Test token2',
-                        id: NFTIndex.toString(),
-                        image: 'ipfs://QmUb8fW7qm1zCLhiKLcFH9yTCZ3hpsuKdkTgKmC8iFhxV8',
-                    },
-                },
-            };
+            nativeScripts.add(
+                scriptPubkey
+            )
             
-            console.log(metadataObj)
+            nativeScripts.add(
+                scriptTimelock
+            )
             
-            await this.txBuilder_add_nft_tx(pubKeyScript, metadataObj, NFTIndex)
+            const nativeScript = S.NativeScript.new_script_all(S.ScriptAll.new(nativeScripts))
+            
+            const policyId = Buffer.from(nativeScript.hash(0).to_bytes()).toString('hex')            
+            const assetName = S.AssetName.new(Buffer.from(assetNameStr, 'utf-8'))
+            const assetNumber = S.Int.new_i32(assetNum)
+            
+            this.txBuilder.add_mint_asset_and_output_min_required_coin(
+                nativeScript,
+                assetName,
+                assetNumber,
+                S.TransactionOutputBuilder.new().with_address(wasmChangeAddress).next()
+            )
+                        
+            this.txBuilder.set_ttl(timelockExpirySlot)
+            
+            return nativeScript
         },
         
-        // THIS FUNCTION NEEDS TO BE REPLICATED IN THE BACKEND.
-        // async tx_create_clean_witness_backend_sample(txBuilder, prvKey){
-        
-        //     // create empty witness array
-        //     const witnesses = await S.TransactionWitnessSet.new();
-        //     const vkeyWitnesses = await S.Vkeywitnesses.new();
-        
-        //     // once the transaction is ready, we build it to get the tx body without witnesses
-        //     const txBody = txBuilder.build();
-        //     const txHash = await S.hash_transaction(txBody);
-        
-        //     // add keyhash witnesses
-        //     const vkeyWitness = CardanoWasm.make_vkey_witness(txHash, prvKey);
-        //     vkeyWitnesses.add(vkeyWitness);
-        //     witnesses.set_vkeys(vkeyWitnesses);
-        
-        //     return witnesses
-        // },
-
-        async tx_prepare_witness_set_v1(policy){
-
+        async tx_prepare_witness_Set(mintScript){
+            
             const txBody = this.txBuilder.build();
-            const txHash = await S.hash_transaction(txBody);
+            const txHash = S.hash_transaction(txBody);
+            
+            console.log(`TX_HASH: ${Buffer.from(txHash.to_bytes()).toString("hex")}`);
+            
+            
+            //get policy
+            const policy = await this.generate_policy_keyhash()            
+            
+            //now generate vkey witness of browser wallet                        
+            const unsignedTxHex = Buffer.from(this.txBuilder.build_tx().to_bytes()).toString("hex")
+
+            const txwitnesses = await this.API.signTx(unsignedTxHex, true)  //returns TransactionWitnessSet
             
             // sign the tx using the policy key and main key
-            const witnesses = await S.TransactionWitnessSet.new();
-            const vkeyWitnesses = await S.Vkeywitnesses.new();
-
-            const policy_hash = await S.make_vkey_witness(txHash, policy.privateKey) 
+            const txVkeyWitnesses = await S.TransactionWitnessSet.new();
             
-            vkeyWitnesses.add();
-            vkeyWitnesses.add(CardanoWasm.make_vkey_witness(txHash, privateKey));
+            const vkeyWitnesses = await S.Vkeywitnesses.new();
+            vkeyWitnesses.add(S.make_vkey_witness(txHash, policy.privateKey));
+            
             witnesses.set_vkeys(vkeyWitnesses);
+            witnesses.set_vkeys(txVkeyWitnesses.vkeys());
             witnesses.set_native_scripts;
-            const witnessScripts = CardanoWasm.NativeScripts.new();
+            
+            const witnessScripts = await S.NativeScripts.new();
             witnessScripts.add(mintScript);
             witnesses.set_native_scripts(witnessScripts);
             
+            return witnesses
         },
         
-        async tx_prepare_witness_Set(){
-            
-            // Tx witness
-            const txWitnessSet = await S.TransactionWitnessSet.new();
-            
-            const unsignedTxHex = Buffer.from(this.txBuilder.build_tx().to_bytes()).toString("hex")
-            const encodedTxVkeyWitnesses = await this.API.signTx(unsignedTxHex, true)
-            console.log('witnessSetHex :>> ', encodedTxVkeyWitnesses);
-                        
-            // decode witness-set produced by signature
-            const txVkeyWitnesses = await S.TransactionWitnessSet.from_bytes(
-                Buffer.from(encodedTxVkeyWitnesses, "hex")
-            );
-            
-            txWitnessSet.set_vkeys(txVkeyWitnesses.vkeys());
-            
-            return txWitnessSet
-        },
         
         /**
          * The transaction is build in 3 stages:
@@ -824,85 +825,61 @@ export default {
          */
         
         async buildSendADATransaction(e){
-
-            const Buffer = (await import('buffer/')).Buffer
             
-            //Step 1: Initialise the transaction
-            this.initTransactionBuilder(e);          
-            const shelleyOutputAddress = await S.Address.from_bech32(this.state.addressBech32SendADA);
-            const shelleyChangeAddress = await S.Address.from_bech32(this.nft_recv_addr);
+            try{
+                const Buffer = (await import('buffer/')).Buffer
+                
+                //Step 1: Initialise the transaction
+                this.initTransactionBuilder(e);          
+                const shelleyOutputAddress = await S.Address.from_bech32(this.state.addressBech32SendADA);
+                const shelleyChangeAddress = await S.Address.from_bech32(this.nft_recv_addr);
+                
+                
+                //Step 1: Add output of the transaction fee to the platform wallet.
+                this.txBuilder.add_output(
+                    S.TransactionOutput.new(
+                        shelleyOutputAddress,
+                        S.Value.new(S.BigNum.from_str(this.state.lovelaceToSend.toString()))
+                    ),
+                );
+                
+                //Step 2: Add nft creation transaction and transfer of same to user wallet
+                let nativeScript = await this.create_nft_tx( "testNFT", 1)
+                
+                
+                //Step 3: Add input utxos
+                const txUnspentOutputs = await this.getTxUnspentOutputs();
+                this.txBuilder.add_inputs_from(txUnspentOutputs, 2)
+                
+                
+                // Step 4: calculate the min fee required and send any change to an address
+                this.txBuilder.add_change_if_needed(shelleyChangeAddress)
+                
+                
+                //Step 5: create witness set.
+                const txWitnessSet = await this.tx_prepare_witness_Set(nativeScript)
+                
+                //Step 6: Sign the transaction            
+                const signedTx = await S.Transaction.new(
+                    this.txBuilder.build_tx().body(),
+                    txWitnessSet
+                );
+                
+                console.log(signedTx)
+                
+                // Step 6: Submit transaction
+                const submittedTxHash = await this.API.submitTx(Buffer.from(signedTx.to_bytes(), "utf8").toString("hex"));
+                console.log(`submitted transaction hash:${submittedTxHash}`)
             
+                //this.setState({submittedTxHash});
+                
+            }
+            catch(err){
+                console.error(err)
+            }
             
-            //Step 1: Add output of the transaction fee to the platform wallet.
-            this.txBuilder.add_output(
-                S.TransactionOutput.new(
-                    shelleyOutputAddress,
-                    S.Value.new(S.BigNum.from_str(this.state.lovelaceToSend.toString()))
-                ),
-            );
-            
-            //Step 2: Add nft creation transaction and transfer of same to user wallet
-            // await this.tx_Nft_Prepare(1)                                   
-            // console.log(this.txBuilder)
-            
-            //Step 3: Add input utxos
-            const txUnspentOutputs = await this.getTxUnspentOutputs();
-            this.txBuilder.add_inputs_from(txUnspentOutputs, 2)
-            
-            
-            // Step 4: calculate the min fee required and send any change to an address
-            this.txBuilder.add_change_if_needed(shelleyChangeAddress)
-            
-            
-            //Step 5: create witness set.
-            const txWitnessSet = await this.tx_prepare_witness_Set()
-            
-            //Step 6: Sign the transaction            
-            const signedTx = await S.Transaction.new(
-                this.txBuilder.build_tx().body(),
-                txWitnessSet
-            );
-
-            console.log(signedTx)
-            
-            // Step 6: Submit transaction
-            const submittedTxHash = await this.API.submitTx(Buffer.from(signedTx.to_bytes(), "utf8").toString("hex"));
-            console.log(`submitted transaction hash:${submittedTxHash}`)
-            
-            //this.setState({submittedTxHash});
-            
-        },
-        
-        async meshNFT(e){
-            // const blockchainProvider = new M.BlockfrostProvider(process.env.VUE_APP_BLOCKFROST_PROJECT_ID);
-
-            // const walletAddress = await this.API.getChangeAddress();
-            // const forgingScript = M.ForgeScript.withOneSignature(walletAddress);
-
-            // console.log(`obtained payment address wallet:${walletAddress}`)
-            
-            // const assetMetadata1 = {
-            //     name: 'Mesh Token',
-            //     image: 'ipfs://QmRzicpReutwCkM6aotuKjErFCUD213DpwPq6ByuzMJaua',
-            //     mediaType: 'image/jpg',
-            //     description: 'This NFT is minted by Mesh (https://meshjs.dev/).',
-            // };
-            // const asset1 = {
-            //     assetName: 'MeshToken',
-            //     assetQuantity: '1',
-            //     metadata: assetMetadata1,
-            //     label: '721',
-            //     recipient: 'addr_test1vpvx0sacufuypa2k4sngk7q40zc5c4npl337uusdh64kv0c7e4cxr'
-            // };
-            
-            // const tx = new Transaction({ initiator: wallet });
-            // tx.mintAsset(forgingScript, asset1);
-            
-            const unsignedTx = await tx.build();
-            // const signedTx = await wallet.signTx(unsignedTx);
-            // const txHash = await wallet.submitTx(signedTx);
         }
-        
+              
     }
 }
 </script>

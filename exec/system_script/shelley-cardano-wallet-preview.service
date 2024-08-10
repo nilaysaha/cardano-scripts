@@ -1,0 +1,19 @@
+[Unit]
+Description=Shelly-testnet cardano wallet service. Relies on a relay being run locally.
+
+[Service]
+User=nsaha
+Group=nsaha
+TimeoutStartSec=0
+Type=simple
+KillMode=process
+Environment=LD_LIBRARY_PATH="/usr/local/lib:$LD_LIBRARY_PATH":
+WorkingDirectory=/home/nsaha/project/cardano-scripts/exec
+ExecStart=/home/nsaha/project/cardano-scripts/exec/start_cw_local_node_preview.sh
+ExecStop=/usr/bin/pkill -15 cardano-wallet
+
+[Service]
+
+
+[Install]
+WantedBy=multi-user.target

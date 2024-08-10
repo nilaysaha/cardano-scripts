@@ -285,8 +285,7 @@ class Transaction:
                 tx_out_str = t.calculate_aggregated_token_out_str(fees)
             else:
                 tx_out_str = f'{self.payment_addr}+0'
-
-            
+        
             command=["cardano-cli", "transaction", "build-raw",
                      "--fee", str(fees),
                      "--mint", new_coin_mint_str,

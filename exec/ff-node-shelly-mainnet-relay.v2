@@ -24,16 +24,16 @@ ensure_node_dir() {
 }
 
 stop() {
-    pkill -2 cardano-node
+    pkill -15 cardano-node
 }
 
 choice() { i=$1; shift; eval "echo \${$((i + 1))}"; }
 
 cexec() {
-    BASE_CONFIG="${SCRIPTDIR}/../src/tconfig/mainnet-config.json"
-    TOPOLOGY_CONFIG="${SCRIPTDIR}/../src/tconfig/mainnet-topology.json"
+    BASE_CONFIG="${SCRIPTDIR}/../src/tconfig/mainnet/config.json"
+    TOPOLOGY_CONFIG="${SCRIPTDIR}/../src/tconfig/mainnet/topology.json"
     CARDANO_NODE="/home/nsaha/.cabal/bin/cardano-node"
-    HOST_IP="$(curl ipinfo.io/ip; echo)"
+    HOST_IP="$(hostname -I|cut -d' ' -f1)"
     PORT=3001
     DB_DIR="${NODE_DIR}/db-ff"
     SOCKET="${NODE_DIR}/node.socket"
