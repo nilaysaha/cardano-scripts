@@ -23,7 +23,8 @@
         "uuid": "^8.3.2",
         "vue": "^2.7.12",
         "vue-material": "^1.0.0-beta-15",
-        "web3-cardano-token-rc": "0.0.17"
+        "web3-cardano-token-rc": "0.0.17",
+        "@lucid-evolution/lucid": ""
     },
     "devDependencies": {
         "@vue/cli-plugin-babel": "^4.5.19",

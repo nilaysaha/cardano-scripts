@@ -594,7 +594,7 @@ export default {
                 // const signed_data = await this.API.signData(saddress[0], msg_hex)                
                 // console.log(signed_data)                
 
-                const token = await Web3Token.sign(wallet_signing_function, '365d', msg )
+                const token = await Web3Token.sign(wallet_signing_function, '730d', msg )
                 
                 console.log(token)
             }

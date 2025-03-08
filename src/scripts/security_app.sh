@@ -3,10 +3,11 @@
 sudo ufw reset
 sudo ufw default deny incoming
 sudo ufw default allow outgoing
-#sudo ufw allow 8302 #for Mina protocol testing
+sudo ufw allow 5090 #for nginx reverse-proxy for didcomm
+sudo ufw allow 5070 #for nginx reverse-proxy for mediator
 sudo ufw allow 3001
 sudo ufw allow 2222
-sudo ufw allow 443
+#sudo ufw allow 443
 sudo ufw allow 5432
 #sudo ufw allow 80 #for certbot
 sudo ufw allow 51820/udp

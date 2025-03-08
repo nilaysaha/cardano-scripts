@@ -3,6 +3,7 @@
 SCRIPTDIR=`dirname "$BASH_SOURCE"`
 echo ${SCRIPTDIR}
 NODE_DIR="${SCRIPTDIR}/cardano-chain-data-store/."
+SHARED_DIR="/home/developers"
 
 reset_node_dir() {
     if [[ -d ${NODE_DIR} ]]
@@ -36,7 +37,7 @@ cexec() {
     HOST_IP="$(curl api.ipify.org)"
     PORT=6001
     DB_DIR="${NODE_DIR}/db-ff"
-    SOCKET="${NODE_DIR}/node.socket"
+    SOCKET="${SHARED_DIR}/node.socket"
 
     ensure_node_dir
     echo "Starting cardano-node run: ${COMMAND}"   
@@ -48,7 +49,7 @@ cexec() {
 	   --host-addr ${HOST_IP} \
 	   --port ${PORT}
 
-    export CARDANO_NODE_SOCKET_PATH=$PWD/${SOCKET}
+    export CARDANO_NODE_SOCKET_PATH=${SOCKET}
 }
 
 case "$1" in 
