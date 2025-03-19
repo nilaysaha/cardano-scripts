@@ -1,21 +1,34 @@
 {
   "localRoots": [
     {
-      "accessPoints": [],
-      "advertise": false,
-      "valency": 1
+        "accessPoints": [
+            {
+                "address": "relay-3.lkbh-pools.org",
+                "port": 3001
+            }
+        ],
+        "advertise": false,
+        "valency": 1
     }
   ],
   "publicRoots": [
-    {
-      "accessPoints": [
-        {
-          "address": "relays-new.cardano-mainnet.iohk.io",
-          "port": 3001
-        }
-      ],
-      "advertise": false
-    }
-  ],
-  "useLedgerAfterSlot": 84916732
+   {
+     "accessPoints": [
+         {
+             "address": "backbone.cardano.iog.io",
+             "port": 3001
+         },
+         {
+             "address": "backbone.mainnet.emurgornd.com",
+             "port": 3001
+         },
+         {
+             "address": "backbone.mainnet.cardanofoundation.org",
+             "port": 3001
+         }
+     ],
+       "advertise": false
+   }
+ ],
+  "useLedgerAfterSlot": 128908821
 }

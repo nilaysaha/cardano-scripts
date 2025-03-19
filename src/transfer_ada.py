@@ -27,7 +27,7 @@ FILES={
         "signed": "./trans/token.signed"},
     "protocol":"./trans/protocol.json",
     "payment": {
-        "signature":"./trans/pay.skey"
+        "signature":"./trans/payment.skey"
     }
 }
 

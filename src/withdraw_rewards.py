@@ -30,7 +30,7 @@ FILES={
     'transaction': {'draft':'./kaddr_tx/withdraw_rewards.draft','raw': './kaddr_tx/withdraw_rewards.raw', 'signed':'./kaddr_tx/withdraw_rewards.signed'}
 }
 
-TIP_INCREMENT=10000
+TIP_INCREMENT=15000
 
 
 class CalcFee:
@@ -47,7 +47,7 @@ class CalcFee:
         """
         try:
             stake_addr = pc.content(FILES['stake']['addr'])
-            command = ["cardano-cli", "query", "stake-address-info", "--mainnet", "--mary-era", "--address", stake_addr]
+            command = ["cardano-cli", "query", "stake-address-info", "--mainnet", "--address", stake_addr]
             s = subprocess.check_output(command)
             print(Fore.RED + f"output for command:{command} is {s}")
             s_package = json.loads(s)
@@ -83,7 +83,7 @@ class CalcFee:
             print(f"Inside draft transaction")
             stake_addr = pc.content(FILES['stake']['addr'])
             tx_in_array= self.create_tx_in(tx_in)
-            command = ["cardano-cli",  "transaction", "build-raw", "--mary-era",
+            command = ["cardano-cli",  "transaction", "build-raw",
                        "--tx-out",tx_out,
                        "--withdrawal", stake_addr+"+"+'0',
                        "--invalid-hereafter", '0',
@@ -129,7 +129,7 @@ class CalcFee:
                        '--protocol-params-file', FILES['configs']['protocol'] ]
             s = subprocess.check_output(command,stderr=True, universal_newlines=True)
             print(Fore.RED + f"\nOutput of command:{command} output is:{s}\n\n")
-            min_fee = float(s.split(" ")[0])
+            min_fee = 1.5*float(s.split(" ")[0])
             return min_fee
         except:
             logging.exception("Could not calculate minimum fees")
@@ -179,13 +179,18 @@ class Transaction:
             payment_addr = pc.content(FILES['payment']['addr'])
             stake_addr   = pc.content(FILES['stake']['addr'])
             future_tip = int(pc.get_tip())+TIP_INCREMENT
+
+            NATIVE_ASSET_AMOUNT=3126140000
+            NATIVE_ASSET_STRING = "52d4b39c2407ce020ab4abb785d820a3ad5a2fa07600d07a205e509f.52454954"
+            tx_out = '{paddr}+{rfund}+"{namount} {nstring}"'.format(paddr=payment_addr, rfund=remaining_fund, namount = NATIVE_ASSET_AMOUNT, nstring=NATIVE_ASSET_STRING)
+            print(tx_out)
             
-            tx_out = "{paddr}+{rfund}".format(paddr=payment_addr, rfund=remaining_fund)
-            command = ['cardano-cli',  "transaction", "build-raw", "--mary-era",                       
-                       "--tx-out",tx_out,
+            command = ['cardano-cli',  "transaction", "build","--babbage-era",                       
+                       "--tx-out", tx_out,
                        "--withdrawal", stake_addr+"+"+str(withdrawal_amount),
+                       "--change-address", payment_addr,
                        "--invalid-hereafter", str(future_tip),
-                       "--fee", str(min_fee),
+                       "--mainnet",
                        "--out-file", FILES['transaction']['raw']]+tx_in_array
 
             s = subprocess.check_output(command)
@@ -265,18 +270,19 @@ class Transfer:
 
     def _step_3(self):        
         t = Transaction()
-        t.build(self.tx_in_array, int(self.remaining_fund), int(self.min_fees), int(self.transfer_amount))
+        #t.build(self.tx_in_array, int(self.remaining_fund), int(self.min_fees), int(self.transfer_amount))
         t.sign()
         t.submit()
         
 
     def main(self):
         try:
-            self._step_1()
-            rfund = self._step_2()
-            if (rfund > 0):
-                print(f"Enough funds {rfund} present hence preparing for transfer")
-                self._step_3()
+            self._step_3()
+            # self._step_1()
+            # rfund = self._step_2()
+            # if (rfund > 0):
+            #     print(f"Enough funds {rfund} present hence preparing for transfer")
+            #     self._step_3()
         except:
             logging.exception("Overall transfer error in function main of Transfer")
 

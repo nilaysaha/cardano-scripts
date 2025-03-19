@@ -31,7 +31,7 @@ choice() { i=$1; shift; eval "echo \${$((i + 1))}"; }
 
 cexec() {
     BASE_CONFG="${SCRIPTDIR}/../src/tconfig/mainnet/config.json"
-    TOPOLOGY_CONFIG="${SCRIPTDIR}/../src/tconfig/mainnet/topology.json"
+    TOPOLOGY_CONFIG="${SCRIPTDIR}/../src/tconfig/mainnet/topology-p2p.json"
     GENESIS_CONFIG="${SCRIPTDIR}/../src/tconfig/mainnet/genesis.json"
     KES_SKEY="${SCRIPTDIR}/../src/kaddr_run/kes.skey"
     VRF_SKEY="${SCRIPTDIR}/../src/kaddr_run/vrf.skey"

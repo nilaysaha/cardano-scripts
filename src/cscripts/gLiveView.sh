@@ -54,12 +54,13 @@ setTheme() {
 #HIDE_DUPLICATE_IPS="N"                   # If set to 'Y', duplicate and local IP's will be filtered out in peer analysis, else all connected peers are shown (default: N)
 #REPAINT_RATE=10                          # Re-paint entire screen every nth REFRESH_RATE. Complete re-paint can make screen flicker, hence not done for every update
 #VERBOSE=N                                # Start in verbose mode showing additional metrics (default: N)
+#GLV_LOG="${LOG_DIR}/gLiveView.log"       # Log gLiveView errors, set empty to disable. LOG_DIR set in env file.
 
 ######################################
 # Do NOT modify code below           #
 ######################################
 
-GLV_VERSION=v1.28.3
+GLV_VERSION=v1.30.4
 
 PARENT="$(dirname $0)"
 
@@ -124,9 +125,9 @@ fi
 if [[ ${UPDATE_CHECK} = Y && ${SKIP_UPDATE} != Y ]]; then
 
   if command -v cncli >/dev/null && command -v systemctl >/dev/null && systemctl is-active --quiet ${CNODE_VNAME}-cncli-sync.service 2>/dev/null; then
-    vcur=$(cncli -V | sed 's/cncli /v/g')
+    vcur=$(cncli -V | awk '{print $2}')
     vrem=$(curl -s https://api.github.com/repos/${G_ACCOUNT}/cncli/releases/latest | jq -r .tag_name)
-    [[ ${vcur} != ${vrem} ]] && printf "${FG_MAGENTA}CNCLI current version (${vcur}) different from repo (${vrem}), consider upgrading!.${NC}" && waitToProceed
+    [[ "${vcur}" != "${vrem}" ]] && printf "${FG_MAGENTA}CNCLI current version (${vcur}) different from repo (${vrem}), consider upgrading!.${NC}" && waitToProceed
   fi
 
   echo "Checking for script updates..."
@@ -198,6 +199,8 @@ declare -gA geoIP=()
 
 [[ -z ${VERBOSE} ]] && VERBOSE=N
 
+[[ -z ${GLV_LOG} ]] && GLV_LOG="${LOG_DIR}/gLiveView.log"
+
 #######################################################
 # Style / UI                                          #
 #######################################################
@@ -258,6 +261,7 @@ if [[ ${LEGACY_MODE} = "true" ]]; then
   propdivider=$(printf "${NC}|- ${style_info}BLOCK PROPAGATION${NC} " && printf "%0.s-" $(seq $((width-21))) && printf "|")
   resourcesdivider=$(printf "${NC}|- ${style_info}NODE RESOURCE USAGE${NC} " && printf "%0.s-" $(seq $((width-23))) && printf "|")
   blockdivider=$(printf "${NC}|- ${style_info}BLOCK PRODUCTION${NC} " && printf "%0.s-" $(seq $((width-20))) && printf "|")
+  mithrildivider=$(printf "${NC}|- ${style_info}MITHRIL SIGNER${NC} " && printf "%0.s-" $(seq $((width-18))) && printf "|")
   blank_line=$(printf "${NC}|%$((width-1))s|" "")
 else
   VL=$(printf "${NC}\\u2502")
@@ -280,6 +284,7 @@ else
   propdivider=$(printf "${NC}\\u2502- ${style_info}BLOCK PROPAGATION${NC} " && printf "%0.s-" $(seq $((width-21))) && printf "\\u2502")
   resourcesdivider=$(printf "${NC}\\u2502- ${style_info}NODE RESOURCE USAGE${NC} " && printf "%0.s-" $(seq $((width-23))) && printf "\\u2502")
   blockdivider=$(printf "${NC}\\u2502- ${style_info}BLOCK PRODUCTION${NC} " && printf "%0.s-" $(seq $((width-20))) && printf "\\u2502")
+  mithrildivider=$(printf "${NC}\\u2502- ${style_info}MITHRIL SIGNER${NC} " && printf "%0.s-" $(seq $((width-18))) && printf "\\u2502")
   blank_line=$(printf "${NC}\\u2502%$((width-1))s\\u2502" "")
 fi
 
@@ -398,7 +403,7 @@ clrLine () {
 # Command    : clrScreen
 # Description: clear the screen, move to (0,0), and reset screen update counter
 clrScreen () {
-  printf "\033[2J"
+  clear
   screen_upd_cnt=0
 }
 
@@ -449,10 +454,22 @@ getArrayIndex () {
   echo -1
 }
 
+logln() {
+  [[ -z ${GLV_LOG} ]] && return
+  local log_level=$1
+  shift
+  [[ -z $1 ]] && return
+  echo -e "$@" | while read -r log_line; do
+    log_line=$(sed -E 's/\x1b(\[[0-9;]*[a-zA-Z]|[0-9])//g' <<< ${log_line##*( )})
+    [[ -z ${log_line} ]] && continue
+    printf '%s %-8s %s\n' "$(date "+%F %T %Z")" "[${log_level}]" "${log_line}" >> "${GLV_LOG}"
+  done
+}
+
 getPoolInfo () {
   # runs in background to not stall rest of gLiveView while fetching data
   if ! pool_info=$(curl -sSL -f -X POST -H "Content-Type: application/json" -d '{"_pool_bech32_ids":["'${pool_id_bech32}'"]}' "${KOIOS_API}/pool_info" 2>&1); then
-    echo ${pool_info} > ${pool_info_error_file}
+    [[ -n ${GLV_LOG} ]] && logln "ERROR" "${pool_info}"
     return
   fi
   [[ ${pool_info} = '[]' ]] && return
@@ -513,7 +530,7 @@ parsePoolInfo () {
 
 getOpCert () {
   op_cert_disk="?"
-  op_cert_node="?"
+  op_cert_chain="?"
   opcert_file="${POOL_DIR}/${POOL_OPCERT_FILENAME}"
   if [[ ! -f ${opcert_file} && -n ${CNODE_PID} ]]; then
     if [[ $(ps -p ${CNODE_PID} -o cmd=) =~ --shelley-operational-certificate[[:space:]]([^[:space:]]+) ]]; then
@@ -521,13 +538,9 @@ getOpCert () {
     fi
   fi
   if [[ -f ${opcert_file} ]]; then
-    op_cert_tsv=$(jq -r '[
-    .qKesNodeStateOperationalCertificateNumber //"?",
-    .qKesOnDiskOperationalCertificateNumber //"?"
-    ] | @tsv' <<<"$(${CCLI} query kes-period-info ${NETWORK_IDENTIFIER} --op-cert-file "${opcert_file}" | tail -n +3)")
-    read -ra op_cert_arr <<< ${op_cert_tsv}
-    isNumber ${op_cert_arr[0]} && op_cert_node=${op_cert_arr[0]}
-    isNumber ${op_cert_arr[1]} && op_cert_disk=${op_cert_arr[1]}
+    op_cert="$(${CCLI} query kes-period-info ${NETWORK_IDENTIFIER} --op-cert-file "${opcert_file}")"
+    [[ ${op_cert} =~ qKesNodeStateOperationalCertificateNumber.:[[:space:]]([0-9]+) ]] && op_cert_chain="${BASH_REMATCH[1]}"
+    [[ ${op_cert} =~ qKesOnDiskOperationalCertificateNumber.:[[:space:]]([0-9]+) ]] && op_cert_disk="${BASH_REMATCH[1]}"
   fi
 }
 
@@ -566,7 +579,7 @@ checkPeers() {
       peerPORT=$(cut -d: -f2 <<< "${peer}")
     fi
 
-    if [[ -z ${peerIP} || -z ${peerPORT} || (${HIDE_DUPLICATE_IPS} = 'Y' && ${peerIP} = 127.0.0.1) || (${HIDE_DUPLICATE_IPS} = 'Y' && ${peerIP} = ${ext_ip_resolve} && ${peerPORT} = ${CNODE_PORT}) ]]; then
+    if [[ -z ${peerIP} || -z ${peerPORT} || (${HIDE_DUPLICATE_IPS} = 'Y' && ${peerIP} = 127.0.0.1) || (${HIDE_DUPLICATE_IPS} = 'Y' && ${peerIP} = "${ext_ip_resolve}" && ${peerPORT} = "${CNODE_PORT}") ]]; then
       continue
     fi
 
@@ -587,12 +600,12 @@ checkPeers() {
       peerPORT=$(cut -d: -f2 <<< "${peer}")
     fi
 
-    if [[ -z ${peerIP} || -z ${peerPORT} || (${HIDE_DUPLICATE_IPS} = 'Y' && ${peerIP} = 127.0.0.1) || (${HIDE_DUPLICATE_IPS} = 'Y' && ${peerIP} = ${ext_ip_resolve} && ${peerPORT} = ${CNODE_PORT}) ]]; then
+    if [[ -z ${peerIP} || -z ${peerPORT} || (${HIDE_DUPLICATE_IPS} = 'Y' && ${peerIP} = 127.0.0.1) || (${HIDE_DUPLICATE_IPS} = 'Y' && ${peerIP} = "${ext_ip_resolve}" && ${peerPORT} = "${CNODE_PORT}") ]]; then
       continue
     fi
 
     if [[ ${HIDE_DUPLICATE_IPS} = 'Y' ]]; then
-      local peerIndex=$(getArrayIndex "${peerIP};" "${peersFiltered[@]}")
+      local peerIndex;peerIndex=$(getArrayIndex "${peerIP};" "${peersFiltered[@]}")
       if [[ ${peerIndex} -ge 0 ]]; then
         if [[ ${peersFiltered[$peerIndex]} != *o ]]; then
           peersFiltered[$peerIndex]="${peerIP};${peerPORT};i+o"
@@ -606,7 +619,7 @@ checkPeers() {
 
   done
 
-  IFS=$'\n' peersFiltered=($(sort <<<"${peersFiltered[*]}")); unset IFS
+  readarray -td '' peersFiltered < <(printf '%s\0' "${peersFiltered[@]}" | sort -z)
 
   peerCNT=${#peersFiltered[@]}
 
@@ -699,6 +712,23 @@ checkPeers() {
   fi
 }
 
+checkNodeVersion() {
+  [[ ${running_node_version} = '?' ]] && return # ignore check if unable to fetch version from running node
+
+  version=$("${CNODEBIN}" version)
+  node_version=$(grep "cardano-node" <<< "${version}" | cut -d ' ' -f2)
+  node_rev=$(grep "git rev" <<< "${version}" | cut -d ' ' -f3 | cut -c1-8)
+
+  if [[ ${node_version} != "${running_node_version}" || ${node_rev} != "${running_node_rev}" ]]; then
+    clrScreen
+    printf "\n ${style_status_3}Node version mismatch${NC} - running version doesn't match found binary!"
+    printf "\n\n Forgot to restart node after upgrade?"
+    printf "\n\n Deployed version : ${node_version} (${node_rev}) => ${CNODEBIN}"
+    printf "\n Running version  : ${running_node_version} (${running_node_rev})\n"
+    waitToProceed && clrScreen
+  fi
+}
+
 #####################################
 # Static variables/calculations     #
 #####################################
@@ -716,16 +746,14 @@ if [[ ${SHELLEY_TRANS_EPOCH} -eq -1 ]]; then
   printf "\n After successful node boot or when sync to shelley era has been reached, calculations will be correct\n"
   waitToProceed && clrScreen
 fi
-version=$("${CNODEBIN}" version)
-node_version=$(grep "cardano-node" <<< "${version}" | cut -d ' ' -f2)
-node_rev=$(grep "git rev" <<< "${version}" | cut -d ' ' -f3 | cut -c1-8)
+checkNodeVersion
+
 fail_count=0
 epoch_items_last=0
 screen_upd_cnt=0
 
 test_koios # KOIOS_API variable unset if check fails. Only tested once on startup.
 pool_info_file=/dev/shm/pool_info
-pool_info_error_file=/dev/shm/pool_info_error
 [[ -n ${KOIOS_API} ]] && getPoolID
 
 getOpCert
@@ -739,6 +767,27 @@ tcols=$(tput cols)   # set initial terminal columns
 printf "${NC}"       # reset and set default color
 
 unset cpu_now cpu_last
+
+####################################
+# Mithril Signer Section Variables #
+####################################
+
+mithrilSignerVars() {
+  # mithril.env sourcing needed to have values in ${METRICS_SERVER_IP} and ${METRICS_SERVER_PORT}
+  . ${MITHRIL_HOME}/mithril.env
+  signerMetricsEnabled=$(grep -q "ENABLE_METRICS_SERVER=true" ${MITHRIL_HOME}/mithril.env && echo "true" || echo "false")
+  if [[ "${signerMetricsEnabled}" == "true" ]] ; then
+    mithrilSignerMetrics=$(curl -s "http://${METRICS_SERVER_IP}:${METRICS_SERVER_PORT}/metrics" 2>/dev/null | grep -v -E "HELP|TYPE" | sed 's/mithril_signer_//g')
+    SIGNER_METRICS_HTTP_RESPONSE=$(curl --write-out "%{http_code}" --silent --output /dev/null --connect-timeout 2 http://${METRICS_SERVER_IP}:${METRICS_SERVER_PORT}/metrics)
+    if [[ "$SIGNER_METRICS_HTTP_RESPONSE" -eq 200 ]] ; then
+      signerServiceStatus='online'
+    else
+      signerServiceStatus='offline'
+    fi
+    unset SIGNER_METRICS_HTTP_RESPONSE
+  fi
+}
+
 
 #####################################
 # MAIN LOOP                         #
@@ -770,30 +819,25 @@ while true; do
     tcols=$(tput cols)   # update terminal columns
   done
 
-  [[ ${oldLine} != ${line} ]] && oldLine=$line && clrScreen # redraw everything, total height changed
+  [[ "${oldLine}" != "${line}" ]] && oldLine=$line && clrScreen # redraw everything, total height changed
 
   line=1; mvPos 1 1 # reset position
 
   # Gather some data
   getNodeMetrics
-  [[ ${RETRIES} -gt 0 && ${fail_count} -eq ${RETRIES} ]] && myExit 1 "${style_status_3}COULD NOT CONNECT TO A RUNNING INSTANCE, ${RETRIES} FAILED ATTEMPTS IN A ROW!${NC}"
+  [[ ${RETRIES} -gt 0 && ${fail_count} -eq ${RETRIES} ]] && printf -v error_msg "${style_status_3}COULD NOT CONNECT TO A RUNNING INSTANCE, ${RETRIES} FAILED ATTEMPTS IN A ROW!${NC}" && logln "ERROR" "${error_msg}" && myExit 1 "${error_msg}"
   CNODE_PID=$(pgrep -fn "$(basename ${CNODEBIN}).*.port ${CNODE_PORT}")
   if [[ -z ${CNODE_PID} ]]; then
     ((fail_count++))
     clrScreen && mvPos 2 2
-    printf "${style_status_3}Connection to node lost, retrying (${fail_count}$([[ ${RETRIES} -gt 0 ]] && echo "/${RETRIES}"))!${NC}"
+    printf -v error_msg "${style_status_3}Connection to node lost, retrying (${fail_count}$([[ ${RETRIES} -gt 0 ]] && echo "/${RETRIES}"))!${NC}"
+    printf ${error_msg}
+    logln "ERROR" "${error_msg}"
     waitForInput && continue
   elif [[ ${fail_count} -ne 0 ]]; then # was failed but now ok, re-check
-    version=$("${CNODEBIN}" version)
-    node_version=$(grep "cardano-node" <<< "${version}" | cut -d ' ' -f2)
-    node_rev=$(grep "git rev" <<< "${version}" | cut -d ' ' -f3 | cut -c1-8)
+    checkNodeVersion
     fail_count=0
     getOpCert
-  fi
-
-  if [[ -z "${PROT_PARAMS}" ]]; then
-    PROT_PARAMS="$(${CCLI} query protocol-parameters ${NETWORK_IDENTIFIER} 2>/dev/null)"
-    if [[ -n "${PROT_PARAMS}" ]] && ! DECENTRALISATION=$(jq -re .decentralization <<< ${PROT_PARAMS} 2>/dev/null); then DECENTRALISATION=0.5; fi
   fi
 
   if [[ ${show_peers} = "false" ]]; then
@@ -827,7 +871,7 @@ while true; do
     else
       cpu_util="0.0"
     fi
-    if [[ ${about_to_lead} -gt 0 ]]; then
+    if [[ ${forging_enabled} -eq 1 ]]; then
       [[ ${nodemode} != "Core" ]] && nodemode="Core" && getOpCert && clrScreen
     else
       [[ ${nodemode} != "Relay" ]] && clrScreen && nodemode="Relay"
@@ -840,19 +884,12 @@ while true; do
     fi
     if [[ ${curr_epoch} -ne ${epochnum} ]]; then # only update on new epoch to save on processing
       curr_epoch=${epochnum}
-      PROT_PARAMS="$(${CCLI} query protocol-parameters ${NETWORK_IDENTIFIER} 2>/dev/null)"
-      if [[ -n "${PROT_PARAMS}" ]] && ! DECENTRALISATION=$(jq -re .decentralization <<< ${PROT_PARAMS} 2>/dev/null); then DECENTRALISATION=0.5; fi
       unset pool_info_last_upd
     fi
     if [[ ${nodemode} = "Core" ]]; then
       if [[ -n ${KOIOS_API} && -n ${pool_id_bech32} ]]; then
         if [[ -n ${pool_info_last_upd} && $(($(date -u +%s) - pool_info_last_upd)) -lt 3600 ]]; then
           : # nothing to do, pool info already fetched, processed and under 1h old
-        elif [[ -f ${pool_info_error_file} ]]; then
-          clrScreen && mvPos 2 2
-          printf "${style_status_3}%s${NC}" "$(cat ${pool_info_error_file})"
-          rm ${pool_info_error_file}
-          waitToProceed && continue
         elif [[ -f ${pool_info_file} ]]; then
           parsePoolInfo
           pool_info_last_upd=$(date -u +%s)
@@ -864,9 +901,9 @@ while true; do
     fi
   fi
 
-  header_length=$(( ${#NODE_NAME} + ${#nodemode} + ${#node_version} + ${#node_rev} + ${#NETWORK_NAME} + 19 ))
+  header_length=$(( ${#NODE_NAME} + ${#nodemode} + ${#running_node_version} + ${#running_node_rev} + ${#NETWORK_NAME} + 19 ))
   [[ ${header_length} -gt ${width} ]] && header_padding=0 || header_padding=$(( (width - header_length) / 2 ))
-  printf "%${header_padding}s > ${style_values_2}%s${NC} - ${style_info}(%s - %s)${NC} : ${style_values_1}%s${NC} [${style_values_1}%s${NC}] < \n" "" "${NODE_NAME}" "${nodemode}" "${NETWORK_NAME}" "${node_version}" "${node_rev}" && ((line++))
+  printf "%${header_padding}s > ${style_values_2}%s${NC} - ${style_info}(%s - %s)${NC} : ${style_values_1}%s${NC} [${style_values_1}%s${NC}] < \n" "" "${NODE_NAME}" "${nodemode}" "${NETWORK_NAME}" "${running_node_version}" "${running_node_rev}" && ((line++))
 
   ## main section ##
   printf "${tdivider}\n" && ((line++))
@@ -955,7 +992,7 @@ while true; do
     if [[ -n ${rttResultsSorted} ]]; then
       echo "${m3divider}" && ((line++))
 
-      printf "${VL}${style_info}   # %24s  I/O RTT   Geolocation${NC}\n" "REMOTE PEER"
+      printf "${VL}${style_info}   # %24s  RTT   Geolocation${NC}\n" "REMOTE PEER"
       header_line=$((line++))
 
       peerNbr=0
@@ -988,11 +1025,11 @@ while true; do
         else
           peerLocationFmt="Unknown location"
         fi
-          if [[ ${peerRTT} -lt 50    ]]; then printf "${VL} %3s %19s:%-5s %-3s ${style_status_1}%-5s${NC} ${style_values_4}%s" "${peerNbr}" "${peerIP}" "${peerPORT}" "${peerDIR}" "${peerRTT}" "$(alignLeft ${peerLocationWidth} "${peerLocationFmt}")"
-        elif [[ ${peerRTT} -lt 100   ]]; then printf "${VL} %3s %19s:%-5s %-3s ${style_status_2}%-5s${NC} ${style_values_4}%s" "${peerNbr}" "${peerIP}" "${peerPORT}" "${peerDIR}" "${peerRTT}" "$(alignLeft ${peerLocationWidth} "${peerLocationFmt}")"
-        elif [[ ${peerRTT} -lt 200   ]]; then printf "${VL} %3s %19s:%-5s %-3s ${style_status_3}%-5s${NC} ${style_values_4}%s" "${peerNbr}" "${peerIP}" "${peerPORT}" "${peerDIR}" "${peerRTT}" "$(alignLeft ${peerLocationWidth} "${peerLocationFmt}")"
-        elif [[ ${peerRTT} -lt 99999 ]]; then printf "${VL} %3s %19s:%-5s %-3s ${style_status_4}%-5s${NC} ${style_values_4}%s" "${peerNbr}" "${peerIP}" "${peerPORT}" "${peerDIR}" "${peerRTT}" "$(alignLeft ${peerLocationWidth} "${peerLocationFmt}")"
-        else printf "${VL} %3s %19s:%-5s %-3s %-5s ${style_values_4}%s" "${peerNbr}" "${peerIP}" "${peerDIR}" "${peerPORT}" "---" "$(alignLeft ${peerLocationWidth} "${peerLocationFmt}")"; fi
+          if [[ ${peerRTT} -lt 50    ]]; then printf "${VL} %3s %19s:%-5s ${style_status_1}%-5s${NC} ${style_values_4}%s" "${peerNbr}" "${peerIP}" "${peerPORT}" "${peerRTT}" "$(alignLeft ${peerLocationWidth} "${peerLocationFmt}")"
+        elif [[ ${peerRTT} -lt 100   ]]; then printf "${VL} %3s %19s:%-5s ${style_status_2}%-5s${NC} ${style_values_4}%s" "${peerNbr}" "${peerIP}" "${peerPORT}" "${peerRTT}" "$(alignLeft ${peerLocationWidth} "${peerLocationFmt}")"
+        elif [[ ${peerRTT} -lt 200   ]]; then printf "${VL} %3s %19s:%-5s ${style_status_3}%-5s${NC} ${style_values_4}%s" "${peerNbr}" "${peerIP}" "${peerPORT}" "${peerRTT}" "$(alignLeft ${peerLocationWidth} "${peerLocationFmt}")"
+        elif [[ ${peerRTT} -lt 99999 ]]; then printf "${VL} %3s %19s:%-5s ${style_status_4}%-5s${NC} ${style_values_4}%s" "${peerNbr}" "${peerIP}" "${peerPORT}" "${peerRTT}" "$(alignLeft ${peerLocationWidth} "${peerLocationFmt}")"
+        else printf "${VL} %3s %19s:%-5s %-5s ${style_values_4}%s" "${peerNbr}" "${peerIP}" "${peerPORT}" "---" "$(alignLeft ${peerLocationWidth} "${peerLocationFmt}")"; fi
         closeRow
         [[ ${peerNbr} -eq $((peerNbr_start+PEER_LIST_CNT-1)) ]] && break
       done
@@ -1248,18 +1285,16 @@ while true; do
       closeRow
 
       # OP Cert
-      if isNumber ${p_op_cert_counter}; then
-        op_cert_chain=${p_op_cert_counter}
+      if isNumber ${op_cert_chain}; then
+        op_cert_chain_fmt="${style_values_1}"
         if isNumber ${op_cert_disk} && [[ ${op_cert_disk} -ge ${op_cert_chain} && ${op_cert_disk} -le $((op_cert_chain+1)) ]]; then op_cert_disk_fmt="${style_values_1}"; else op_cert_disk_fmt="${style_status_3}"; fi
-        if isNumber ${op_cert_node} && [[ ${op_cert_node} -ge ${op_cert_chain} && ${op_cert_node} -le $((op_cert_chain+1)) ]]; then op_cert_node_fmt="${style_values_1}"; else op_cert_node_fmt="${style_status_3}"; fi
       else
-        op_cert_chain="?"
+        op_cert_chain_fmt="${style_values_3}"
         if isNumber ${op_cert_disk}; then op_cert_disk_fmt="${style_values_1}"; else op_cert_disk_fmt="${style_values_3}"; fi
-        if isNumber ${op_cert_node}; then op_cert_node_fmt="${style_values_1}"; else op_cert_node_fmt="${style_values_3}"; fi
       fi
-      printf "${VL} OP Cert disk|node|chain"
+      printf "${VL} OP Cert disk|chain"
       mvTwoSecond
-      printf ": ${op_cert_disk_fmt}%s${NC} | ${op_cert_node_fmt}%s${NC} | ${style_values_1}%s${NC}" "${op_cert_disk}" "${op_cert_node}" "${op_cert_chain}"
+      printf ": ${op_cert_disk_fmt}%s${NC} | ${op_cert_chain_fmt}%s${NC}" "${op_cert_disk}" "${op_cert_chain}"
       closeRow
 
       if [[ ${VERBOSE} = "Y" ]]; then
@@ -1413,7 +1448,65 @@ while true; do
         closeRow
       fi
     fi
+    if [[ "${MITHRIL_SIGNER_ENABLED}" == "Y" ]]; then
+      # Mithril Signer Section
+      mithrilSignerVars
+      printf "${mithrildivider}\n" && ((line++))
+      get_metric_value() {
+        local metric_name="$1"
+        local metric_value
+        while IFS= read -r line; do
+            if [[ $line =~ ${metric_name}[[:space:]]+([0-9]+) ]]; then
+                metric_value="${BASH_REMATCH[1]}"
+                echo "$metric_value"
+                return
+            fi
+        done <<< "$mithrilSignerMetrics"
+      }
+      metrics=(
+          "runtime_cycle_total_since_startup"
+          "signer_registration_success_last_epoch"
+          "signer_registration_success_since_startup"
+          "signer_registration_total_since_startup"
+          "signature_registration_success_last_epoch"
+          "signature_registration_success_since_startup"
+          "signature_registration_total_since_startup"
+      )
+      cycle_total_VAL=$(get_metric_value "runtime_cycle_total_since_startup")
+      signer_reg_epoch_VAL=$(get_metric_value "signer_registration_success_last_epoch")
+      signer_reg_success_VAL=$(get_metric_value "signer_registration_success_since_startup")
+      signer_reg_total_VAL=$(get_metric_value "signer_registration_total_since_startup")
+      signatures_epoch_VAL=$(get_metric_value "signature_registration_success_last_epoch")
+      signatures_reg_success_VAL=$(get_metric_value "signature_registration_success_since_startup")
+      signatures_reg_total_VAL=$(get_metric_value "signature_registration_total_since_startup")
+      if [[ ${VERBOSE} = "Y" ]]; then
+        printf "${VL} Status     : ${style_values_2}%-${three_col_1_value_width}s${NC}" "$signerServiceStatus"
+        printf "           : Registered Epoch     : ${style_values_1}%-${three_col_1_value_width}s${NC}" "$signer_reg_epoch_VAL"
+        closeRow
+        printf "${VL} Cycles     : ${style_values_1}%-${three_col_1_value_width}s${NC}" "$cycle_total_VAL"
+        printf "           : Signing in Epoch     : ${style_values_2}%-${three_col_1_value_width}s${NC}" "$signatures_epoch_VAL"
+        closeRow
+        printf "${VL} Signatures : ${style_values_2}%-${three_col_1_value_width}s${NC}" "$signatures_reg_success_VAL"
+        printf "           : Total Signatures     : ${style_values_1}%-${three_col_1_value_width}s${NC}" "$signatures_reg_total_VAL"
+        closeRow
+        printf "${VL} Registered : ${style_values_1}%-${three_col_1_value_width}s${NC}" "$signer_reg_success_VAL"
+        printf "           : Registered Total     : ${style_values_1}%-${three_col_1_value_width}s${NC}" "$signer_reg_total_VAL"
+        closeRow
+      else
+        printf "${VL} Status     : ${style_values_2}%-${three_col_1_value_width}s${NC}" "$signerServiceStatus"
+        printf "           : Registered Epoch     : ${style_values_1}%-${three_col_1_value_width}s${NC}" "$signer_reg_epoch_VAL"
+        closeRow
+        printf "${VL} Cycles     : ${style_values_1}%-${three_col_1_value_width}s${NC}" "$cycle_total_VAL"
+        printf "           : Signing in Epoch     : ${style_values_2}%-${three_col_1_value_width}s${NC}" "$signatures_epoch_VAL"
+        closeRow
+        printf "${VL} Signatures : ${style_values_2}%-${three_col_1_value_width}s${NC}" "$signatures_reg_success_VAL"
+        printf "           : Total Signatures     : ${style_values_1}%-${three_col_1_value_width}s${NC}" "$signatures_reg_total_VAL"
+        closeRow
+      fi
+    fi
   fi
+
+
 
   [[ ${check_peers} = "true" ]] && check_peers=false && show_peers=true && clrScreen && continue
 
