@@ -7,23 +7,27 @@
 # Common variables set in env file   #
 ######################################
 
-NODE_NAME="Cardano Node"                  # Change your node's name prefix here, keep at or below 19 characters!
-REFRESH_RATE=2                            # How often (in seconds) to refresh the view (additional time for processing and output may slow it down)
-LEGACY_MODE=false                         # (true|false) If enabled unicode box-drawing characters will be replaced by standard ASCII characters
-RETRIES=3                                 # How many attempts to connect to running Cardano node before erroring out and quitting
-PEER_LIST_CNT=6                           # Number of peers to show on each in/out page in peer analysis view
-THEME="dark"                              # dark  = suited for terminals with a dark background
+#NODE_NAME="Cardano Node"                 # Change your node's name prefix here, keep at or below 19 characters!
+#REFRESH_RATE=2                           # How often (in seconds) to refresh the view (additional time for processing and output may slow it down)
+#REPAINT_RATE=10                          # Re-paint entire screen every nth REFRESH_RATE. Complete re-paint can make screen flicker, hence not done for every update
+#LEGACY_MODE=false                        # (true|false) If enabled unicode box-drawing characters will be replaced by standard ASCII characters
+#RETRIES=3                                # How many attempts to connect to running Cardano node before erroring out and quitting (0 for continuous retries)
+#PEER_LIST_CNT=10                         # Number of peers to show on each in/out page in peer analysis view
+#THEME="dark"                             # dark  = suited for terminals with a dark background
                                           # light = suited for terminals with a bright background
-#ENABLE_IP_GEOLOCATION="Y"                # Enable IP geolocation on outgoing and incoming connections using ip-api.com (default: Y)
+#ENABLE_IP_GEOLOCATION=Y                  # Enable IP geolocation on outgoing and incoming connections using ip-api.com (default: Y)
 #LATENCY_TOOLS="cncli|ss|tcptraceroute|ping" # Preferred latency check tool order, valid entries: cncli|ss|tcptraceroute|ping (must be separated by |)
 #CNCLI_CONNECT_ONLY=false                 # By default cncli measure full connect handshake duration. If set to false, only connect is measured similar to other tools
+#HIDE_DUPLICATE_IPS=N                     # If set to 'Y', duplicate and local IP's will be filtered out in peer analysis, else all connected peers are shown (default: N)
+#VERBOSE=N                                # Start in verbose mode showing additional metrics (default: N)
+#GLV_LOG="${LOG_DIR}/gLiveView.log"       # Log gLiveView errors, set empty to disable. LOG_DIR set in env file.
 
 #####################################
 # Themes                            #
 #####################################
 
 setTheme() {
-  if [[ ${THEME} = "dark" ]]; then
+  if [[ -z ${THEME} || ${THEME} = "dark" ]]; then
     style_title=${FG_MAGENTA}${BOLD}      # style of title
     style_base=${FG_WHITE}                # default color for text and lines
     style_values_1=${FG_LBLUE}            # color of most live values
@@ -51,6 +55,7 @@ setTheme() {
     myExit 1 "Please specify a valid THEME name!"
   fi
 }
+
 #HIDE_DUPLICATE_IPS="N"                   # If set to 'Y', duplicate and local IP's will be filtered out in peer analysis, else all connected peers are shown (default: N)
 #REPAINT_RATE=10                          # Re-paint entire screen every nth REFRESH_RATE. Complete re-paint can make screen flicker, hence not done for every update
 #VERBOSE=N                                # Start in verbose mode showing additional metrics (default: N)
